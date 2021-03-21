@@ -19,7 +19,7 @@ const char *FRESULT_str(FRESULT i) {
         case FR_DENIED:
             return "Access denied due to prohibited access or directory full";
         case FR_EXIST:
-            return "Access denied due to prohibited access";
+            return "Access denied due to prohibited access (exists)";
         case FR_INVALID_OBJECT:
             return "The file/directory object is invalid";
         case FR_WRITE_PROTECTED:
@@ -27,7 +27,7 @@ const char *FRESULT_str(FRESULT i) {
         case FR_INVALID_DRIVE:
             return "The logical drive number is invalid";
         case FR_NOT_ENABLED:
-            return "The volume has no work area";
+            return "The volume has no work area (mount)";
         case FR_NO_FILESYSTEM:
             return "There is no valid FAT volume";
         case FR_MKFS_ABORTED:

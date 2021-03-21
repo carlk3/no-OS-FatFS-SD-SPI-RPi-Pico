@@ -80,7 +80,7 @@
 #include <stdio.h>
 
 //#define TRACE_PRINTF(fmt, args...)
-#define TRACE_PRINTF task_printf
+#define TRACE_PRINTF printf
 
 /* The number of bytes read/written to the example files at a time. */
 #define fsRAM_BUFFER_SIZE 				200
@@ -132,6 +132,9 @@ static const char *pcDirectory1 = "SUB1", *pcDirectory2 = "SUB2", *pcFullPath = 
 void vCreateAndVerifyExampleFiles( const char *pcMountPath )
 {
 	TRACE_PRINTF("%s(pcMountPath=%s)\n", __FUNCTION__, pcMountPath);
+
+	// Pretend mount path:
+	ff_mkdir(pcMountPath);
 
 	/* Create and verify a few example files using both line based and character
 	based reads and writes. */
@@ -242,7 +245,7 @@ char *pcRAMBuffer, *pcFileName;
 
 		/* Open the file for reading. */
 		pxFile = ff_fopen( pcFileName, "r" );
-        FF_PRINTF("FF_fopen(%s): %s (%d)\r\r\n", pcFileName, strerror(stdioGET_ERRNO()), -stdioGET_ERRNO());
+        FF_PRINTF("FF_fopen(%s): %s (%d)\r\r\n", pcFileName, strerror(errno), errno);
         
 		configASSERT( pxFile );
 
@@ -302,7 +305,7 @@ char *pcRAMBuffer, *pcFileName;
 	/* Move into the created sub-directory. */
 	iReturn = ff_chdir( pcDirectory1 );
     if (iReturn != pdFREERTOS_ERRNO_NONE) {
-	    FF_PRINTF("ff_chdir error: %s (%d)\n", strerror(stdioGET_ERRNO()), -stdioGET_ERRNO());                
+	    FF_PRINTF("ff_chdir error: %s (%d)\n", strerror(errno), errno);                
 	    configASSERT( iReturn == pdFREERTOS_ERRNO_NONE );
     }
 	/* Obtain and print out the working directory. */
@@ -403,6 +406,9 @@ char *pcRAMBuffer, *pcFileName;
 	for( iByte = 0; iByte < fsPUTC_FILE_SIZE; iByte++ )
 	{
 		iReturned = ff_fgetc( pxFile );
+		if (iReturned !=  ( ( int ) '0' + iByte )) {
+			TRACE_PRINTF("iReturned=%d, ( ( int ) '0' + iByte ))=%d\n", iReturned, ( ( int ) '0' + iByte ));
+		}
 		configASSERT( iReturned ==  ( ( int ) '0' + iByte ) );
 	}
 

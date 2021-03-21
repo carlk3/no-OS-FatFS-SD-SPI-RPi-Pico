@@ -5,7 +5,7 @@
 #include <stdlib.h>
 //
 #include "ff.h"
-#include "ff_util.h"
+#include "f_util.h"
 
 // Maximum number of elements in buffer
 #define BUFFER_MAX_LEN 10
@@ -15,11 +15,15 @@ void ls() {
 
     FRESULT fr; /* Return value */
     fr = f_getcwd(pcWriteBuffer, sizeof pcWriteBuffer);
+    if (FR_OK != fr) {
+        printf("f_getcwd error: %s (%d)\n", FRESULT_str(fr), fr);
+        return;
+    }
     printf("Directory Listing: %s\n", pcWriteBuffer);
 
     DIR dj;      /* Directory object */
     FILINFO fno; /* File information */
-    fr = f_findfirst(&dj, &fno, "", "");
+    fr = f_findfirst(&dj, &fno, pcWriteBuffer, "*");
     if (FR_OK != fr) {
         printf("f_findfirst error: %s (%d)\n", FRESULT_str(fr), fr);
         return;

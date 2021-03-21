@@ -59,8 +59,8 @@ void time_init() {
     rtc_init();
     {
         datetime_t t = {0, 0, 0, 0, 0, 0, 0};
-        bool rc = rtc_get_datetime(&t);
-        if (!rc && rtc_save.datetime.year) {
+        rtc_get_datetime(&t);
+        if (!t.year && rtc_save.datetime.year) {
             uint32_t xor_checksum = calculate_checksum(
                 (uint32_t *)&rtc_save, offsetof(rtc_save_t, checksum));
             if (rtc_save.signature == 0xBABEBABE &&

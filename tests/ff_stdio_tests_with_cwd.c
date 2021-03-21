@@ -73,9 +73,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-/* FreeRTOS includes. */
-#include "FreeRTOS.h"
-
 /* FreeRTOS+FAT headers. */
 #include "ff_headers.h"
 #include "ff_stdio.h"
@@ -93,7 +90,7 @@ multiple tasks simultaneously. */
 
 //#include "hardware/gpio.h" //DEBUG
 //#define TRACE_PRINTF(fmt, args...)
-#define TRACE_PRINTF task_printf
+#define TRACE_PRINTF printf
 
 /*
  * Examples and basic tests of the ff_truncate() function.
@@ -159,19 +156,19 @@ void vStdioWithCWDTest( const char *pcMountPath )
 	/* Must come after the prvCreateDemoFilesUsing_fwrite() and
 	prvCreateDemoFileUsing_fputc() functions as it expects the files created by
 	those functions to exist. */
-    vTaskDelay(rand() % 500);            
+                
 	prvTest_ff_findfirst_ff_findnext_ff_findclose( pcMountPath );
-    vTaskDelay(rand() % 500);        
+            
 	prvTest_ff_truncate( pcMountPath );
-    vTaskDelay(rand() % 500);        
+            
 	prvTest_ff_fmkdir_ff_chdir_ff_rmdir( pcMountPath );
-    vTaskDelay(rand() % 500);        
+            
 	prvTest_ff_fopen( pcMountPath );
-    vTaskDelay(rand() % 500);        
+            
 	prvTest_ff_rename( pcMountPath );
-    vTaskDelay(rand() % 500);        
+            
 	prvAlignmentReadWriteTests( pcMountPath );
-    vTaskDelay(rand() % 500);        
+            
 	prvTest_ff_fseek_ff_rewind( pcMountPath );
 
 	#if( ffconfigFPRINTF_SUPPORT == 1 )
@@ -184,6 +181,8 @@ void vStdioWithCWDTest( const char *pcMountPath )
 
 static void prvTest_ff_fmkdir_ff_chdir_ff_rmdir( const char *pcMountPath )
 {
+		TRACE_PRINTF("%s(pcMountPath=%s)\n", __FUNCTION__, pcMountPath);
+
 int iReturned;
 char *pcRAMBuffer, *pcFileName;
 
@@ -314,7 +313,7 @@ char *pcRAMBuffer, *pcFileName;
 		/* Open a test file for writing. */
 		pxFile = ff_fopen( pcTestFileName, "w+" );
         if (!pxFile) {
-    		FF_PRINTF("ff_fopen error: %s (%d)\n", strerror(stdioGET_ERRNO()), -stdioGET_ERRNO());            
+    		FF_PRINTF("ff_fopen error: %s (%d)\n", strerror(errno), errno);            
 		    configASSERT( pxFile );
         }
 		/* Write the strings to the file. */
@@ -402,6 +401,8 @@ char *pcRAMBuffer, *pcFileName;
 
 static void prvTest_ff_fseek_ff_rewind( const char *pcMountPath )
 {
+		TRACE_PRINTF("%s(pcMountPath=%s)\n", __FUNCTION__, pcMountPath);
+
 FF_FILE *pxFile;
 int iReturned;
 const size_t xFileSize = 7776UL;
@@ -493,14 +494,15 @@ uint32_t x, y;
 
 static void prvTest_ff_findfirst_ff_findnext_ff_findclose( const char* pcMountPath )
 {
+	TRACE_PRINTF("%s(pcMountPath=%s)\n", __FUNCTION__, pcMountPath);
 int iReturned;
 size_t i;
-uint8_t ucFoundFiles[ 8 ];
+uint8_t ucFoundFiles[ 6 ];
 FF_FindData_t *pxFindStruct = NULL;
 const char *pcExpectedRootFiles[] =
 {
-	".",
-	"..",
+	//".",
+	//"..",
 	"SUB1",
 	"root001.txt",
 	"root002.txt",
@@ -511,8 +513,8 @@ const char *pcExpectedRootFiles[] =
 
 const char *pcExpectedSUB1Files[] =
 {
-	".",
-	"..",
+	//".",
+	//"..",
 	"SUB2",
 };
 
@@ -602,6 +604,8 @@ const char *pcExpectedSUB1Files[] =
 
 static void prvTest_ff_truncate( const char *pcMountPath )
 {
+		TRACE_PRINTF("%s(pcMountPath=%s)\n", __FUNCTION__, pcMountPath);
+
 int iReturned, x;
 FF_FILE *pxFile;
 /*_RB_ Cannot have / on end due to ff_findfirst() being using if ff_stat().  The
@@ -764,6 +768,8 @@ int cChar;
 
 static void prvAlignmentReadWriteTests( const char *pcMountPath )
 {
+		TRACE_PRINTF("%s(pcMountPath=%s)\n", __FUNCTION__, pcMountPath);
+
 const char cOverflowCheckByte = 0xc5;
 const size_t xSizeIncrement = 37U;
 const size_t xSectorSize = 512U;
@@ -944,6 +950,8 @@ int iReturned, iExpectedReturn;
 
 static void prvTest_ff_rename( const char *pcMountPath )
 {
+		TRACE_PRINTF("%s(pcMountPath=%s)\n", __FUNCTION__, pcMountPath);
+
 FF_FILE *pxFile;
 int iReturned;
 const char *pcStringToWrite = "This string is written to the file\n";
@@ -1000,7 +1008,7 @@ char cReadBuffer[ 45 ];
 
 	iReturned = ff_rename( "source.txt", "../destination_dir/destination.txt", pdFALSE );
 	if (iReturned != pdFREERTOS_ERRNO_NONE) {
-		FF_PRINTF("ff_rename error: %s (%d)\n", strerror(stdioGET_ERRNO()), -stdioGET_ERRNO());
+		FF_PRINTF("ff_rename error: %s (%d)\n", strerror(errno), errno);
 	    configASSERT( iReturned == pdFREERTOS_ERRNO_NONE );
 	}
 
@@ -1044,6 +1052,8 @@ char cReadBuffer[ 45 ];
 
 static void prvTest_ff_fopen( const char *pcMountPath )
 {
+		TRACE_PRINTF("%s(pcMountPath=%s)\n", __FUNCTION__, pcMountPath);
+
 FF_FILE *pxFile;
 FF_Stat_t xStat;
 size_t xReturned, xByte;
@@ -1164,61 +1174,5 @@ char *pcRAMBuffer, *pcFileName;
 
 	vPortFree( pcRAMBuffer );
 	vPortFree( pcFileName );
-}
-/*-----------------------------------------------------------*/
-
-void vMultiTaskStdioWithCWDTest( const char *const pcMountPath, uint16_t usStackSizeWords )
-{
-	TRACE_PRINTF("%s(pcMountPath=%s, usStackSizeWords=%hu)\n", __FUNCTION__, pcMountPath, usStackSizeWords);
-
-// Allocate on heap to allow more than one instance of this test to run
-typedef char cDirName_t[20];
-cDirName_t *cDirName = pvPortMalloc(fsTASKS_TO_CREATE * sizeof(cDirName_t));
-
-/* Create a set of tasks that also create, check and delete files.  These
-are left running as an ad hoc test of multiple tasks accessing the file
-system simultaneously. */
-for (size_t x = 0; x < fsTASKS_TO_CREATE; x++) {
-    snprintf(&(cDirName[x][0]), sizeof(cDirName_t), "%s/%d", pcMountPath, x);
-    char cTaskName[configMAX_TASK_NAME_LEN];
-    snprintf(cTaskName, sizeof(cTaskName), "FS%zu", x);
-    xTaskCreate(prvFileSystemAccessTask, cTaskName,
-                usStackSizeWords, /* Not used with the Windows port. */
-                (void *)&(cDirName[x][0]), tskIDLE_PRIORITY + 1, NULL);
-	}
-}
-/*-----------------------------------------------------------*/
-
-extern bool die_now;
-
-static void prvFileSystemAccessTask( void *pvParameters )
-{
-		TRACE_PRINTF("%s()\n", __FUNCTION__);
-
-extern void vCreateAndVerifyExampleFiles( const char *pcMountPath );
-const char * const pcBasePath = ( char * ) pvParameters;
-
-	for( ;; )
-	{
-        FF_PRINTF("Task %p, %s, %s\n", xTaskGetCurrentTaskHandle(),
-            pcTaskGetName(xTaskGetCurrentTaskHandle()), pcBasePath);
-        fflush(stdout);
-        
-		/* Create the directory used as a base by this instance of this task. */
-		ff_mkdir( pcBasePath );
-
-		/* Create a few example files on the disk. */
-		vCreateAndVerifyExampleFiles( pcBasePath );
-
-		/* A few sanity checks only - can only be called after
-		vCreateAndVerifyExampleFiles(). */
-		vStdioWithCWDTest( pcBasePath );
-
-		/* Remove the base directory again, ready for another loop. */
-		ff_deltree( pcBasePath );
-        
-        if (die_now)
-            vTaskDelete(NULL);
-       	}
 }
 /*-----------------------------------------------------------*/

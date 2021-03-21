@@ -9,22 +9,21 @@
  *
  * ========================================
  */
+#include <errno.h>
 #include <limits.h>
+#include <stddef.h>
 #include <stdint.h>
-
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+//
+#include "pico/stdlib.h"
+//
 #include "ff_headers.h"
 #include "ff_stdio.h"
 
 #define FF_MAX_SS 512
 #define BUFFSZ 8 * 1024
-
-#undef assert
-#define assert configASSERT
-#define fopen ff_fopen
-#define fwrite ff_fwrite
-#define fread ff_fread
-#define fclose ff_fclose
-#define errno stdioGET_ERRNO()
 
 typedef uint32_t DWORD;
 typedef unsigned int UINT;
@@ -58,13 +57,13 @@ static void create_big_file(const char *const pathname, size_t size,
     //    DWORD buff[FF_MAX_SS];  /* Working buffer (4 sector in size) */
     size_t bufsz = size < BUFFSZ ? size : BUFFSZ;
     assert(0 == size % bufsz);
-    DWORD *buff = pvPortMalloc(bufsz);
-    configASSERT(buff);
+    DWORD *buff = malloc(bufsz);
+    assert(buff);
 
     pn(seed);  // See pseudo-random number generator
 
     printf("Writing...\n");
-    TickType_t xStart = xTaskGetTickCount();
+    absolute_time_t xStart = get_absolute_time();
 
     /* Open the file, creating the file if it does not already exist. */
     FF_Stat_t xStat;
@@ -87,33 +86,34 @@ static void create_big_file(const char *const pathname, size_t size,
     //    printf("ff_truncate: elapsed seconds %lu\n", (unsigned
     //    long)(xTaskGetTickCount() - xStart)/configTICK_RATE_HZ);
     if (!pxFile)
-        printf("ff_fopen(%s): %s (%d)\n", pathname, strerror(errno), -errno);
+        printf("ff_fopen(%s): %s (%d)\n", pathname, strerror(errno), errno);
     assert(pxFile);
     //    // ff_rewind(pxFile);
     //    int ec = ff_fseek( pxFile, 0, FF_SEEK_SET );
     //    if (ec)
     //		printf("ff_fseek(%s): %s (%d)\n", pathname, strerror(errno),
-    //-errno);
+    //errno);
 
     //    int rc = FFReserve(pxFile, size/FF_MAX_SS);
-    //    configASSERT(!rc);
+    //    assert(!rc);
 
     size_t i;
     for (i = 0; i < size / bufsz; ++i) {
         size_t n;
         for (n = 0; n < bufsz / sizeof(DWORD); n++) buff[n] = pn(0);
-        lItems = fwrite(buff, bufsz, 1, pxFile);
+        lItems = ff_fwrite(buff, bufsz, 1, pxFile);
         if (lItems < 1)
-            printf("fwrite(%s): %s (%d)\n", pathname, strerror(errno), -errno);
+            printf("fwrite(%s): %s (%d)\n", pathname, strerror(errno), errno);
         assert(lItems == 1);
     }
-    vPortFree(buff);
+    free(buff);
     /* Close the file. */
-    fclose(pxFile);
-    long unsigned elapsed =
-        (unsigned long)(xTaskGetTickCount() - xStart) / configTICK_RATE_HZ;
-    printf("Elapsed seconds %lu\n", elapsed);
-    printf("Transfer rate %lu KiB/s\n", size / elapsed / 1024);
+    ff_fclose(pxFile);
+
+    int64_t elapsed_us = absolute_time_diff_us(xStart, get_absolute_time());
+    float elapsed = elapsed_us / 1E6;
+    printf("Elapsed seconds %.1f\n", elapsed);
+    printf("Transfer rate %.1f KiB/s\n", (double)size / elapsed / 1024);
 }
 
 // Read a file of size "size" bytes filled with random data seeded with "seed"
@@ -127,25 +127,28 @@ static void check_big_file(const char *const pathname, size_t size,
     //	assert(0 == size % sizeof(buff));
     size_t bufsz = size < BUFFSZ ? size : BUFFSZ;
     assert(0 == size % bufsz);
-    DWORD *buff = pvPortMalloc(bufsz);
-    configASSERT(buff);
+    DWORD *buff = malloc(bufsz);
+    assert(buff);
 
     pn(seed);
 
+    // FRESULT fc = f_open(&f, "numbers.txt", FA_READ | FA_WRITE);
+    // if (FR_OK != fc) printf("f_open error: %s (%d)\n", FRESULT_str(fc), fc);
+
     /* Open the file, creating the file if it does not already exist. */
-    pxFile = fopen(pathname, "r");
+    pxFile = ff_fopen(pathname, "r");
     if (!pxFile)
-        printf("fopen(%s): %s (%d)\n", pathname, strerror(errno), -errno);
+        printf("ff_fopen(%s): %s (%d)\n", pathname, strerror(errno), errno);
     assert(pxFile);
 
     printf("Reading...\n");
-    TickType_t xStart = xTaskGetTickCount();
+    absolute_time_t xStart = get_absolute_time();
 
     size_t i;
     for (i = 0; i < size / bufsz; ++i) {
-        lItems = fread(buff, bufsz, 1, pxFile);
+        lItems = ff_fread(buff, bufsz, 1, pxFile);
         if (lItems < 1)
-            printf("fread(%s): %s (%d)\n", pathname, strerror(errno), -errno);
+            printf("ff_fread(%s): %s (%d)\n", pathname, strerror(errno), errno);
         assert(lItems == 1);
 
         /* Check the buffer is filled with the expected data. */
@@ -158,13 +161,14 @@ static void check_big_file(const char *const pathname, size_t size,
                        (i * sizeof(buff)) + n, expected, val);
         }
     }
-    vPortFree(buff);
+    free(buff);
     /* Close the file. */
-    fclose(pxFile);
-    long unsigned elapsed =
-        (unsigned long)(xTaskGetTickCount() - xStart) / configTICK_RATE_HZ;
-    printf("Elapsed seconds %lu\n", elapsed);
-    printf("Transfer rate %lu KiB/s\n", size / elapsed / 1024);
+    ff_fclose(pxFile);
+
+    int64_t elapsed_us = absolute_time_diff_us(xStart, get_absolute_time());
+    float elapsed = elapsed_us / 1E6;
+    printf("Elapsed seconds %.1f\n", elapsed);
+    printf("Transfer rate %.1f KiB/s\n", (double)size / elapsed / 1024);
 }
 
 // Create a file of size "size" bytes filled with random data seeded with "seed"
@@ -175,19 +179,19 @@ void create_big_file_v1(const char *const pathname, size_t size,
     FF_FILE *pxFile;
     int val;
 
-    configASSERT(0 == size % sizeof(int));
+    assert(0 == size % sizeof(int));
 
     srand(seed);
 
     /* Open the file, creating the file if it does not already exist. */
     pxFile = ff_fopen(pathname, "w");
     if (!pxFile)
-        printf("ff_fopen(%s): %s (%d)\n", pathname, strerror(stdioGET_ERRNO()),
-               -stdioGET_ERRNO());
-    configASSERT(pxFile);
+        printf("ff_fopen(%s): %s (%d)\n", pathname,
+               strerror(errno), errno);
+    assert(pxFile);
 
     printf("Writing...\n");
-    TickType_t xStart = xTaskGetTickCount();
+    absolute_time_t xStart = get_absolute_time();
 
     size_t i;
     for (i = 0; i < size / sizeof(val); ++i) {
@@ -195,13 +199,15 @@ void create_big_file_v1(const char *const pathname, size_t size,
         lItems = ff_fwrite(&val, sizeof(val), 1, pxFile);
         if (lItems < 1)
             printf("ff_fwrite(%s): %s (%d)\n", pathname,
-                   strerror(stdioGET_ERRNO()), -stdioGET_ERRNO());
-        configASSERT(lItems == 1);
+                   strerror(errno), errno);
+        assert(lItems == 1);
     }
     /* Close the file. */
     ff_fclose(pxFile);
-    printf("Elapsed seconds %lu\n",
-           (unsigned long)(xTaskGetTickCount() - xStart) / configTICK_RATE_HZ);
+
+    int64_t elapsed_us = absolute_time_diff_us(xStart, get_absolute_time());
+    float elapsed = elapsed_us / 1E6;
+    printf("Elapsed seconds %.1f\n", elapsed);
 }
 
 // Read a file of size "size" bytes filled with random data seeded with "seed"
@@ -211,19 +217,19 @@ void check_big_file_v1(const char *const pathname, size_t size, uint32_t seed) {
     int32_t lItems;
     FF_FILE *pxFile;
 
-    configASSERT(0 == size % sizeof(int));
+    assert(0 == size % sizeof(int));
 
     srand(seed);
 
     /* Open the file, creating the file if it does not already exist. */
     pxFile = ff_fopen(pathname, "r");
     if (!pxFile)
-        printf("ff_fopen(%s): %s (%d)\n", pathname, strerror(stdioGET_ERRNO()),
-               -stdioGET_ERRNO());
-    configASSERT(pxFile);
+        printf("ff_fopen(%s): %s (%d)\n", pathname,
+               strerror(errno), errno);
+    assert(pxFile);
 
     printf("Reading...\n");
-    TickType_t xStart = xTaskGetTickCount();
+    absolute_time_t xStart = get_absolute_time();
 
     size_t i;
     int val;
@@ -231,8 +237,8 @@ void check_big_file_v1(const char *const pathname, size_t size, uint32_t seed) {
         lItems = ff_fread(&val, sizeof(val), 1, pxFile);
         if (lItems < 1)
             printf("ff_fread(%s): %s (%d)\n", pathname,
-                   strerror(stdioGET_ERRNO()), -stdioGET_ERRNO());
-        configASSERT(lItems == 1);
+                   strerror(errno), errno);
+        assert(lItems == 1);
 
         /* Check the buffer is filled with the expected data. */
         int expected = rand();
@@ -242,8 +248,10 @@ void check_big_file_v1(const char *const pathname, size_t size, uint32_t seed) {
     }
     /* Close the file. */
     ff_fclose(pxFile);
-    printf("Elapsed seconds %lu\n",
-           (unsigned long)(xTaskGetTickCount() - xStart) / configTICK_RATE_HZ);
+
+    int64_t elapsed_us = absolute_time_diff_us(xStart, get_absolute_time());
+    float elapsed = elapsed_us / 1E6;
+    printf("Elapsed seconds %.1f\n", elapsed);
 }
 
 void big_file_test(const char *const pathname, size_t size, uint32_t seed) {
@@ -252,7 +260,7 @@ void big_file_test(const char *const pathname, size_t size, uint32_t seed) {
     /*
         char pcBuffer[8];
         FF_FILE *pxFile = ff_truncate(pathname, sizeof(pcBuffer));
-        configASSERT(pxFile);
+        assert(pxFile);
         ff_rewind(pxFile);
         size_t i;
         for (i = 0; i < sizeof(pcBuffer); ++i) {

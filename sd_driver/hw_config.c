@@ -39,8 +39,8 @@ static spi_t spi[] = {  // One for each SPI.
         .miso_gpio = 19,
         .mosi_gpio = 16,
         .sck_gpio = 18,
-        .baud_rate = 1000 * 1000,  //DEBUG
-        //.baud_rate = 12500 * 1000,  // The limitation here is SPI slew rate.
+        //.baud_rate = 1000 * 1000,  //DEBUG
+        .baud_rate = 12500 * 1000,  // The limitation here is SPI slew rate.
         //.baud_rate = 25 * 1000 * 1000, // Actual frequency: 20833333. Has
         // worked for me.
 

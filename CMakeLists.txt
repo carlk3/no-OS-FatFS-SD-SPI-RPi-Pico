@@ -16,8 +16,12 @@ pico_sdk_init()
 # Add executable. Default name is the project name, version 0.1
 add_executable(no-OS-FatFS 
     no-OS-FatFS.c 
+    data_log_demo.c
     tests/simple.c
     tests/app4-IO_module_function_checker.c
+    tests/big_file_test.c
+    tests/CreateAndVerifyExampleFiles.c
+    tests/ff_stdio_tests_with_cwd.c
 )
 # Add the standard library to the build
 target_link_libraries(no-OS-FatFS pico_stdlib)
@@ -28,7 +32,6 @@ target_compile_definitions(no-OS-FatFS  PUBLIC DEBUG)
 target_include_directories(no-OS-FatFS PUBLIC
     ff14a/source
     sd_driver
-    #tests
     include
 )
 
@@ -50,7 +53,8 @@ add_library(FatFs_SPI STATIC
     sd_driver/crc.c
     sd_driver/my_debug.c
     src/glue.c
-    src/ff_util.c
+    src/f_util.c
+    src/ff_stdio.c
     src/my_debug.c
     src/rtc.c
 )
@@ -62,17 +66,16 @@ target_include_directories(FatFs_SPI PUBLIC
 target_link_libraries(FatFs_SPI pico_stdlib )
 
 target_link_libraries(FatFs_SPI
-        pico_multicore
         hardware_spi
         hardware_dma
-        hardware_clocks
         hardware_rtc
         pico_stdlib
 )
 
-target_link_libraries(no-OS-FatFS 
+target_link_libraries(no-OS-FatFS
     FatFs_SPI
-    hardware_rtc
+    hardware_clocks
+    hardware_adc
 )
 
 pico_add_extra_outputs(no-OS-FatFS)
