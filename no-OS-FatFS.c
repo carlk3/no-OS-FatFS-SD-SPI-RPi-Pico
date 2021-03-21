@@ -231,7 +231,7 @@ static cmd_def_t cmds[] = {
     },
     {"unmount", run_unmount,
      "unmount <drive#:>:\n"
-     "  Unregister the work area of the volume\n"},
+     "  Unregister the work area of the volume"},
     {"cd", run_cd,
      "cd <path>:\n"
      "  Changes the current directory of the logical drive. Also, the current "

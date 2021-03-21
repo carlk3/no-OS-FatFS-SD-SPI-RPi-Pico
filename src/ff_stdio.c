@@ -13,8 +13,8 @@
 
 bool tracing = true;
 
-//#define TRACE_PRINTF(fmt, args...)
-#define TRACE_PRINTF printf
+#define TRACE_PRINTF(fmt, args...)
+//#define TRACE_PRINTF printf
 
 static BYTE posix2mode(const char *pcMode) {
     if (0 == strcmp("r", pcMode)) return FA_READ;
