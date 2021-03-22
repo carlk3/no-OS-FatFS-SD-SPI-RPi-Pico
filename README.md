@@ -18,7 +18,7 @@ It is wrapped up in a complete runnable project, with a little command line inte
 * Plus all the neat features provided by [FatFS](http://elm-chan.org/fsw/ff/00index_e.html)
 
 ## Performance
-Writing and reading a file of 0xC0000000 (3,221,225,472) random bytes (3 GiB) on a SanDisk 32GB card with SPI baud rate 12,500,000:
+Using a Debug build: Writing and reading a file of 0xC0000000 (3,221,225,472) random bytes (3 GiB) on a SanDisk 32GB card with SPI baud rate 12,500,000:
 * Writing
   * Elapsed seconds 4113.8
   * Transfer rate 764.7 KiB/s
