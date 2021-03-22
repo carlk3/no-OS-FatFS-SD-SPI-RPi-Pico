@@ -27,7 +27,7 @@ add_executable(no-OS-FatFS
 target_link_libraries(no-OS-FatFS pico_stdlib)
 
 target_compile_options(no-OS-FatFS PUBLIC -Wall -Wextra -Wno-unused-function -Wno-unused-parameter)
-target_compile_definitions(no-OS-FatFS  PUBLIC DEBUG)
+target_compile_definitions(no-OS-FatFS PUBLIC DEBUG)
 
 target_include_directories(no-OS-FatFS PUBLIC
     ff14a/source

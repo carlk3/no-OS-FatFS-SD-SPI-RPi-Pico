@@ -13,8 +13,8 @@
 
 bool tracing = true;
 
-#define TRACE_PRINTF(fmt, args...)
-//#define TRACE_PRINTF printf
+//#define TRACE_PRINTF(fmt, args...)
+#define TRACE_PRINTF printf
 
 static BYTE posix2mode(const char *pcMode) {
     if (0 == strcmp("r", pcMode)) return FA_READ;
@@ -307,7 +307,7 @@ int ff_fseek(FF_FILE *pxStream, int iOffset, int iWhence) {
         return -1;
 }
 int ff_findfirst(const char *pcDirectory, FF_FindData_t *pxFindData) {
-    TRACE_PRINTF("%s\n", __func__);
+    TRACE_PRINTF("%s(%s)\n", __func__, pcDirectory);    
     // FRESULT f_findfirst (
     //  DIR* dp,              /* [OUT] Poninter to the directory object */
     //  FILINFO* fno,         /* [OUT] Pointer to the file information structure
@@ -315,25 +315,28 @@ int ff_findfirst(const char *pcDirectory, FF_FindData_t *pxFindData) {
     //  opened */ const TCHAR* pattern  /* [IN] Pointer to the matching pattern
     //  string */
     //);
-    char buf[ffconfigMAX_FILENAME];
-    if ('/' != pcDirectory[0]) {
-        FRESULT fr = f_getcwd(buf, sizeof buf);
+    char buf1[ffconfigMAX_FILENAME] = {0};
+    if (pcDirectory[0]) {
+        FRESULT fr = f_getcwd(buf1, sizeof buf1);
         errno = fresult2errno(fr);
         if (FR_OK != fr) return -1;
-        if (!pcDirectory[0]) {
-            pcDirectory = buf;
-        } else {
-            strncat(buf, "/", sizeof buf - 1);
-            strncat(buf, pcDirectory, sizeof buf - 1);
-            pcDirectory = buf;
-        }
+        fr = f_chdir(pcDirectory);
+        errno = fresult2errno(fr);
+        if (FR_OK != fr) return -1;
     }
-    TRACE_PRINTF("%s f_findfirst(%s)\n", __func__, pcDirectory);    
-    FRESULT fr = f_findfirst(&pxFindData->dir, &pxFindData->fileinfo, pcDirectory, "*");
+    char buf2[ffconfigMAX_FILENAME] = {0};
+    FRESULT fr = f_getcwd(buf2, sizeof buf2);
+    TRACE_PRINTF("%s: f_findfirst(path=%s)\n", __func__, buf2);
+    fr = f_findfirst(&pxFindData->dir, &pxFindData->fileinfo, buf2, "*");
     errno = fresult2errno(fr);
     pxFindData->pcFileName = pxFindData->fileinfo.fname;
     pxFindData->ulFileSize = pxFindData->fileinfo.fsize;
     if (tracing) printf("%s: fname=%s\n", __func__, pxFindData->fileinfo.fname);
+    if (pcDirectory[0]) {
+        FRESULT fr2 = f_chdir(buf1);
+        errno = fresult2errno(fr2);
+        if (FR_OK != fr2) return -1;
+    }
     if (FR_OK == fr)
         return 0;
     else

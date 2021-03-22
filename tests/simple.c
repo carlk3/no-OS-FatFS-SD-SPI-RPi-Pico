@@ -3,12 +3,16 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 //
 #include "ff.h"
 #include "f_util.h"
 
 // Maximum number of elements in buffer
 #define BUFFER_MAX_LEN 10
+
+#define TRACE_PRINTF(fmt, args...)
+//#define TRACE_PRINTF printf
 
 void ls() {
     char pcWriteBuffer[128] = {0};
@@ -23,6 +27,9 @@ void ls() {
 
     DIR dj;      /* Directory object */
     FILINFO fno; /* File information */
+    memset (&dj, 0, sizeof dj);
+    memset (&fno, 0, sizeof fno);
+    TRACE_PRINTF("%s: f_findfirst(path=%s)\n", __func__, pcWriteBuffer);
     fr = f_findfirst(&dj, &fno, pcWriteBuffer, "*");
     if (FR_OK != fr) {
         printf("f_findfirst error: %s (%d)\n", FRESULT_str(fr), fr);

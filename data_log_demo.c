@@ -52,7 +52,7 @@ static bool open_file(FIL *fp) {
     //  tm_mon	int	months since January	0-11
     //  tm_mday	int	day of the month	1-31
     n += snprintf(filename + n, sizeof filename - n, "/%04d-%02d-%02d",
-                 tmbuf.tm_year + 1900, tmbuf.tm_mon + 1, tmbuf.tm_mday);
+                  tmbuf.tm_year + 1900, tmbuf.tm_mon + 1, tmbuf.tm_mday);
     myASSERT(0 < n && n < (int)sizeof filename);
     fr = f_mkdir(filename);
     if (FR_OK != fr && FR_EXIST != fr) {
@@ -61,7 +61,7 @@ static bool open_file(FIL *fp) {
     }
     size_t nw = strftime(filename + n, sizeof filename - n, "/%H.csv", &tmbuf);
     myASSERT(nw);
-   fr = f_open(fp, filename, FA_OPEN_APPEND | FA_WRITE);
+    fr = f_open(fp, filename, FA_OPEN_APPEND | FA_WRITE);
     if (FR_OK != fr && FR_EXIST != fr) {
         printf("f_open(%s) error: %s (%d)\n", filename, FRESULT_str(fr), fr);
         return false;
@@ -73,7 +73,8 @@ static bool open_file(FIL *fp) {
 bool process_logger() {
     TRACE_PRINTF("%s\n", __func__);
     /* It's very inefficient to open and close the file for every record,
-    but you're less likely to lose data that way. */
+    but you're less likely to lose data that way.  But also see f_sync
+    (http://elm-chan.org/fsw/ff/doc/sync.html). */
     FIL fil;
     bool rc = open_file(&fil);
     if (!rc) return false;
