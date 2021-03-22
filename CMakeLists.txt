@@ -1,5 +1,3 @@
-# Generated Cmake Pico project file
-
 cmake_minimum_required(VERSION 3.13)
 
 # Pull in Pico SDK (must be before project)
@@ -27,13 +25,7 @@ add_executable(no-OS-FatFS
 target_link_libraries(no-OS-FatFS pico_stdlib)
 
 target_compile_options(no-OS-FatFS PUBLIC -Wall -Wextra -Wno-unused-function -Wno-unused-parameter)
-target_compile_definitions(no-OS-FatFS PUBLIC DEBUG)
-
-target_include_directories(no-OS-FatFS PUBLIC
-    ff14a/source
-    sd_driver
-    include
-)
+#target_compile_definitions(no-OS-FatFS PUBLIC DEBUG)
 
 pico_set_program_name(no-OS-FatFS "no-OS-FatFS")
 pico_set_program_version(no-OS-FatFS "0.1")
@@ -41,7 +33,8 @@ pico_set_program_version(no-OS-FatFS "0.1")
 pico_enable_stdio_uart(no-OS-FatFS 1)
 pico_enable_stdio_usb(no-OS-FatFS 0)
 
-add_library(FatFs_SPI STATIC
+add_library(FatFs_SPI INTERFACE)
+target_sources(FatFs_SPI INTERFACE
     ff14a/source/ffsystem.c
     ff14a/source/ffunicode.c
     ff14a/source/ff.c
@@ -58,14 +51,12 @@ add_library(FatFs_SPI STATIC
     src/my_debug.c
     src/rtc.c
 )
-target_include_directories(FatFs_SPI PUBLIC
+target_include_directories(FatFs_SPI INTERFACE
     ff14a/source
     sd_driver
     include
 )
-target_link_libraries(FatFs_SPI pico_stdlib )
-
-target_link_libraries(FatFs_SPI
+target_link_libraries(FatFs_SPI INTERFACE
         hardware_spi
         hardware_dma
         hardware_rtc

@@ -49,7 +49,7 @@ static DWORD pn(/* Pseudo random number generator */
 }
 
 // Create a file of size "size" bytes filled with random data seeded with "seed"
-static void create_big_file(const char *const pathname, size_t size,
+static bool create_big_file(const char *const pathname, size_t size,
                             unsigned seed) {
     int32_t lItems;
     FF_FILE *pxFile;
@@ -85,7 +85,7 @@ static void create_big_file(const char *const pathname, size_t size,
     //    pxFile = ff_truncate(pathname, size);
     if (!pxFile) {
         printf("ff_fopen(%s): %s (%d)\n", pathname, strerror(errno), errno);
-        return;
+        return false;
     }
     assert(pxFile);
 
@@ -104,8 +104,9 @@ static void create_big_file(const char *const pathname, size_t size,
 
     int64_t elapsed_us = absolute_time_diff_us(xStart, get_absolute_time());
     float elapsed = elapsed_us / 1E6;
-    printf("Elapsed seconds %.1f\n", elapsed);
-    printf("Transfer rate %.1f KiB/s\n", (double)size / elapsed / 1024);
+    printf("Elapsed seconds %.3g\n", elapsed);
+    printf("Transfer rate %.3g KiB/s\n", (double)size / elapsed / 1024);
+    return true;
 }
 
 // Read a file of size "size" bytes filled with random data seeded with "seed"
@@ -159,8 +160,8 @@ static void check_big_file(const char *const pathname, size_t size,
 
     int64_t elapsed_us = absolute_time_diff_us(xStart, get_absolute_time());
     float elapsed = elapsed_us / 1E6;
-    printf("Elapsed seconds %.1f\n", elapsed);
-    printf("Transfer rate %.1f KiB/s\n", (double)size / elapsed / 1024);
+    printf("Elapsed seconds %.3g\n", elapsed);
+    printf("Transfer rate %.3g KiB/s\n", (double)size / elapsed / 1024);
 }
 
 // Create a file of size "size" bytes filled with random data seeded with "seed"
@@ -198,7 +199,7 @@ void create_big_file_v1(const char *const pathname, size_t size,
 
     int64_t elapsed_us = absolute_time_diff_us(xStart, get_absolute_time());
     float elapsed = elapsed_us / 1E6;
-    printf("Elapsed seconds %.1f\n", elapsed);
+    printf("Elapsed seconds %.3g\n", elapsed);
 }
 
 // Read a file of size "size" bytes filled with random data seeded with "seed"
@@ -240,12 +241,12 @@ void check_big_file_v1(const char *const pathname, size_t size, uint32_t seed) {
 
     int64_t elapsed_us = absolute_time_diff_us(xStart, get_absolute_time());
     float elapsed = elapsed_us / 1E6;
-    printf("Elapsed seconds %.1f\n", elapsed);
+    printf("Elapsed seconds %.3g\n", elapsed);
 }
 
 void big_file_test(const char *const pathname, size_t size, uint32_t seed) {
-    create_big_file(pathname, size, seed);
-    check_big_file(pathname, size, seed);
+    if (create_big_file(pathname, size, seed)) 
+        check_big_file(pathname, size, seed);
 }
 
 /* [] END OF FILE */

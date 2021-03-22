@@ -13,8 +13,8 @@
 
 bool tracing = true;
 
-//#define TRACE_PRINTF(fmt, args...)
-#define TRACE_PRINTF printf
+#define TRACE_PRINTF(fmt, args...)
+//#define TRACE_PRINTF printf
 
 static BYTE posix2mode(const char *pcMode) {
     if (0 == strcmp("r", pcMode)) return FA_READ;
@@ -89,9 +89,12 @@ FF_FILE *ff_fopen(const char *pcFile, const char *pcMode) {
         return NULL;
     }
     FRESULT fr = f_open(fp, pcFile, posix2mode(pcMode));
-    if (tracing && FR_OK != fr)
-        printf("%s error: %s (%d)\n", __func__, FRESULT_str(fr), fr);
     errno = fresult2errno(fr);
+    if (FR_OK != fr) {
+        if (tracing)  printf("%s error: %s (%d)\n", __func__, FRESULT_str(fr), fr);
+        free(fp);
+        fp = 0;
+    }
     return fp;
 }
 int ff_fclose(FF_FILE *pxStream) {

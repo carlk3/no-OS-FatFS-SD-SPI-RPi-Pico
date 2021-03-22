@@ -5,8 +5,8 @@
 #include <string.h>
 #include <time.h>
 //
-#include "pico/stdlib.h"
 #include "hardware/adc.h"
+#include "pico/stdlib.h"
 //
 #include "f_util.h"
 #include "ff.h"
@@ -97,33 +97,40 @@ static void run_date() {
 }
 static void run_format() {
     char *arg1 = strtok(NULL, " ");
-    if (!arg1) {
-        printf("Missing argument\n");
-        return;
-    }
+    if (!arg1) arg1 = "";
     /* Format the drive with default parameters */
     FRESULT fr = f_mkfs(arg1, 0, 0, FF_MAX_SS * 2);
     if (FR_OK != fr) printf("f_mkfs error: %s (%d)\n", FRESULT_str(fr), fr);
 }
 static void run_mount() {
     char *arg1 = strtok(NULL, " ");
-    if (!arg1) {
-        // printf("Missing argument\n");
-        // return;
-        arg1 = "";
-    }
+    if (!arg1) arg1 = "";
     FRESULT fr = f_mount(&fs, arg1, 1);
     if (FR_OK != fr) printf("f_mount error: %s (%d)\n", FRESULT_str(fr), fr);
 }
 static void run_unmount() {
     char *arg1 = strtok(NULL, " ");
-    if (!arg1) {
-        // printf("Missing argument\n");
-        // return;
-        arg1 = "";
-    }
+    if (!arg1) arg1 = "";
     FRESULT fr = f_unmount(arg1);
     if (FR_OK != fr) printf("f_mount error: %s (%d)\n", FRESULT_str(fr), fr);
+}
+static void run_getfree() {
+    char *arg1 = strtok(NULL, " ");
+    if (!arg1) arg1 = "";
+    DWORD fre_clust, fre_sect, tot_sect;
+    /* Get volume information and free clusters of drive */
+    FATFS *p_fatfs = &fs;
+    FRESULT fr = f_getfree(arg1, &fre_clust, &p_fatfs);
+    if (FR_OK != fr) {
+        printf("f_getfree error: %s (%d)\n", FRESULT_str(fr), fr);
+        return;
+    }
+    /* Get total sectors and free sectors */
+    tot_sect = (p_fatfs->n_fatent - 2) * p_fatfs->csize;
+    fre_sect = fre_clust * p_fatfs->csize;
+    /* Print the free space (assuming 512 bytes/sector) */
+    printf("%10lu KiB total drive space.\n%10lu KiB available.\n", tot_sect / 2,
+           fre_sect / 2);
 }
 static void run_cd() {
     char *arg1 = strtok(NULL, " ");
@@ -218,16 +225,22 @@ static cmd_def_t cmds[] = {
     {
         "format",
         run_format,
-        "format <drive#:>:\n"
+        "format [<drive#:>]:\n"
         "  Creates an FAT/exFAT volume on the logical drive.\n"
         "\te.g.: format 0:",
     },
     {
         "mount",
         run_mount,
-        "mount <drive#:>:\n"
+        "mount [<drive#:>]:\n"
         "  Register the work area of the volume\n"
-        "\te.g.: mount 0:",
+        "\te.g.: mount 0:"
+    },
+    {
+        "getfree",
+        run_getfree,
+        "getfree [<drive#:>]:\n"
+        "  Print the free space on drive"
     },
     {"unmount", run_unmount,
      "unmount <drive#:>:\n"
