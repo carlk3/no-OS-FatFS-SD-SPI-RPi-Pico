@@ -17,6 +17,17 @@ It is wrapped up in a complete runnable project, with a little command line inte
 * Supports Cyclic Redundancy Check (CRC)
 * Plus all the neat features provided by [FatFS](http://elm-chan.org/fsw/ff/00index_e.html)
 
+## Performance
+Using a Debug build: Writing and reading a file of 0xC0000000 (3,221,225,472) random bytes (3 GiB) on a SanDisk 32GB card with SPI baud rate 12,500,000:
+* Writing
+  * Elapsed seconds 4113.8
+  * Transfer rate 764.7 KiB/s
+* Reading (and verifying)
+  * Elapsed seconds 3396.9
+  * Transfer rate 926.1 KiB/s
+
+I have been able to push the SPI baud rate as far as 20,833,333 which increases the transfer speed proportionately (but SDIO would be faster!).
+
 ## Prerequisites:
 * Raspberry Pi Pico
 * Something like the [SparkFun microSD Transflash Breakout](https://www.sparkfun.com/products/544)
