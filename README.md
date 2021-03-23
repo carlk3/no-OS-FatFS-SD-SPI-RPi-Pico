@@ -52,7 +52,7 @@ I have been able to push the SPI baud rate as far as 20,833,333 which increases 
 * The wiring is so simple that I didn't bother with a schematic. 
 I just referred to the table above, wiring point-to-point from the Pin column on the Pico to the MicroSD 0 column on the Transflash.
 * You can choose to use either or both of the Pico's SPIs.
-* To add a second SD card on the same SPI, connect it in parallel, except that it will need a unique GPIO for the Card Select/Slave Select (CSn).
+* To add a second SD card on the same SPI, connect it in parallel, except that it will need a unique GPIO for the Card Select/Slave Select (CSn) and another for Card Detect (CD).
 * Wires should be kept short and direct. SPI operates at HF radio frequencies.
 
 ## Firmware:
