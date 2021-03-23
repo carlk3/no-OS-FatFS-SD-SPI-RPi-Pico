@@ -36,7 +36,7 @@ I have been able to push the SPI baud rate as far as 20,833,333 which increases 
 
 ![image](https://github.com/carlk3/FreeRTOS-FAT-CLI-for-RPi-Pico/blob/master/images/IMG_1478.JPG "Prototype")
 
-![image](https://www.raspberrypi.org/documentation/rp2040/getting-started/static/15243f1ffd3b8ee646a1708bf4c0e866/Pico-R3-Pinout.svg "Pinout")
+![image](https://www.raspberrypi.org/documentation/rp2040/getting-started/static/64b50c4316a7aefef66290dcdecda8be/Pico-R3-SDK11-Pinout.svg "Pinout")
 
 |	    | SPI0 | GPIO | Pin   | SPI	     | MicroSD 0 |
 | --- | ---- | ---- | ---   | -------- | --------- |
