@@ -147,13 +147,14 @@
  */
 
 /* Standard includes. */
-#include "sd_card.h"
-
 #include <inttypes.h>
 #include <string.h>
-
+//
 #include "my_debug.h"
+#include "hw_config.h" // Hardware Configuration of the SPI and SD Card "objects"
 #include "sd_spi.h"
+//
+#include "sd_card.h"
 
 #define SD_CRC_ENABLED 1
 
@@ -162,21 +163,20 @@
 static bool crc_on = true;
 #endif
 
-// Hardware Configuration of the SPI and SD Card "objects"
-#include "hw_config.h"
-
 #define TRACE_PRINTF(fmt, args...)
-//#define TRACE_PRINTF task_printf
+//#define TRACE_PRINTF printf
 
 #define TRC_PR_ADD(fmt, args...)
 //#define TRC_PR_ADD printf
 
 #define TRACE_PRINTF2(fmt, args...)
-//#define TRACE_PRINTF2(format, ...)        \
-//    {                                     \
-//        printf(format, __VA_ARGS__); \
-//        fflush(stdout);                   \
-//    }
+/*
+#define TRACE_PRINTF2(format, ...)   \
+    {                                \
+        printf(format, __VA_ARGS__); \
+        fflush(stdout);              \
+    }
+*/    
 
 /* Control Tokens   */
 #define SPI_DATA_RESPONSE_MASK (0x1F)
@@ -274,6 +274,8 @@ typedef enum {
 #define OCR_3_3V (0x1 << 20)
 
 #define SPI_CMD(x) (0x40 | (x & 0x3f))
+
+static bool driver_initialized;
 
 static uint8_t sd_cmd_spi(sd_card_t *this, cmdSupported cmd, uint32_t arg) {
     uint8_t response;
@@ -541,9 +543,6 @@ bool sd_card_detect(sd_card_t *this) {
         return true;
     }
     /*!< Check GPIO to detect SD */
-    gpio_init(this->card_detect_gpio);
-    gpio_pull_up(this->card_detect_gpio);
-    gpio_set_dir(this->card_detect_gpio, GPIO_IN);
     if (gpio_get(this->card_detect_gpio) == this->card_detected_true) {
         // The socket is now occupied
         this->m_Status &= ~STA_NODISK;
@@ -574,7 +573,9 @@ static uint32_t sd_go_idle_state(sd_card_t *this) {
         if (R1_IDLE_STATE == response) {
             break;
         }
+        sd_unlock(this);
         busy_wait_us(100 * 1000);
+        sd_lock(this);
     }
     return response;
 }
@@ -785,16 +786,12 @@ uint64_t sd_sectors(sd_card_t *this) {
     return sectors;
 }
 
-int sd_init(sd_card_t *this) {
+int sd_init_card(sd_card_t *this) {
     TRACE_PRINTF("> %s\n", __FUNCTION__);
+    myASSERT(driver_initialized);
     //	STA_NOINIT = 0x01, /* Drive not initialized */
     //	STA_NODISK = 0x02, /* No medium in the drive */
     //	STA_PROTECT = 0x04 /* Write protected */
-
-    if (!my_spi_init(this->spi)) {
-        return this->m_Status;
-    }
-    sd_spi_init(this);
 
     // Make sure there's a card in the socket before proceeding
     sd_card_detect(this);
@@ -834,12 +831,6 @@ int sd_init(sd_card_t *this) {
     this->m_Status &= ~STA_NOINIT;
     sd_unlock(this);
 
-    // Return the disk status
-    return this->m_Status;
-}
-int sd_deinit(sd_card_t *this) {
-    this->m_Status |= STA_NOINIT;
-    this->card_type = SDCARD_NONE;
     // Return the disk status
     return this->m_Status;
 }
@@ -1106,6 +1097,28 @@ int sd_write_blocks(sd_card_t *this, const uint8_t *buffer,
     int status = in_sd_write_blocks(this, buffer, ulSectorNumber, blockCnt);
     sd_unlock(this);
     return status;
+}
+
+
+bool sd_init_driver() {
+    for (size_t i = 0; i < sd_get_num(); ++i) {
+        sd_card_t *this = sd_get_by_num(i);
+        gpio_init(this->card_detect_gpio);
+        gpio_pull_up(this->card_detect_gpio);
+        gpio_set_dir(this->card_detect_gpio, GPIO_IN);
+        // Chip select is active-low, so we'll initialise it to a driven-high
+        // state.
+        gpio_init(this->ss_gpio);
+        gpio_put(this->ss_gpio, 1); // Avoid any glitches when enabling output
+        gpio_set_dir(this->ss_gpio, GPIO_OUT);
+        gpio_put(this->ss_gpio, 1); // In case set_dir does anything
+    }
+    for (size_t i = 0; i < spi_get_num(); ++i) {
+        spi_t *this = spi_get_by_num(i);
+        if (!my_spi_init(this)) return false;
+    }
+    driver_initialized = true;
+    return true;
 }
 
 /* [] END OF FILE */

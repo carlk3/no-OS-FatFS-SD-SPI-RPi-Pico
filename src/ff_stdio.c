@@ -8,8 +8,8 @@
 
 #include "my_debug.h"
 //
-#include "ff_stdio.h"
 #include "f_util.h"
+#include "ff_stdio.h"
 
 bool tracing = true;
 
@@ -91,7 +91,8 @@ FF_FILE *ff_fopen(const char *pcFile, const char *pcMode) {
     FRESULT fr = f_open(fp, pcFile, posix2mode(pcMode));
     errno = fresult2errno(fr);
     if (FR_OK != fr) {
-        if (tracing)  printf("%s error: %s (%d)\n", __func__, FRESULT_str(fr), fr);
+        if (tracing)
+            printf("%s error: %s (%d)\n", __func__, FRESULT_str(fr), fr);
         free(fp);
         fp = 0;
     }
@@ -185,16 +186,23 @@ char *ff_getcwd(char *pcBuffer, size_t xBufferLength) {
     //  TCHAR* buff, /* [OUT] Buffer to return path name */
     //  UINT len     /* [IN] The length of the buffer */
     //);
-    FRESULT fr = f_getcwd(pcBuffer, xBufferLength);
+    char buf[xBufferLength];
+    FRESULT fr = f_getcwd(buf, xBufferLength);
     if (tracing && FR_OK != fr)
         printf("%s error: %s (%d)\n", __func__, FRESULT_str(fr), fr);
     errno = fresult2errno(fr);
     // If the current working directory name was successfully written to
     // pcBuffer then pcBuffer is returned. Otherwise NULL is returned.
-    if (FR_OK == fr)
+    if (FR_OK == fr) {
+        if ('/' != buf[0]) {
+            char *p = strchr(buf, '/');
+            if (!p) p = buf;
+            strncpy(pcBuffer, p, xBufferLength);
+        }
         return pcBuffer;
-    else
+    } else {
         return NULL;
+    }
 }
 int ff_mkdir(const char *pcDirectoryName) {
     TRACE_PRINTF("%s(pxStream=%s)\n", __func__, pcDirectoryName);
@@ -208,7 +216,7 @@ int ff_mkdir(const char *pcDirectoryName) {
         return -1;
 }
 int ff_fputc(int iChar, FF_FILE *pxStream) {
-    //TRACE_PRINTF("%s(iChar=%c,pxStream=%p)\n", __func__, iChar, pxStream);
+    // TRACE_PRINTF("%s(iChar=%c,pxStream=%p)\n", __func__, iChar, pxStream);
     // FRESULT f_write (
     //  FIL* fp,          /* [IN] Pointer to the file object structure */
     //  const void* buff, /* [IN] Pointer to the data to be written */
@@ -233,7 +241,7 @@ int ff_fputc(int iChar, FF_FILE *pxStream) {
     }
 }
 int ff_fgetc(FF_FILE *pxStream) {
-    //TRACE_PRINTF("%s(pxStream=%p)\n", __func__, pxStream);
+    // TRACE_PRINTF("%s(pxStream=%p)\n", __func__, pxStream);
     // FRESULT f_read (
     //  FIL* fp,     /* [IN] File object */
     //  void* buff,  /* [OUT] Buffer to store read data */
@@ -310,7 +318,7 @@ int ff_fseek(FF_FILE *pxStream, int iOffset, int iWhence) {
         return -1;
 }
 int ff_findfirst(const char *pcDirectory, FF_FindData_t *pxFindData) {
-    TRACE_PRINTF("%s(%s)\n", __func__, pcDirectory);    
+    TRACE_PRINTF("%s(%s)\n", __func__, pcDirectory);
     // FRESULT f_findfirst (
     //  DIR* dp,              /* [OUT] Poninter to the directory object */
     //  FILINFO* fno,         /* [OUT] Pointer to the file information structure
@@ -372,13 +380,17 @@ FF_FILE *ff_truncate(const char *pcFileName, long lTruncateSize) {
     }
     FRESULT fr = f_open(fp, pcFileName, FA_CREATE_ALWAYS | FA_WRITE);
     if (tracing && FR_OK != fr)
-        printf("%s error: %s (%d)\n", __func__, FRESULT_str(fr), fr);
+        printf("%s: f_open error: %s (%d)\n", __func__, FRESULT_str(fr), fr);
     errno = fresult2errno(fr);
     if (FR_OK != fr) return NULL;
     fr = f_lseek(fp, lTruncateSize);
     errno = fresult2errno(fr);
+    if (tracing && FR_OK != fr)
+        printf("%s: f_lseek error: %s (%d)\n", __func__, FRESULT_str(fr), fr);
     if (FR_OK != fr) return NULL;
     fr = f_truncate(fp);
+    if (tracing && FR_OK != fr)
+        printf("%s: f_truncate error: %s (%d)\n", __func__, FRESULT_str(fr), fr);
     errno = fresult2errno(fr);
     if (FR_OK == fr)
         return fp;

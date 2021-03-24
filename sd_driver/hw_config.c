@@ -23,26 +23,28 @@ socket, which SPI it is driven by, and how it is wired.
 */
 
 #include <string.h>
-
-// Make it easier to spot errors:
-#include "hw_config.h"
+//
 #include "my_debug.h"
+//
+#include "hw_config.h"
 
 void spi0_dma_isr();
 
 // Hardware Configuration of SPI "objects"
 // Note: multiple SD cards can be driven by one SPI if they use different slave
 // selects.
-static spi_t spi[] = {  // One for each SPI.
+static spi_t spis[] = {  // One for each SPI.
     {
         .hw_inst = spi0,  // SPI component
-        .miso_gpio = 19,
-        .mosi_gpio = 16,
+        .miso_gpio = 16,
+        .mosi_gpio = 19,
         .sck_gpio = 18,
-        //.baud_rate = 1000 * 1000,  //DEBUG
-        .baud_rate = 12500 * 1000,  // The limitation here is SPI slew rate.
+        /* The choice of SD card matters! SanDisk runs at the highest speed. PNY
+           can only mangage 5 MHz. Those are all I've tried. */
+        .baud_rate = 5000 * 1000,
+        //.baud_rate = 12500 * 1000,  // The limitation here is SPI slew rate.
         //.baud_rate = 25 * 1000 * 1000, // Actual frequency: 20833333. Has
-        // worked for me.
+        // worked for me with SanDisk.
 
         // Following attributes are dynamically assigned
         .dma_isr = spi0_dma_isr,
@@ -51,39 +53,56 @@ static spi_t spi[] = {  // One for each SPI.
 
 // Hardware Configuration of the SD Card "objects"
 static sd_card_t sd_cards[] = {  // One for each SD card
-    {.pcName = "0:",            // Name used to mount device
-     .spi = &spi[0],             // Pointer to the SPI driving this card
-     .ss_gpio = 17,              // The SPI slave select GPIO for this SD card
-     .card_detect_gpio = 22,     // Card detect
-     .card_detected_true = 1,    // What the GPIO read returns when a card is
-                                 // present. Use -1 if there is no card detect.
-     // Following attributes are dynamically assigned
-     .m_Status = STA_NOINIT,
-     .sectors = 0,
-     .card_type = 0,
-     }};
+    {
+        .pcName = "0:",           // Name used to mount device
+        .spi = &spis[0],          // Pointer to the SPI driving this card
+        .ss_gpio = 17,            // The SPI slave select GPIO for this SD card
+        .card_detect_gpio = 22,   // Card detect
+        .card_detected_true = 1,  // What the GPIO read returns when a card is
+                                  // present. Use -1 if there is no card detect.
+        // Following attributes are dynamically assigned
+        .m_Status = STA_NOINIT,
+        .sectors = 0,
+        .card_type = 0,
+    },
+    {
+        .pcName = "1:",           // Name used to mount device
+        .spi = &spis[0],          // Pointer to the SPI driving this card
+        .ss_gpio = 15,            // The SPI slave select GPIO for this SD card
+        .card_detect_gpio = 14,   // Card detect
+        .card_detected_true = 1,  // What the GPIO read returns when a card is
+                                  // present. Use -1 if there is no card detect.
+        // Following attributes are dynamically assigned
+        .m_Status = STA_NOINIT,
+        .sectors = 0,
+        .card_type = 0,
+    }};
 
-void spi0_dma_isr() { spi_irq_handler(&spi[0]); }
+void spi0_dma_isr() { spi_irq_handler(&spis[0]); }
 
 /* ********************************************************************** */
-sd_card_t *sd_get_by_name(const char *const name) {
-    size_t i;
-    for (i = 0; i < sizeof(sd_cards) / sizeof(sd_cards[0]); ++i) {
-        if (0 == strcmp(sd_cards[i].pcName, name)) break;
-    }
-    if (sizeof(sd_cards) / sizeof(sd_cards[0]) == i) {
-        DBG_PRINTF("FF_SDDiskInit: unknown name %s\n", name);
-        return NULL;
-    }
-    return &sd_cards[i];
-}
-
+size_t sd_get_num() { return count_of(sd_cards); }
 sd_card_t *sd_get_by_num(size_t num) {
-    if (num <= sizeof(sd_cards) / sizeof(sd_cards[0])) {
+    if (num <= sd_get_num()) {
         return &sd_cards[num];
     } else {
         return NULL;
     }
 }
-
+sd_card_t *sd_get_by_name(const char *const name) {
+    size_t i;
+    for (i = 0; i < sd_get_num(); ++i) {
+        if (0 == strcmp(sd_cards[i].pcName, name)) return &sd_cards[i];
+    }
+    DBG_PRINTF("FF_SDDiskInit: unknown name %s\n", name);
+    return NULL;
+}
+size_t spi_get_num() { return count_of(spis); }
+spi_t *spi_get_by_num(size_t num) {
+    if (num <= sd_get_num()) {
+        return &spis[num];
+    } else {
+        return NULL;
+    }
+}
 /* [] END OF FILE */

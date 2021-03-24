@@ -28,7 +28,7 @@ DSTATUS disk_status(BYTE pdrv /* Physical drive nmuber to identify the drive */
     TRACE_PRINTF(">>> %s\n", __FUNCTION__);
     sd_card_t *p_sd = sd_get_by_num(pdrv);
     if (!p_sd) return RES_PARERR;
-    return sd_init(p_sd);
+    return sd_init_card(p_sd);
 }
 
 /*-----------------------------------------------------------------------*/
@@ -41,7 +41,7 @@ DSTATUS disk_initialize(
     TRACE_PRINTF(">>> %s\n", __FUNCTION__);
     sd_card_t *p_sd = sd_get_by_num(pdrv);
     if (!p_sd) return RES_PARERR;
-    return sd_init(p_sd);
+    return sd_init_card(p_sd);
 }
 
 static int sdrc2dresult(int sd_rc) {

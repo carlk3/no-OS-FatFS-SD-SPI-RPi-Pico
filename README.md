@@ -38,21 +38,21 @@ I have been able to push the SPI baud rate as far as 20,833,333 which increases 
 
 ![image](https://www.raspberrypi.org/documentation/rp2040/getting-started/static/64b50c4316a7aefef66290dcdecda8be/Pico-R3-SDK11-Pinout.svg "Pinout")
 
-|	    | SPI0 | GPIO | Pin   | SPI	     | MicroSD 0 |
-| --- | ---- | ---- | ---   | -------- | --------- |
-| MOSI|	TX	 | 16	  | 25	  | DI	     | DI        |
-| CS0	| CSn	 | 17	  |	22	  |	SS or CS | CS        |
-| SCK	| SCK	 | 18	  |	24	  | SCLK	   | CLK       |
-| MISO| RX   | 19	  |	21	  | DO	     | DO        |
-| CD	|      | 22	  | 29		|	         | CD 			 |
-| GND	|      |      | 18,23	|	         | GND       |
-| 3v3	|      |      | 36		|	         | 3v3       |
+|       | SPI0  | GPIO  | Pin   | SPI       | MicroSD 0 |
+| ----- | ----  | ----- | ---   | --------  | --------- |
+| MOSI  | TX    | 16    | 25    | DI        | DI        |
+| CS0   | CSn   | 17    | 22    | SS or CS  | CS        |
+| SCK   | SCK   | 18    | 24    | SCLK      | CLK       |
+| MISO  | RX    | 19    | 21    | DO        | DO        |
+| CD    |       | 22    | 29    |           | CD        |
+| GND   |       |       | 18,23 |           | GND       |
+| 3v3   |       |       | 36    |           | 3v3       |
 
 ## Construction:
 * The wiring is so simple that I didn't bother with a schematic. 
 I just referred to the table above, wiring point-to-point from the Pin column on the Pico to the MicroSD 0 column on the Transflash.
 * You can choose to use either or both of the Pico's SPIs.
-* To add a second SD card on the same SPI, connect it in parallel, except that it will need a unique GPIO for the Card Select/Slave Select (CSn) and another for Card Detect (CD).
+* To add a second SD card on the same SPI, connect it in parallel, except that it will need a unique GPIO for the Card Select/Slave Select (CSn) and another for Card Detect (CD) (optional).
 * Wires should be kept short and direct. SPI operates at HF radio frequencies.
 
 ## Firmware:
@@ -142,6 +142,10 @@ stop_logger:
 help:
   Shows this command help.
 ```
+
+## Troubleshooting
+* Logic analyzer:
+
 ## Next Steps
 There is a example data logging application in `data_log_demo.c`. 
 It can be launched from the CLI with the `start_logger` command.
@@ -167,3 +171,7 @@ and `#include "ff.h"`.
 
 ![image](https://github.com/carlk3/FreeRTOS-FAT-CLI-for-RPi-Pico/blob/master/images/IMG_1481.JPG "Prototype")
 Happy hacking!
+
+## Appendix: Adding a Second Card
+* #define FF_VOLUMES		2 in ff14a/source/ffconf.h
+

@@ -60,8 +60,8 @@ enum {
 };
 #endif
 
-int sd_init(sd_card_t *this);
-int sd_deinit(sd_card_t *this);
+bool sd_init_driver();
+int sd_init_card(sd_card_t *this);
 int sd_write_blocks(sd_card_t *this, const uint8_t *buffer,
                     uint64_t ulSectorNumber, uint32_t blockCnt);
 int sd_read_blocks(sd_card_t *this, uint8_t *buffer, uint64_t ulSectorNumber,

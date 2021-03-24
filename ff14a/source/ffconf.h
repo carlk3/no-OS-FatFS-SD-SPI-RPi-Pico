@@ -163,7 +163,7 @@
 / Drive/Volume Configurations
 /---------------------------------------------------------------------------*/
 
-#define FF_VOLUMES		1
+#define FF_VOLUMES		2
 /* Number of volumes (logical drives) to be used. (1-10) */
 
 
@@ -260,7 +260,7 @@
 */
 
 
-#define FF_FS_LOCK		1
+#define FF_FS_LOCK		0  // Note: 0 since we're not bothering with f_closedir
 /* The option FF_FS_LOCK switches file lock function to control duplicated file open
 /  and illegal operation to open objects. This option must be 0 when FF_FS_READONLY
 /  is 1.

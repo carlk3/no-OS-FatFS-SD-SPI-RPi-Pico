@@ -5,8 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 //
-#include "ff.h"
 #include "f_util.h"
+#include "ff.h"
 
 // Maximum number of elements in buffer
 #define BUFFER_MAX_LEN 10
@@ -14,89 +14,55 @@
 #define TRACE_PRINTF(fmt, args...)
 //#define TRACE_PRINTF printf
 
-void ls() {
-    char pcWriteBuffer[128] = {0};
-
-    FRESULT fr; /* Return value */
-    fr = f_getcwd(pcWriteBuffer, sizeof pcWriteBuffer);
-    if (FR_OK != fr) {
-        printf("f_getcwd error: %s (%d)\n", FRESULT_str(fr), fr);
-        return;
-    }
-    printf("Directory Listing: %s\n", pcWriteBuffer);
-
-    DIR dj;      /* Directory object */
-    FILINFO fno; /* File information */
-    memset (&dj, 0, sizeof dj);
-    memset (&fno, 0, sizeof fno);
-    TRACE_PRINTF("%s: f_findfirst(path=%s)\n", __func__, pcWriteBuffer);
-    fr = f_findfirst(&dj, &fno, pcWriteBuffer, "*");
-    if (FR_OK != fr) {
-        printf("f_findfirst error: %s (%d)\n", FRESULT_str(fr), fr);
-        return;
-    }
-    while (fr == FR_OK && fno.fname[0]) { /* Repeat while an item is found */
-        /* Create a string that includes the file name, the file size and the
-         attributes string. */
-        const char *pcWritableFile = "writable file",
-                   *pcReadOnlyFile = "read only file",
-                   *pcDirectory = "directory";
-        const char *pcAttrib;
-        /* Point pcAttrib to a string that describes the file. */
-        if (fno.fattrib & AM_DIR) {
-            pcAttrib = pcDirectory;
-        } else if (fno.fattrib & AM_RDO) {
-            pcAttrib = pcReadOnlyFile;
-        } else {
-            pcAttrib = pcWritableFile;
-        }
-        /* Create a string that includes the file name, the file size and the
-         attributes string. */
-        printf("%s [%s] [size=%llu]\n", fno.fname, pcAttrib, fno.fsize);
-
-        fr = f_findnext(&dj, &fno); /* Search for next item */
-    }
-
-    f_closedir(&dj);
-}
+extern void ls(const char *dir);
 
 void simple() {
     printf("\nSimple Test\n");
 
+    char cwdbuf[FF_LFN_BUF - 12] = {0};
+    FRESULT fr = f_getcwd(cwdbuf, sizeof cwdbuf);
+    if (FR_OK != fr) {
+        printf("f_getcwd error: %s (%d)\n", FRESULT_str(fr), fr);
+        return;
+    }
     // Open the numbers file
     printf("Opening \"numbers.txt\"... ");
     FIL f;
-    FRESULT fc = f_open(&f, "numbers.txt", FA_READ | FA_WRITE);
-    printf("%s\n", (FR_OK != fc ? "Fail :(" : "OK"));
+    fr = f_open(&f, "numbers.txt", FA_READ | FA_WRITE);
+    printf("%s\n", (FR_OK != fr ? "Fail :(" : "OK"));
     fflush(stdout);
-    if (FR_OK != fc && FR_NO_FILE != fc) {
-        printf("f_open error: %s (%d)\n", FRESULT_str(fc), fc);
+    if (FR_OK != fr && FR_NO_FILE != fr) {
+        printf("f_open error: %s (%d)\n", FRESULT_str(fr), fr);
         return;
-    } else if (FR_NO_FILE == fc) {
+    } else if (FR_NO_FILE == fr) {
         // Create the numbers file if it doesn't exist
         printf("No file found, creating a new file... ");
         fflush(stdout);
-        fc = f_open(&f, "numbers.txt",
-                    FA_CREATE_ALWAYS | FA_WRITE | FA_READ);
-        printf("%s\n", (FR_OK != fc ? "Fail :(" : "OK"));
-        if (FR_OK != fc) printf("f_open error: %s (%d)\n", FRESULT_str(fc), fc);
+        fr = f_open(&f, "numbers.txt", FA_CREATE_ALWAYS | FA_WRITE | FA_READ);
+        printf("%s\n", (FR_OK != fr ? "Fail :(" : "OK"));
+        if (FR_OK != fr) printf("f_open error: %s (%d)\n", FRESULT_str(fr), fr);
         fflush(stdout);
         for (int i = 0; i < 10; i++) {
             printf("\rWriting numbers (%d/%d)... ", i, 10);
             fflush(stdout);
-            fc = f_printf(&f, "    %d\n", i);
-            if (FR_OK != fc) {
+            // When the string was written successfuly, it returns number of
+            // character encoding units written to the file. When the function
+            // failed due to disk full or any error, a negative value will be
+            // returned.
+            int rc = f_printf(&f, "    %d\n", i);
+            if (rc < 0) {
                 printf("Fail :(\n");
-                printf("f_printf error: %s (%d)\n", FRESULT_str(fc), fc);
+                printf("f_printf error: %s (%d)\n", FRESULT_str(fr), fr);
             }
         }
         printf("\rWriting numbers (%d/%d)... OK\n", 10, 10);
         fflush(stdout);
 
         printf("Seeking file... ");
-        fc = f_lseek(&f, 0);
-        printf("%s\n", (FR_OK != fc ? "Fail :(" : "OK"));
-        if (FR_OK != fc) printf("f_lseek error: %s (%d)\n", FRESULT_str(fc), fc);
+        fr = f_lseek(&f, 0);
+        printf("%s\n", (FR_OK != fr ? "Fail :(" : "OK"));
+        if (FR_OK != fr)
+            printf("f_lseek error: %s (%d)\n", FRESULT_str(fr), fr);
         fflush(stdout);
     }
     // Go through and increment the numbers
@@ -134,23 +100,25 @@ void simple() {
 
     // Close the file which also flushes any cached writes
     printf("Closing \"numbers.txt\"... ");
-    fc = f_close(&f);
-    printf("%s\n", (FR_OK != fc ? "Fail :(" : "OK"));
-    if (FR_OK != fc) printf("f_close error: %s (%d)\n", FRESULT_str(fc), fc);
+    fr = f_close(&f);
+    printf("%s\n", (FR_OK != fr ? "Fail :(" : "OK"));
+    if (FR_OK != fr) printf("f_close error: %s (%d)\n", FRESULT_str(fr), fr);
     fflush(stdout);
 
-    ls();
+    ls("");
 
-    fc = f_chdir("/");
-    if (FR_OK != fc) printf("chdir error: %s (%d)\n", FRESULT_str(fc), fc);
+    fr = f_chdir("/");
+    if (FR_OK != fr) printf("chdir error: %s (%d)\n", FRESULT_str(fr), fr);
 
-    ls();
+    ls("");
 
     // Display the numbers file
-    printf("Opening \"numbers.txt\"... ");
-    fc = f_open(&f, "numbers.txt", FA_READ);
-    printf("%s\n", (FR_OK != fc ? "Fail :(" : "OK"));
-    if (FR_OK != fc) printf("f_open error: %s (%d)\n", FRESULT_str(fc), fc);
+    char pathbuf[FF_LFN_BUF] = {0};
+    snprintf(pathbuf, sizeof pathbuf, "%s/%s", cwdbuf, "numbers.txt");
+    printf("Opening \"%s\"... ", pathbuf);
+    fr = f_open(&f, pathbuf, FA_READ);
+    printf("%s\n", (FR_OK != fr ? "Fail :(" : "OK"));
+    if (FR_OK != fr) printf("f_open error: %s (%d)\n", FRESULT_str(fr), fr);
     fflush(stdout);
 
     printf("numbers:\n");
@@ -158,16 +126,16 @@ void simple() {
         // int c = f_getc(f);
         char c;
         UINT br;
-        fc = f_read(&f, &c, sizeof c, &br);
-        if (FR_OK != fc)
-            printf("f_read error: %s (%d)\n", FRESULT_str(fc), fc);
+        fr = f_read(&f, &c, sizeof c, &br);
+        if (FR_OK != fr)
+            printf("f_read error: %s (%d)\n", FRESULT_str(fr), fr);
         else
             printf("%c", c);
     }
 
-    printf("\nClosing \"numbers.txt\"... ");
-    fc = f_close(&f);
-    printf("%s\n", (FR_OK != fc ? "Fail :(" : "OK"));
-    if (FR_OK != fc) printf("f_close error: %s (%d)\n", FRESULT_str(fc), fc);
+    printf("\nClosing \"%s\"... ", pathbuf);
+    fr = f_close(&f);
+    printf("%s\n", (FR_OK != fr ? "Fail :(" : "OK"));
+    if (FR_OK != fr) printf("f_close error: %s (%d)\n", FRESULT_str(fr), fr);
     fflush(stdout);
 }

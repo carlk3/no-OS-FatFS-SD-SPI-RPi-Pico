@@ -26,7 +26,7 @@ void sd_spi_release(sd_card_t *this);
 //void sd_spi_deselect(sd_card_t *this);
 void sd_spi_go_low_frequency(sd_card_t *this);
 void sd_spi_go_high_frequency(sd_card_t *this);
-void sd_spi_init(sd_card_t *this);
+bool sd_spi_init(sd_card_t *this);
 
 #endif
 

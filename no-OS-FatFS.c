@@ -15,7 +15,6 @@
 #include "rtc.h"
 #include "sd_card.h"
 
-extern void ls();
 extern void lliot();
 extern void simple();
 extern void big_file_test(const char *const pathname, size_t size,
@@ -24,7 +23,19 @@ extern void vCreateAndVerifyExampleFiles(const char *pcMountPath);
 extern void vStdioWithCWDTest(const char *pcMountPath);
 extern bool process_logger();
 
-static FATFS fs;
+typedef struct {
+    FATFS fatfs;
+    char const *const name;
+} fatfs_dscr_t;
+static fatfs_dscr_t fatfs_dscrs[2] = {{.name = "0:"}, {.name = "1:"}};
+static FATFS *get_fs_by_name(const char *name) {
+    for (size_t i = 0; i < count_of(fatfs_dscrs); ++i) {
+        if (0 == strcmp(fatfs_dscrs[i].name, name)) {
+            return &fatfs_dscrs[i].fatfs;
+        }
+    }
+    return NULL;
+}
 
 static bool logger_enabled;
 static const uint32_t period = 1000;
@@ -83,6 +94,14 @@ static void run_setrtc() {
     // bool r = rtc_set_datetime(&t);
     setrtc(&t);
 }
+static void run_lliot() {
+    size_t pnum = 0;
+    char *arg1 = strtok(NULL, " ");
+    if (arg1) {
+        pnum = strtoul(arg1, NULL, 0);
+    }
+    lliot(pnum);
+}
 static void run_date() {
     char buf[128] = {0};
     time_t epoch_secs = time(NULL);
@@ -97,15 +116,24 @@ static void run_date() {
 }
 static void run_format() {
     char *arg1 = strtok(NULL, " ");
-    if (!arg1) arg1 = "";
+    FATFS *p_fs = get_fs_by_name(arg1);
+    if (!p_fs) {
+        printf("Unknown logical drive number: \"%s\"", arg1);
+        return;
+    }
     /* Format the drive with default parameters */
     FRESULT fr = f_mkfs(arg1, 0, 0, FF_MAX_SS * 2);
     if (FR_OK != fr) printf("f_mkfs error: %s (%d)\n", FRESULT_str(fr), fr);
 }
 static void run_mount() {
     char *arg1 = strtok(NULL, " ");
-    if (!arg1) arg1 = "";
-    FRESULT fr = f_mount(&fs, arg1, 1);
+    if (!arg1) arg1 = "0:";
+    FATFS *p_fs = get_fs_by_name(arg1);
+    if (!p_fs) {
+        printf("Unknown logical drive number: \"%s\"", arg1);
+        return;
+    }
+    FRESULT fr = f_mount(p_fs, arg1, 1);
     if (FR_OK != fr) printf("f_mount error: %s (%d)\n", FRESULT_str(fr), fr);
 }
 static void run_unmount() {
@@ -114,20 +142,30 @@ static void run_unmount() {
     FRESULT fr = f_unmount(arg1);
     if (FR_OK != fr) printf("f_mount error: %s (%d)\n", FRESULT_str(fr), fr);
 }
+static void run_chdrive() {
+    char *arg1 = strtok(NULL, " ");
+    if (!arg1) arg1 = "0:";
+    FRESULT fr = f_chdrive(arg1);
+    if (FR_OK != fr) printf("f_mount error: %s (%d)\n", FRESULT_str(fr), fr);
+}
 static void run_getfree() {
     char *arg1 = strtok(NULL, " ");
-    if (!arg1) arg1 = "";
+    if (!arg1) arg1 = "0:";
     DWORD fre_clust, fre_sect, tot_sect;
     /* Get volume information and free clusters of drive */
-    FATFS *p_fatfs = &fs;
-    FRESULT fr = f_getfree(arg1, &fre_clust, &p_fatfs);
+    FATFS *p_fs = get_fs_by_name(arg1);
+    if (!p_fs) {
+        printf("Unknown logical drive number: \"%s\"", arg1);
+        return;
+    }
+    FRESULT fr = f_getfree(arg1, &fre_clust, &p_fs);
     if (FR_OK != fr) {
         printf("f_getfree error: %s (%d)\n", FRESULT_str(fr), fr);
         return;
     }
     /* Get total sectors and free sectors */
-    tot_sect = (p_fatfs->n_fatent - 2) * p_fatfs->csize;
-    fre_sect = fre_clust * p_fatfs->csize;
+    tot_sect = (p_fs->n_fatent - 2) * p_fs->csize;
+    fre_sect = fre_clust * p_fs->csize;
     /* Print the free space (assuming 512 bytes/sector) */
     printf("%10lu KiB total drive space.\n%10lu KiB available.\n", tot_sect / 2,
            fre_sect / 2);
@@ -149,6 +187,58 @@ static void run_mkdir() {
     }
     FRESULT fr = f_mkdir(arg1);
     if (FR_OK != fr) printf("f_mkfs error: %s (%d)\n", FRESULT_str(fr), fr);
+}
+void ls(const char *dir) {
+    char cwdbuf[FF_LFN_BUF] = {0};
+    FRESULT fr; /* Return value */
+    char const *p_dir;
+    if (dir[0]) {
+        p_dir = dir;
+    } else {
+        fr = f_getcwd(cwdbuf, sizeof cwdbuf);
+        if (FR_OK != fr) {
+            printf("f_getcwd error: %s (%d)\n", FRESULT_str(fr), fr);
+            return;
+        }
+        p_dir = cwdbuf;
+    }
+    printf("Directory Listing: %s\n", p_dir);
+    DIR dj;      /* Directory object */
+    FILINFO fno; /* File information */
+    memset (&dj, 0, sizeof dj);
+    memset (&fno, 0, sizeof fno);
+    fr = f_findfirst(&dj, &fno, p_dir, "*");
+    if (FR_OK != fr) {
+        printf("f_findfirst error: %s (%d)\n", FRESULT_str(fr), fr);
+        return;
+    }
+    while (fr == FR_OK && fno.fname[0]) { /* Repeat while an item is found */
+        /* Create a string that includes the file name, the file size and the
+         attributes string. */
+        const char *pcWritableFile = "writable file",
+                   *pcReadOnlyFile = "read only file",
+                   *pcDirectory = "directory";
+        const char *pcAttrib;
+        /* Point pcAttrib to a string that describes the file. */
+        if (fno.fattrib & AM_DIR) {
+            pcAttrib = pcDirectory;
+        } else if (fno.fattrib & AM_RDO) {
+            pcAttrib = pcReadOnlyFile;
+        } else {
+            pcAttrib = pcWritableFile;
+        }
+        /* Create a string that includes the file name, the file size and the
+         attributes string. */
+        printf("%s [%s] [size=%llu]\n", fno.fname, pcAttrib, fno.fsize);
+
+        fr = f_findnext(&dj, &fno); /* Search for next item */
+    }
+    f_closedir(&dj);
+}
+static void run_ls() {
+    char *arg1 = strtok(NULL, " ");
+    if (!arg1) arg1 = "";
+    ls(arg1);
 }
 static void run_cat() {
     char *arg1 = strtok(NULL, " ");
@@ -189,7 +279,9 @@ static void run_big_file_test() {
     uint32_t seed = atoi(pcSeed);
     big_file_test(pcPathName, size, seed);
 }
-static void run_cdef() { vCreateAndVerifyExampleFiles("/cdef"); }
+static void run_cdef() { 
+    f_mkdir("/cdef"); // fake mountpoint
+    vCreateAndVerifyExampleFiles("/cdef"); }
 static void run_swcwdt() { vStdioWithCWDTest("/cdef"); }
 static void run_start_logger() {
     logger_enabled = true;
@@ -206,68 +298,54 @@ typedef struct {
 } cmd_def_t;
 
 static cmd_def_t cmds[] = {
-    {
-        "setrtc",
-        run_setrtc,
-        "setrtc <DD> <MM> <YY> <hh> <mm> <ss>:\n"
-        "  Set Real Time Clock\n"
-        "  Parameters: new date (DD MM YY) new time in 24-hour format "
-        "(hh mm ss)\n"
-        "\te.g.:setrtc 16 3 21 0 4 0",
-    },
+    {"setrtc", run_setrtc,
+     "setrtc <DD> <MM> <YY> <hh> <mm> <ss>:\n"
+     "  Set Real Time Clock\n"
+     "  Parameters: new date (DD MM YY) new time in 24-hour format "
+     "(hh mm ss)\n"
+     "\te.g.:setrtc 16 3 21 0 4 0"},
     {"date", run_date, "date:\n Print current date and time"},
-    {
-        "lliot",
-        lliot,
-        "lliot <device name>:\n !DESTRUCTIVE! Low Level I/O Driver Test\n"
-        "\te.g.: lliot sd0",
-    },
-    {
-        "format",
-        run_format,
-        "format [<drive#:>]:\n"
-        "  Creates an FAT/exFAT volume on the logical drive.\n"
-        "\te.g.: format 0:",
-    },
-    {
-        "mount",
-        run_mount,
-        "mount [<drive#:>]:\n"
-        "  Register the work area of the volume\n"
-        "\te.g.: mount 0:"
-    },
-    {
-        "getfree",
-        run_getfree,
-        "getfree [<drive#:>]:\n"
-        "  Print the free space on drive"
-    },
+    {"lliot", run_lliot,
+     "lliot <drive#>:\n !DESTRUCTIVE! Low Level I/O Driver Test\n"
+     "\te.g.: lliot 1"},
+    {"format", run_format,
+     "format [<drive#:>]:\n"
+     "  Creates an FAT/exFAT volume on the logical drive.\n"
+     "\te.g.: format 0:"},
+    {"mount", run_mount,
+     "mount [<drive#:>]:\n"
+     "  Register the work area of the volume\n"
+     "\te.g.: mount 0:"},
     {"unmount", run_unmount,
      "unmount <drive#:>:\n"
      "  Unregister the work area of the volume"},
+    {"chdrive", run_chdrive,
+     "chdrive <drive#:>:\n"
+     "  Changes the current directory of the logical drive.\n"
+     "  <path> Specifies the directory to be set as current directory.\n"
+     "\te.g.: chdrive 1:"},
+    {"getfree", run_getfree,
+     "getfree [<drive#:>]:\n"
+     "  Print the free space on drive"},
     {"cd", run_cd,
      "cd <path>:\n"
-     "  Changes the current directory of the logical drive. Also, the current "
-     "drive can be changed.\n"
+     "  Changes the current directory of the logical drive.\n"
      "  <path> Specifies the directory to be set as current directory.\n"
-     "\te.g.: cd 1:/dir1"},
+     "\te.g.: cd /dir1"},
     {"mkdir", run_mkdir,
      "mkdir <path>:\n"
      "  Make a new directory.\n"
      "  <path> Specifies the name of the directory to be created.\n"
      "\te.g.: mkdir /dir1"},
-    {"ls", ls, "ls:\n  List directory"},
+    {"ls", run_ls, "ls:\n  List directory"},
     {"cat", run_cat, "cat <filename>:\n  Type file contents"},
     {"simple", simple, "simple:\n  Run simple FS tests"},
-    {
-        "big_file_test",
-        run_big_file_test,
-        "big_file_test <pathname> <size in bytes> <seed>:\n"
-        " Writes random data to file <pathname>.\n"
-        " <size in bytes> must be multiple of 512.\n"
-        "\te.g.: big_file_test bf 1048576 1\n"
-        "\tor: big_file_test big3G-3 0xC0000000 3",
-    },
+    {"big_file_test", run_big_file_test,
+     "big_file_test <pathname> <size in bytes> <seed>:\n"
+     " Writes random data to file <pathname>.\n"
+     " <size in bytes> must be multiple of 512.\n"
+     "\te.g.: big_file_test bf 1048576 1\n"
+     "\tor: big_file_test big3G-3 0xC0000000 3"},
     {"cdef", run_cdef,
      "cdef:\n  Create Disk and Example Files\n"
      "  Expects card to be already formatted and mounted"},
@@ -349,6 +427,7 @@ int main() {
     stdio_init_all();
     time_init();
     adc_init();
+    sd_init_driver();
 
     printf("\033[2J\033[H");  // Clear Screen
     printf("\n> ");
