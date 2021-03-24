@@ -116,9 +116,13 @@ static void run_date() {
 }
 static void run_format() {
     char *arg1 = strtok(NULL, " ");
+    if (!arg1) {
+        printf("Missing argument\n");
+        return;
+    }
     FATFS *p_fs = get_fs_by_name(arg1);
     if (!p_fs) {
-        printf("Unknown logical drive number: \"%s\"", arg1);
+        printf("Unknown logical drive number: \"%s\"\n", arg1);
         return;
     }
     /* Format the drive with default parameters */
@@ -130,7 +134,7 @@ static void run_mount() {
     if (!arg1) arg1 = "0:";
     FATFS *p_fs = get_fs_by_name(arg1);
     if (!p_fs) {
-        printf("Unknown logical drive number: \"%s\"", arg1);
+        printf("Unknown logical drive number: \"%s\"\n", arg1);
         return;
     }
     FRESULT fr = f_mount(p_fs, arg1, 1);
@@ -155,7 +159,7 @@ static void run_getfree() {
     /* Get volume information and free clusters of drive */
     FATFS *p_fs = get_fs_by_name(arg1);
     if (!p_fs) {
-        printf("Unknown logical drive number: \"%s\"", arg1);
+        printf("Unknown logical drive number: \"%s\"\n", arg1);
         return;
     }
     FRESULT fr = f_getfree(arg1, &fre_clust, &p_fs);

@@ -144,7 +144,13 @@ help:
 ```
 
 ## Troubleshooting
-* Logic analyzer:
+* Tracing: Most of the source files have a couple of lines near the top of the file like:
+```
+#define TRACE_PRINTF(fmt, args...) // Disable tracing
+//#define TRACE_PRINTF printf // Trace with printf
+```
+You can swap the commenting to enable tracing of what's happening in that file.
+* Logic analyzer: for less than ten bucks, something like this [Comidox 1Set USB Logic Analyzer Device Set USB Cable 24MHz 8CH 24MHz 8 Channel UART IIC SPI Debug for Arduino ARM FPGA M100 Hot](https://smile.amazon.com/gp/product/B07KW445DJ/) and [PulseView - sigrok](https://sigrok.org/) make a nice combination for looking at SPI, as long as you don't run the baud rate too high. 
 
 ## Next Steps
 There is a example data logging application in `data_log_demo.c`. 
@@ -172,6 +178,6 @@ and `#include "ff.h"`.
 ![image](https://github.com/carlk3/FreeRTOS-FAT-CLI-for-RPi-Pico/blob/master/images/IMG_1481.JPG "Prototype")
 Happy hacking!
 
-## Appendix: Adding a Second Card
-* #define FF_VOLUMES		2 in ff14a/source/ffconf.h
+<!--## Appendix: Adding a Second Card
+* #define FF_VOLUMES		2 in ff14a/source/ffconf.h-->
 
