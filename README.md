@@ -26,7 +26,7 @@ Using a Debug build: Writing and reading a file of 0xC0000000 (3,221,225,472) ra
   * Elapsed seconds 3396.9
   * Transfer rate 926.1 KiB/s
 
-I have been able to push the SPI baud rate as far as 20,833,333 which increases the transfer speed proportionately (but SDIO would be faster!).
+I have been able to push the SPI baud rate as far as 20,833,333 with a SanDisk card, which increases the transfer speed proportionately (but SDIO would be faster!). With a PNY card I have trouble going above 5 MHz.
 
 ## Prerequisites:
 * Raspberry Pi Pico
@@ -61,6 +61,7 @@ I just referred to the table above, wiring point-to-point from the Pin column on
   `git clone --recurse-submodules git@github.com:carlk3/no-OS-FatFS-SD-SPI-RPi-Pico.git no-OS-FatFS`
 * Customize:
   * Tailor `sd_driver/hw_config.c` to match hardware
+  * Customize `ff14a/source/ffconf.h` as desired
   * Customize `pico_enable_stdio_uart` and `pico_enable_stdio_usb` in CMakeLists.txt as you prefer
 * Build:
 ```  
@@ -89,25 +90,33 @@ setrtc <DD> <MM> <YY> <hh> <mm> <ss>:
 date:
  Print current date and time
 
-lliot <device name>:
+lliot <drive#>:
  !DESTRUCTIVE! Low Level I/O Driver Test
-	e.g.: lliot sd0
+	e.g.: lliot 1
 
-format <drive#:>:
+format [<drive#:>]:
   Creates an FAT/exFAT volume on the logical drive.
 	e.g.: format 0:
 
-mount <drive#:>:
+mount [<drive#:>]:
   Register the work area of the volume
 	e.g.: mount 0:
 
 unmount <drive#:>:
   Unregister the work area of the volume
 
-cd <path>:
-  Changes the current directory of the logical drive. Also, the current drive can be changed.
+chdrive <drive#:>:
+  Changes the current directory of the logical drive.
   <path> Specifies the directory to be set as current directory.
-	e.g.: cd 1:/dir1
+	e.g.: chdrive 1:
+
+getfree [<drive#:>]:
+  Print the free space on drive
+
+cd <path>:
+  Changes the current directory of the logical drive.
+  <path> Specifies the directory to be set as current directory.
+	e.g.: cd /dir1
 
 mkdir <path>:
   Make a new directory.
@@ -139,8 +148,6 @@ start_logger:
 stop_logger:
   Stop Data Log Demo
 
-help:
-  Shows this command help.
 ```
 
 ## Troubleshooting
@@ -178,6 +185,28 @@ and `#include "ff.h"`.
 ![image](https://github.com/carlk3/FreeRTOS-FAT-CLI-for-RPi-Pico/blob/master/images/IMG_1481.JPG "Prototype")
 Happy hacking!
 
-<!--## Appendix: Adding a Second Card
-* #define FF_VOLUMES		2 in ff14a/source/ffconf.h-->
+## Appendix: Adding a Additional Cards
+When you're dealing with information storage, it's always nice to have redundancy. There are many possible combinations of SPIs and SD cards. One of these is putting multiple SD cards on the same SPI bus, at a cost of one (or two) Pico I/O pins (depending on whether or you care about Card Detect). I will illustrate that example here. 
 
+Name|SPI0|GPIO|Pin |SPI|MicroSD 0|MicroSD 1
+----|----|----|----|---|---------|---------
+CD1||14|19|||CD
+CS1||15|20|SS or CS||CS
+MISO|RX|16|21|DO|DO|DO
+CS0||17|22|SS or CS|CS|CS
+SCK|SCK|18|24|SCLK|SCK|SCK
+MOSI|TX|19|25|DI|DI|DI
+CD0||22|29||CD|
+||||||
+GND|||18, 23||GND|GND
+3v3|||36||3v3|3v3
+
+### Wiring: 
+As you can see from the table above, the only new signals are CD1 and CS1. Otherwise, the new card is wired in parallel with the first card.
+### Firmware:
+* `sd_driver/hw_config.c` must be edited to add a new instance to `static sd_card_t sd_cards[]`
+* Edit `ff14a/source/ffconf.h`. In particular, `FF_VOLUMES`:
+```
+#define FF_VOLUMES		2
+```
+![image](https://github.com/carlk3/FreeRTOS-FAT-CLI-for-RPi-Pico/blob/master/images/IMG_20210322_201928116.jpg "Prototype")
