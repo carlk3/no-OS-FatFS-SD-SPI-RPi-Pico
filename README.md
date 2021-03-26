@@ -26,13 +26,17 @@ Using a Debug build: Writing and reading a file of 0xC0000000 (3,221,225,472) ra
   * Elapsed seconds 3396.9
   * Transfer rate 926.1 KiB/s
 
-I have been able to push the SPI baud rate as far as 20,833,333 with a SanDisk card, which increases the transfer speed proportionately (but SDIO would be faster!). With a PNY card I have trouble going above 5 MHz.
+I have been able to push the SPI baud rate as far as 20,833,333 with a SanDisk card, which increases the transfer speed proportionately. With a PNY card I have trouble going above 5 MHz. (But SDIO would be faster!) 
 
 ## Prerequisites:
 * Raspberry Pi Pico
 * Something like the [SparkFun microSD Transflash Breakout](https://www.sparkfun.com/products/544)
+
+Note: avoid modules like these: [DAOKI 5Pcs TF Micro SD Card Module Memory Shield Module Micro SD Storage Expansion Board Mini Micro SD TF Card with Pins for Arduino ARM AVR with Dupo](https://www.amazon.com/gp/product/B07XF4RJSL/). They appear to be designed for 5v signals and won't work with the 3.3v Pico.
+
 * Breadboard and wires
 * Raspberry Pi Pico C/C++ SDK
+* (Optional) A couple of ~4.7kΩ resistors
 
 ![image](https://github.com/carlk3/FreeRTOS-FAT-CLI-for-RPi-Pico/blob/master/images/IMG_1478.JPG "Prototype")
 
@@ -54,6 +58,10 @@ I just referred to the table above, wiring point-to-point from the Pin column on
 * You can choose to use either or both of the Pico's SPIs.
 * To add a second SD card on the same SPI, connect it in parallel, except that it will need a unique GPIO for the Card Select/Slave Select (CSn) and another for Card Detect (CD) (optional).
 * Wires should be kept short and direct. SPI operates at HF radio frequencies.
+
+### Pull Up Resistors
+* The SPI MISO (**DO** on SD card, **SPI**x **RX** on Pico) is open collector (or tristate). It should be pulled up. The Pico internal gpio_pull_up is weak: around 56uA or 60kΩ. It's best to add an external pull up resistor of around 5kΩ to 3.3v. You might get away without one if you only run one SD card and don't push the SPI baud rate too high.
+* The SPI Slave Select (SS), or Chip Select (CS) line enables one SPI slave of possibly multiple slaves on the bus. This is what enables the tristate buffer for Data Out (DO), among other things. It's best to pull CS up so that it doesn't float before the Pico GPIO is initialized. It is imperative to pull it up for any devices on the bus that aren't initialized. For example, if you have two SD cards on one bus but the firmware is aware of only one card (see hw_config.c); you can't let the CS float on the unused one. 
 
 ## Firmware:
 * Follow instructions in [Getting started with Raspberry Pi Pico](https://datasheets.raspberrypi.org/pico/getting-started-with-pico.pdf) to set up the development environment.
@@ -151,6 +159,7 @@ stop_logger:
 ```
 
 ## Troubleshooting
+* The first thing to try is lowering the SPI baud rate (see hw_config.c). This will also make it easier to use things like logic analyzers.
 * Tracing: Most of the source files have a couple of lines near the top of the file like:
 ```
 #define TRACE_PRINTF(fmt, args...) // Disable tracing
