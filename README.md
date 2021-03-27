@@ -26,7 +26,7 @@ Using a Debug build: Writing and reading a file of 0xC0000000 (3,221,225,472) ra
   * Elapsed seconds 3396.9
   * Transfer rate 926.1 KiB/s
 
-I have been able to push the SPI baud rate as far as 20,833,333 which increases the transfer speed proportionately (but SDIO would be faster!).
+On a SanDisk Class 4 16 GB card, I have been able to push the SPI baud rate as far as 20,833,333 which increases the transfer speed proportionately (but SDIO would be faster!).
 
 ## Prerequisites:
 * Raspberry Pi Pico
@@ -54,6 +54,10 @@ I just referred to the table above, wiring point-to-point from the Pin column on
 * You can choose to use either or both of the Pico's SPIs.
 * To add a second SD card on the same SPI, connect it in parallel, except that it will need a unique GPIO for the Card Select/Slave Select (CSn) and another for Card Detect (CD) (optional).
 * Wires should be kept short and direct. SPI operates at HF radio frequencies.
+
+### Pull Up Resistors
+* The SPI MISO (DO on SD card, SPIx RX on Pico) is open collector (or tristate). It should be pulled up. The Pico internal gpio_pull_up is weak: around 56uA or 60kΩ. You might to add an external pull up resistor of around ~5-10kΩ to 3.3v, depending on the SD card and the SPI baud rate.
+* The SPI Slave Select (SS), or Chip Select (CS) line enables one SPI slave of possibly multiple slaves on the bus. It's best to pull CS up so that it doesn't float before the Pico GPIO is initialized.
 
 ## Firmware:
 * Follow instructions in [Getting started with Raspberry Pi Pico](https://datasheets.raspberrypi.org/pico/getting-started-with-pico.pdf) to set up the development environment.

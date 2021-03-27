@@ -208,9 +208,7 @@ static bool crc_on = true;
 
 // Only HC block size is supported. Making this a static constant reduces code
 // size.
-#define BLOCK_SIZE_HC                                      \
-    512 /*!< Block size supported for SD card is 512 bytes \
-         */
+#define BLOCK_SIZE_HC  512 /*!< Block size supported for SD card is 512 bytes */
 static const uint32_t _block_size = BLOCK_SIZE_HC;
 
 /* R1 Response Format */
@@ -472,10 +470,11 @@ static int sd_cmd(sd_card_t *this, const cmdSupported cmd, uint32_t arg,
         return SD_BLOCK_DEVICE_ERROR_CRC;  // CRC error
     }
     if (response & R1_ILLEGAL_COMMAND) {
-        DBG_PRINTF("Illegal command CMD:%d response 0x%" PRIx32 "\n", cmd,
-                   response);
-        if (CMD8_SEND_IF_COND ==
-            cmd) {  // Illegal command is for Ver1 or not SD Card
+        if (ACMD23_SET_WR_BLK_ERASE_COUNT != cmd)
+            DBG_PRINTF("Illegal command CMD:%d response 0x%" PRIx32 "\n", cmd,
+                       response);
+        if (CMD8_SEND_IF_COND == cmd) {
+            // Illegal command is for Ver1 or not SD Card
             this->card_type = CARD_UNKNOWN;
         }
         return SD_BLOCK_DEVICE_ERROR_UNSUPPORTED;  // Command not supported
@@ -546,7 +545,7 @@ bool sd_card_detect(sd_card_t *this) {
     if (gpio_get(this->card_detect_gpio) == this->card_detected_true) {
         // The socket is now occupied
         this->m_Status &= ~STA_NODISK;
-        //DBG_PRINTF("SD card detected!\n");
+        TRACE_PRINTF("SD card detected!\n");
         return true;
     } else {
         // The socket is now empty
@@ -584,7 +583,6 @@ static uint32_t sd_go_idle_state(sd_card_t *this) {
 #define CMD8_PATTERN (0xAA)
 
 static int sd_cmd8(sd_card_t *this) {
-
     uint32_t arg = (CMD8_PATTERN << 0);  // [7:0]check pattern
     uint32_t response = 0;
     int32_t status = SD_BLOCK_DEVICE_ERROR_NONE;
@@ -854,7 +852,6 @@ static bool sd_wait_token(sd_card_t *this, uint8_t token) {
     (0xFE) /*!< For Single Block Read/Write and Multiple Block Read */
 
 static int sd_read_bytes(sd_card_t *this, uint8_t *buffer, uint32_t length) {
-
     uint16_t crc;
 
     // read until start byte (0xFE)
@@ -876,9 +873,9 @@ static int sd_read_bytes(sd_card_t *this, uint8_t *buffer, uint32_t length) {
         // Compute and verify checksum
         crc_result = crc16((void *)buffer, length);
         if ((uint16_t)crc_result != crc) {
-            DBG_PRINTF("%s: Invalid CRC received 0x%" PRIx16
+            DBG_PRINTF("_read_bytes: Invalid CRC received 0x%" PRIx16
                        " result of computation 0x%" PRIx16 "\n",
-                       __FUNCTION__, crc, (uint16_t)crc_result);
+                       crc, (uint16_t)crc_result);
             return SD_BLOCK_DEVICE_ERROR_CRC;
         }
     }
@@ -887,7 +884,6 @@ static int sd_read_bytes(sd_card_t *this, uint8_t *buffer, uint32_t length) {
     return 0;
 }
 static int sd_read_block(sd_card_t *this, uint8_t *buffer, uint32_t length) {
-
     uint16_t crc;
 
     // read until start byte (0xFE)
@@ -923,7 +919,6 @@ static int sd_read_block(sd_card_t *this, uint8_t *buffer, uint32_t length) {
 
 static int in_sd_read_blocks(sd_card_t *this, uint8_t *buffer,
                              uint64_t ulSectorNumber, uint32_t ulSectorCount) {
-
     uint32_t blockCnt = ulSectorCount;
 
     if (ulSectorNumber + blockCnt > this->sectors)
@@ -1082,8 +1077,6 @@ static int in_sd_write_blocks(sd_card_t *this, const uint8_t *buffer,
          * done by sending 'Stop Tran' token instead of 'Start Block' token at
          * the beginning of the next block
          */
-        sd_spi_deselect(this);
-        sd_spi_select(this);
         sd_spi_write(this, SPI_STOP_TRAN);
     }
     return status;
@@ -1098,7 +1091,6 @@ int sd_write_blocks(sd_card_t *this, const uint8_t *buffer,
     sd_unlock(this);
     return status;
 }
-
 
 bool sd_init_driver() {
     for (size_t i = 0; i < sd_get_num(); ++i) {

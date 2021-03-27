@@ -64,8 +64,9 @@ static sd_card_t sd_cards[] = {  // One for each SD card
         .m_Status = STA_NOINIT,
         .sectors = 0,
         .card_type = 0,
-    },
-    {
+    }
+#if defined N_SD_CARDS && N_SD_CARDS > 1    // See CMakeLists.txt
+    ,{
         .pcName = "1:",           // Name used to mount device
         .spi = &spis[0],          // Pointer to the SPI driving this card
         .ss_gpio = 15,            // The SPI slave select GPIO for this SD card
@@ -76,7 +77,9 @@ static sd_card_t sd_cards[] = {  // One for each SD card
         .m_Status = STA_NOINIT,
         .sectors = 0,
         .card_type = 0,
-    }};
+    }
+#endif    
+    };
 
 void spi0_dma_isr() { spi_irq_handler(&spis[0]); }
 
@@ -94,7 +97,7 @@ sd_card_t *sd_get_by_name(const char *const name) {
     for (i = 0; i < sd_get_num(); ++i) {
         if (0 == strcmp(sd_cards[i].pcName, name)) return &sd_cards[i];
     }
-    DBG_PRINTF("FF_SDDiskInit: unknown name %s\n", name);
+    DBG_PRINTF("%s: unknown name %s\n", __func__, name);
     return NULL;
 }
 size_t spi_get_num() { return count_of(spis); }

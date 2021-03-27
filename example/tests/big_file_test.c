@@ -25,6 +25,18 @@
 #define FF_MAX_SS 512
 #define BUFFSZ 8 * 1024
 
+#undef assert
+#define assert configASSERT
+#define fopen ff_fopen
+#define fwrite ff_fwrite
+#define fread ff_fread
+#define fclose ff_fclose
+#ifndef FF_DEFINED
+#define errno stdioGET_ERRNO()
+#define free vPortFree
+#define malloc pvPortMalloc
+#endif
+
 typedef uint32_t DWORD;
 typedef unsigned int UINT;
 
@@ -93,7 +105,7 @@ static bool create_big_file(const char *const pathname, size_t size,
     for (i = 0; i < size / bufsz; ++i) {
         size_t n;
         for (n = 0; n < bufsz / sizeof(DWORD); n++) buff[n] = pn(0);
-        lItems = ff_fwrite(buff, bufsz, 1, pxFile);
+        lItems = fwrite(buff, bufsz, 1, pxFile);
         if (lItems < 1)
             printf("fwrite(%s): %s (%d)\n", pathname, strerror(errno), errno);
         assert(lItems == 1);
@@ -125,13 +137,10 @@ static void check_big_file(const char *const pathname, size_t size,
 
     pn(seed);
 
-    // FRESULT fc = f_open(&f, "numbers.txt", FA_READ | FA_WRITE);
-    // if (FR_OK != fc) printf("f_open error: %s (%d)\n", FRESULT_str(fc), fc);
-
     /* Open the file, creating the file if it does not already exist. */
-    pxFile = ff_fopen(pathname, "r");
+    pxFile = fopen(pathname, "r");
     if (!pxFile)
-        printf("ff_fopen(%s): %s (%d)\n", pathname, strerror(errno), errno);
+        printf("fopen(%s): %s (%d)\n", pathname, strerror(errno), -errno);
     assert(pxFile);
 
     printf("Reading...\n");
@@ -139,9 +148,9 @@ static void check_big_file(const char *const pathname, size_t size,
 
     size_t i;
     for (i = 0; i < size / bufsz; ++i) {
-        lItems = ff_fread(buff, bufsz, 1, pxFile);
+        lItems = fread(buff, bufsz, 1, pxFile);
         if (lItems < 1)
-            printf("ff_fread(%s): %s (%d)\n", pathname, strerror(errno), errno);
+            printf("fread(%s): %s (%d)\n", pathname, strerror(errno), -errno);
         assert(lItems == 1);
 
         /* Check the buffer is filled with the expected data. */

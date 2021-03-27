@@ -163,7 +163,11 @@
 / Drive/Volume Configurations
 /---------------------------------------------------------------------------*/
 
-#define FF_VOLUMES		2
+#if defined N_SD_CARDS 
+#  define FF_VOLUMES		N_SD_CARDS
+#else
+#  define FF_VOLUMES		1
+#endif
 /* Number of volumes (logical drives) to be used. (1-10) */
 
 
