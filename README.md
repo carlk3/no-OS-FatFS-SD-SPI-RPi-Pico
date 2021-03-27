@@ -173,18 +173,19 @@ It records the temperature as reported by the RP2040 internal Temperature Sensor
 in files named something like `/data/2021-03-21/11.csv`.
 Use this as a starting point for your own data logging application!
 
-Generally, to embed the library in your own application you will need to pick up the library and a dependency or two:
+If you want to use FatFs_SPI as a library embedded in another project, use something like:
+  ```
+  git submodule add git@github.com:carlk3/no-OS-FatFS-SD-SPI-RPi-Pico.git
+  ```
+  or
+  ```
+  git submodule add https://github.com/carlk3/no-OS-FatFS-SD-SPI-RPi-Pico.git
+  ```
+  
+You will need to pick up the library in CMakeLists.txt:
 ```
-target_link_libraries(my_app
-    FatFs_SPI
-    hardware_clocks
-)
-```
-and the FatFS header file:
-```
-target_include_directories(my_app PUBLIC
-    ff14a/source
-)
+add_subdirectory(no-OS-FatFS-SD-SPI-RPi-Pico/FatFs_SPI build)
+target_link_libraries(_my_app_ FatFs_SPI)
 ```
 and `#include "ff.h"`.
 
