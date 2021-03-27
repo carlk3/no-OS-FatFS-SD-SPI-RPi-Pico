@@ -153,6 +153,7 @@ stop_logger:
   Stop Data Log Demo
 
 ```
+![image](https://github.com/carlk3/FreeRTOS-FAT-CLI-for-RPi-Pico/blob/master/images/IMG_1481.JPG "Prototype")
 
 ## Troubleshooting
 * The first thing to try is lowering the SPI baud rate (see hw_config.c). This will also make it easier to use things like logic analyzers.
@@ -187,10 +188,10 @@ target_include_directories(my_app PUBLIC
 ```
 and `#include "ff.h"`.
 
-![image](https://github.com/carlk3/FreeRTOS-FAT-CLI-for-RPi-Pico/blob/master/images/IMG_1481.JPG "Prototype")
 Happy hacking!
+![image](https://github.com/carlk3/FreeRTOS-FAT-CLI-for-RPi-Pico/blob/master/images/IMG_20210322_201928116.jpg "Prototype")
 
-## Appendix: Adding a Additional Cards
+## Appendix: Adding Additional Cards
 When you're dealing with information storage, it's always nice to have redundancy. There are many possible combinations of SPIs and SD cards. One of these is putting multiple SD cards on the same SPI bus, at a cost of one (or two) Pico I/O pins (depending on whether or you care about Card Detect). I will illustrate that example here. 
 
 Name|SPI0|GPIO|Pin |SPI|MicroSD 0|MicroSD 1
@@ -214,4 +215,3 @@ As you can see from the table above, the only new signals are CD1 and CS1. Other
 ```
 #define FF_VOLUMES		2
 ```
-![image](https://github.com/carlk3/FreeRTOS-FAT-CLI-for-RPi-Pico/blob/master/images/IMG_20210322_201928116.jpg "Prototype")
