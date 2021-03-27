@@ -26,7 +26,10 @@ add_subdirectory(../FatFs_SPI build)
 target_link_libraries(FatFS_SPI_example pico_stdlib)
 
 target_compile_options(FatFS_SPI_example PUBLIC -Wall -Wextra -Wno-unused-function -Wno-unused-parameter)
-target_compile_definitions(FatFS_SPI_example PUBLIC DEBUG N_SD_CARDS=2)
+IF (NOT DEFINED N_SD_CARDS)
+    SET(N_SD_CARDS 1)
+ENDIF()
+target_compile_definitions(FatFS_SPI_example PUBLIC DEBUG N_SD_CARDS=${N_SD_CARDS})
 
 pico_set_program_name(FatFS_SPI_example "FatFS_SPI_example")
 pico_set_program_version(FatFS_SPI_example "0.1")
