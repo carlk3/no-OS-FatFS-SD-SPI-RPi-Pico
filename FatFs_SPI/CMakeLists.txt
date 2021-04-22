@@ -9,7 +9,6 @@ target_sources(FatFs_SPI INTERFACE
     ${CMAKE_CURRENT_LIST_DIR}/sd_driver/spi.c
     ${CMAKE_CURRENT_LIST_DIR}/sd_driver/sd_card.c
     ${CMAKE_CURRENT_LIST_DIR}/sd_driver/crc.c
-    ${CMAKE_CURRENT_LIST_DIR}/sd_driver/my_debug.c
     ${CMAKE_CURRENT_LIST_DIR}/src/glue.c
     ${CMAKE_CURRENT_LIST_DIR}/src/f_util.c
     ${CMAKE_CURRENT_LIST_DIR}/src/ff_stdio.c

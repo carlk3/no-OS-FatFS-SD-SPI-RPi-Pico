@@ -11,6 +11,8 @@ set(CMAKE_CXX_STANDARD 17)
 # Initialise the Pico SDK
 pico_sdk_init()
 
+add_subdirectory(../FatFs_SPI build)
+
 # Add executable. Default name is the project name, version 0.1
 add_executable(FatFS_SPI_example 
     FatFS_SPI_example.c 
@@ -21,7 +23,6 @@ add_executable(FatFS_SPI_example
     tests/CreateAndVerifyExampleFiles.c
     tests/ff_stdio_tests_with_cwd.c
 )
-add_subdirectory(../FatFs_SPI build)
 # Add the standard library to the build
 target_link_libraries(FatFS_SPI_example pico_stdlib)
 

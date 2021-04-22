@@ -11,9 +11,7 @@
 #include "f_util.h"
 #include "ff_stdio.h"
 
-bool tracing = true;
-
-#define TRACE_PRINTF(fmt, args...)
+#define TRACE_PRINTF(fmt, args...) {}
 //#define TRACE_PRINTF printf
 
 static BYTE posix2mode(const char *pcMode) {
@@ -91,8 +89,7 @@ FF_FILE *ff_fopen(const char *pcFile, const char *pcMode) {
     FRESULT fr = f_open(fp, pcFile, posix2mode(pcMode));
     errno = fresult2errno(fr);
     if (FR_OK != fr) {
-        if (tracing)
-            printf("%s error: %s (%d)\n", __func__, FRESULT_str(fr), fr);
+        TRACE_PRINTF("%s error: %s (%d)\n", __func__, FRESULT_str(fr), fr);
         free(fp);
         fp = 0;
     }
@@ -103,10 +100,9 @@ int ff_fclose(FF_FILE *pxStream) {
     // FRESULT f_close (
     //  FIL* fp     /* [IN] Pointer to the file object */
     //);
-    myASSERT(pxStream);
     FRESULT fr = f_close(pxStream);
-    if (tracing && FR_OK != fr)
-        printf("%s error: %s (%d)\n", __func__, FRESULT_str(fr), fr);
+    if (FR_OK != fr)
+        TRACE_PRINTF("%s error: %s (%d)\n", __func__, FRESULT_str(fr), fr);
     errno = fresult2errno(fr);
     free(pxStream);
     if (FR_OK == fr)
@@ -125,8 +121,8 @@ int ff_stat(const char *pcFileName, FF_Stat_t *pxStatBuffer) {
     FILINFO filinfo;
     FRESULT fr = f_stat(pcFileName, &filinfo);
     pxStatBuffer->st_size = filinfo.fsize;
-    if (tracing && FR_OK != fr)
-        printf("%s error: %s (%d)\n", __func__, FRESULT_str(fr), fr);
+    if (FR_OK != fr)
+        TRACE_PRINTF("%s error: %s (%d)\n", __func__, FRESULT_str(fr), fr);
     errno = fresult2errno(fr);
     if (FR_OK == fr)
         return 0;
@@ -145,8 +141,8 @@ size_t ff_fwrite(const void *pvBuffer, size_t xSize, size_t xItems,
     //);
     UINT bw = 0;
     FRESULT fr = f_write(pxStream, pvBuffer, xSize * xItems, &bw);
-    if (tracing && FR_OK != fr)
-        printf("%s error: %s (%d)\n", __func__, FRESULT_str(fr), fr);
+    if (FR_OK != fr)
+        TRACE_PRINTF("%s error: %s (%d)\n", __func__, FRESULT_str(fr), fr);
     errno = fresult2errno(fr);
     return bw / xSize;
 }
@@ -161,8 +157,8 @@ size_t ff_fread(void *pvBuffer, size_t xSize, size_t xItems,
     //);
     UINT br = 0;
     FRESULT fr = f_read(pxStream, pvBuffer, xSize * xItems, &br);
-    if (tracing && FR_OK != fr)
-        printf("%s error: %s (%d)\n", __func__, FRESULT_str(fr), fr);
+    if (FR_OK != fr)
+        TRACE_PRINTF("%s error: %s (%d)\n", __func__, FRESULT_str(fr), fr);
     errno = fresult2errno(fr);
     return br / xSize;
 }
@@ -172,8 +168,8 @@ int ff_chdir(const char *pcDirectoryName) {
     //  const TCHAR* path /* [IN] Path name */
     //);
     FRESULT fr = f_chdir(pcDirectoryName);
-    if (tracing && FR_OK != fr)
-        printf("%s error: %s (%d)\n", __func__, FRESULT_str(fr), fr);
+    if (FR_OK != fr)
+        TRACE_PRINTF("%s error: %s (%d)\n", __func__, FRESULT_str(fr), fr);
     errno = fresult2errno(fr);
     if (FR_OK == fr)
         return 0;
@@ -188,15 +184,19 @@ char *ff_getcwd(char *pcBuffer, size_t xBufferLength) {
     //);
     char buf[xBufferLength];
     FRESULT fr = f_getcwd(buf, xBufferLength);
-    if (tracing && FR_OK != fr)
-        printf("%s error: %s (%d)\n", __func__, FRESULT_str(fr), fr);
+    if (FR_OK != fr)
+        TRACE_PRINTF("%s error: %s (%d)\n", __func__, FRESULT_str(fr), fr);
     errno = fresult2errno(fr);
     // If the current working directory name was successfully written to
     // pcBuffer then pcBuffer is returned. Otherwise NULL is returned.
     if (FR_OK == fr) {
         if ('/' != buf[0]) {
-            char *p = strchr(buf, '/');
-            if (!p) p = buf;
+            // Strip off drive prefix:
+            char *p = strchr(buf, ':');
+            if (p)
+                ++p;
+            else
+                p = buf;
             strncpy(pcBuffer, p, xBufferLength);
         }
         return pcBuffer;
@@ -207,8 +207,8 @@ char *ff_getcwd(char *pcBuffer, size_t xBufferLength) {
 int ff_mkdir(const char *pcDirectoryName) {
     TRACE_PRINTF("%s(pxStream=%s)\n", __func__, pcDirectoryName);
     FRESULT fr = f_mkdir(pcDirectoryName);
-    if (tracing && FR_OK != fr && FR_EXIST != fr)
-        printf("%s error: %s (%d)\n", __func__, FRESULT_str(fr), fr);
+    if (FR_OK != fr && FR_EXIST != fr)
+        TRACE_PRINTF("%s error: %s (%d)\n", __func__, FRESULT_str(fr), fr);
     errno = fresult2errno(fr);
     if (FR_OK == fr || FR_EXIST == fr)
         return 0;
@@ -228,8 +228,8 @@ int ff_fputc(int iChar, FF_FILE *pxStream) {
     uint8_t buff[1];
     buff[0] = iChar;
     FRESULT fr = f_write(pxStream, buff, 1, &bw);
-    if (tracing && FR_OK != fr)
-        printf("%s error: %s (%d)\n", __func__, FRESULT_str(fr), fr);
+    if (FR_OK != fr)
+        TRACE_PRINTF("%s error: %s (%d)\n", __func__, FRESULT_str(fr), fr);
     errno = fresult2errno(fr);
     // On success the byte written to the file is returned. If any other value
     // is returned then the byte was not written to the file and the task's
@@ -251,8 +251,8 @@ int ff_fgetc(FF_FILE *pxStream) {
     uint8_t buff[1] = {0};
     UINT br;
     FRESULT fr = f_read(pxStream, buff, 1, &br);
-    if (tracing && FR_OK != fr)
-        printf("%s error: %s (%d)\n", __func__, FRESULT_str(fr), fr);
+    if (FR_OK != fr)
+        TRACE_PRINTF("%s error: %s (%d)\n", __func__, FRESULT_str(fr), fr);
     errno = fresult2errno(fr);
     // On success the byte read from the file system is returned. If a byte
     // could not be read from the file because the read position is already at
@@ -300,12 +300,15 @@ int ff_fseek(FF_FILE *pxStream, int iOffset, int iWhence) {
     FRESULT fr = -1;
     switch (iWhence) {
         case FF_SEEK_CUR:  // The current file position.
+            if ((int)f_tell(pxStream) + iOffset < 0) return -1;
             fr = f_lseek(pxStream, f_tell(pxStream) + iOffset);
             break;
         case FF_SEEK_END:  // The end of the file.
+            if ((int)f_size(pxStream) + iOffset < 0) return -1;
             fr = f_lseek(pxStream, f_size(pxStream) + iOffset);
             break;
         case FF_SEEK_SET:  // The beginning of the file.
+            if (iOffset < 0) return -1;
             fr = f_lseek(pxStream, iOffset);
             break;
         default:
@@ -342,7 +345,7 @@ int ff_findfirst(const char *pcDirectory, FF_FindData_t *pxFindData) {
     errno = fresult2errno(fr);
     pxFindData->pcFileName = pxFindData->fileinfo.fname;
     pxFindData->ulFileSize = pxFindData->fileinfo.fsize;
-    if (tracing) printf("%s: fname=%s\n", __func__, pxFindData->fileinfo.fname);
+    TRACE_PRINTF("%s: fname=%s\n", __func__, pxFindData->fileinfo.fname);
     if (pcDirectory[0]) {
         FRESULT fr2 = f_chdir(buf1);
         errno = fresult2errno(fr2);
@@ -364,7 +367,7 @@ int ff_findnext(FF_FindData_t *pxFindData) {
     errno = fresult2errno(fr);
     pxFindData->pcFileName = pxFindData->fileinfo.fname;
     pxFindData->ulFileSize = pxFindData->fileinfo.fsize;
-    if (tracing) printf("%s: fname=%s\n", __func__, pxFindData->fileinfo.fname);
+    TRACE_PRINTF("%s: fname=%s\n", __func__, pxFindData->fileinfo.fname);
     if (FR_OK == fr && pxFindData->fileinfo.fname[0]) {
         return 0;
     } else {
@@ -378,19 +381,29 @@ FF_FILE *ff_truncate(const char *pcFileName, long lTruncateSize) {
         errno = ENOMEM;
         return NULL;
     }
-    FRESULT fr = f_open(fp, pcFileName, FA_CREATE_ALWAYS | FA_WRITE);
-    if (tracing && FR_OK != fr)
+    FRESULT fr = f_open(fp, pcFileName, FA_OPEN_APPEND | FA_WRITE);
+    if (FR_OK != fr)
         printf("%s: f_open error: %s (%d)\n", __func__, FRESULT_str(fr), fr);
     errno = fresult2errno(fr);
     if (FR_OK != fr) return NULL;
+    while (f_tell(fp) < (FSIZE_t)lTruncateSize) {
+        UINT bw = 0;
+        char c = 0;
+        fr = f_write(fp, &c, 1, &bw);
+        if (FR_OK != fr)
+            TRACE_PRINTF("%s error: %s (%d)\n", __func__, FRESULT_str(fr), fr);
+        errno = fresult2errno(fr);
+        if (1 != bw) return NULL;
+    }
     fr = f_lseek(fp, lTruncateSize);
     errno = fresult2errno(fr);
-    if (tracing && FR_OK != fr)
+    if (FR_OK != fr)
         printf("%s: f_lseek error: %s (%d)\n", __func__, FRESULT_str(fr), fr);
     if (FR_OK != fr) return NULL;
     fr = f_truncate(fp);
-    if (tracing && FR_OK != fr)
-        printf("%s: f_truncate error: %s (%d)\n", __func__, FRESULT_str(fr), fr);
+    if (FR_OK != fr)
+        printf("%s: f_truncate error: %s (%d)\n", __func__, FRESULT_str(fr),
+               fr);
     errno = fresult2errno(fr);
     if (FR_OK == fr)
         return fp;

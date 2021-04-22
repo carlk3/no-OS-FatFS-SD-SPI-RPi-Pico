@@ -209,8 +209,8 @@ void ls(const char *dir) {
     printf("Directory Listing: %s\n", p_dir);
     DIR dj;      /* Directory object */
     FILINFO fno; /* File information */
-    memset (&dj, 0, sizeof dj);
-    memset (&fno, 0, sizeof fno);
+    memset(&dj, 0, sizeof dj);
+    memset(&fno, 0, sizeof fno);
     fr = f_findfirst(&dj, &fno, p_dir, "*");
     if (FR_OK != fr) {
         printf("f_findfirst error: %s (%d)\n", FRESULT_str(fr), fr);
@@ -283,10 +283,41 @@ static void run_big_file_test() {
     uint32_t seed = atoi(pcSeed);
     big_file_test(pcPathName, size, seed);
 }
-static void run_cdef() { 
-    f_mkdir("/cdef"); // fake mountpoint
-    vCreateAndVerifyExampleFiles("/cdef"); }
+static void del_node(const char *path) {
+    FILINFO fno;
+    char buff[256];
+    /* Directory to be deleted */
+    strlcpy(buff, path, sizeof(buff));
+    /* Delete the directory */
+    FRESULT fr = delete_node(buff, sizeof buff / sizeof buff[0], &fno);
+    /* Check the result */
+    if (fr) {
+        printf("Failed to delete the directory %s. ", path);
+        printf("%s error: %s (%d)\n", __func__, FRESULT_str(fr), fr);
+    }
+}
+static void run_del_node() {
+    char *arg1 = strtok(NULL, " ");
+    if (!arg1) {
+        printf("Missing argument\n");
+        return;
+    }
+    del_node(arg1);
+}
+static void run_cdef() {
+    f_mkdir("/cdef");  // fake mountpoint
+    vCreateAndVerifyExampleFiles("/cdef");
+}
 static void run_swcwdt() { vStdioWithCWDTest("/cdef"); }
+static void run_loop_swcwdt() {
+    int cRxedChar = 0;
+    do {
+        del_node("/cdef");
+        run_cdef();
+        run_swcwdt();
+        cRxedChar = getchar_timeout_us(0);
+    } while (PICO_ERROR_TIMEOUT == cRxedChar);
+}
 static void run_start_logger() {
     logger_enabled = true;
     next_time = delayed_by_ms(get_absolute_time(), period);
@@ -341,6 +372,11 @@ static cmd_def_t cmds[] = {
      "  Make a new directory.\n"
      "  <path> Specifies the name of the directory to be created.\n"
      "\te.g.: mkdir /dir1"},
+    {"del_node", run_del_node,
+     "del_node <path>:\n"
+     "  Remove directory and all of its contents.\n"
+     "  <path> Specifies the name of the directory to be deleted.\n"
+     "\te.g.: del_node /dir1"},
     {"ls", run_ls, "ls:\n  List directory"},
     {"cat", run_cat, "cat <filename>:\n  Type file contents"},
     {"simple", simple, "simple:\n  Run simple FS tests"},
@@ -353,10 +389,15 @@ static cmd_def_t cmds[] = {
     {"cdef", run_cdef,
      "cdef:\n  Create Disk and Example Files\n"
      "  Expects card to be already formatted and mounted"},
-    //{"swcwdt", run_swcwdt,
-    // "\nswcwdt:\n Stdio With CWD Test\n"
-    // "Expects card to be already formatted and mounted.\n"
-    // "Note: run cdef first!"},
+    {"swcwdt", run_swcwdt,
+     "\nswcwdt:\n Stdio With CWD Test\n"
+     "Expects card to be already formatted and mounted.\n"
+     "Note: run cdef first!"},
+    {"loop_swcwdt", run_loop_swcwdt,
+     "\nloop_swcwdt:\n Run Create Disk and Example Files and Stdio With CWD "
+     "Test in a loop.\n"
+     "Expects card to be already formatted and mounted.\n"
+     "Note: Type any key to quit."},
     {"start_logger", run_start_logger,
      "start_logger:\n"
      "  Start Data Log Demo"},

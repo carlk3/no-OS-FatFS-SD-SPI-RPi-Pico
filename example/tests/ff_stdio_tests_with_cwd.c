@@ -230,7 +230,8 @@ char *pcRAMBuffer, *pcFileName;
 	configASSERT( iReturned == pdFREERTOS_ERRNO_NONE );
 	iReturned = ff_mkdir( "sub1/sub2/sub3" );
 	configASSERT( iReturned == pdFREERTOS_ERRNO_NONE );
-	iReturned = ff_mkdir( "sub1/sub2/sub3/sub4/" );
+	//iReturned = ff_mkdir( "sub1/sub2/sub3/sub4/" );
+	iReturned = ff_mkdir( "sub1/sub2/sub3/sub4" );
 	configASSERT( iReturned == pdFREERTOS_ERRNO_NONE );
 
 	/* This is the non-recursive version, so the following is expected to
@@ -263,7 +264,8 @@ char *pcRAMBuffer, *pcFileName;
 
 	/* Ensure the CWD is as expected. */
 	configASSERT( ff_getcwd( pcFileName, ffconfigMAX_FILENAME ) == pcFileName );
-	configASSERT( strcmp( pcFileName, pcRAMBuffer ) == 0 );
+	//configASSERT( strcmp( pcFileName, pcRAMBuffer ) == 0 );
+	configASSERT( strcasecmp( pcFileName, pcRAMBuffer ) == 0 );
 
 	/* Should not be possible to delete a directory in the CWD (although it is
 	possible to delete the CWD if it is empty!). */
@@ -559,6 +561,7 @@ const char *pcExpectedSUB1Files[] =
 
 			} while( ff_findnext( pxFindStruct ) == pdFREERTOS_ERRNO_NONE );
 		}
+		f_closedir(&pxFindStruct->dir);
 
 		/* Were all the files found? */
 		for( i = 0; i < sizeof( ucFoundFiles ); i++ )
@@ -589,6 +592,7 @@ const char *pcExpectedSUB1Files[] =
 
 			} while( ff_findnext( pxFindStruct ) == pdFREERTOS_ERRNO_NONE );
 		}
+		f_closedir(&pxFindStruct->dir);
 
 		/* Were all the files found? */
 		for( i = 0; i < ( sizeof( pcExpectedSUB1Files ) / sizeof( char * ) ); i++ )
@@ -1043,7 +1047,8 @@ char cReadBuffer[ 45 ];
 	configASSERT( ff_filelength( pxFile ) == strlen( pcSecondStringToWrite ) );
 	memset( cReadBuffer, 0x00, sizeof( cReadBuffer ) );
 	/* +1 to get the \n on the end of the string too. */
-	ff_fgets( cReadBuffer, strlen( pcSecondStringToWrite ) + 1, pxFile );
+	//ff_fgets( cReadBuffer, strlen( pcSecondStringToWrite ) + 1, pxFile );
+	ff_fgets( cReadBuffer, strlen( pcSecondStringToWrite ) + 4, pxFile ); // extra for utf-8 encoding
 	configASSERT( strcmp( cReadBuffer, pcSecondStringToWrite ) == 0 );
 
 	ff_fclose( pxFile );
