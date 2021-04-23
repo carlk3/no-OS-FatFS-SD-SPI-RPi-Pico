@@ -40,10 +40,10 @@ On a SanDisk Class 4 16 GB card, I have been able to push the SPI baud rate as f
 
 |       | SPI0  | GPIO  | Pin   | SPI       | MicroSD 0 |
 | ----- | ----  | ----- | ---   | --------  | --------- |
-| MOSI  | TX    | 16    | 25    | DI        | DI        |
+| MOSI  | TX    | 16    | 21    | DI        | DI        |
 | CS0   | CSn   | 17    | 22    | SS or CS  | CS        |
 | SCK   | SCK   | 18    | 24    | SCLK      | CLK       |
-| MISO  | RX    | 19    | 21    | DO        | DO        |
+| MISO  | RX    | 19    | 25    | DO        | DO        |
 | CD    |       | 22    | 29    |           | CD        |
 | GND   |       |       | 18,23 |           | GND       |
 | 3v3   |       |       | 36    |           | 3v3       |
