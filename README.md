@@ -176,7 +176,7 @@ You can swap the commenting to enable tracing of what's happening in that file.
   * f_read - Read data from the file
   * f_close - Close an open file
   * f_unmount
-* There is also POSIX-like API wrapper layer in `ff_stio.h` and `ff_stio.h`, written for compatibility with [FreeRTOS+FAT API](https://www.freertos.org/FreeRTOS-Plus/FreeRTOS_Plus_FAT/index.html) (mainly so that I could reuse some tests from that environment.)
+* There is also POSIX-like API wrapper layer in `ff_stdio.h` and `ff_stdio.c`, written for compatibility with [FreeRTOS+FAT API](https://www.freertos.org/FreeRTOS-Plus/FreeRTOS_Plus_FAT/index.html) (mainly so that I could reuse some tests from that environment.)
 
 ## Next Steps
 There is a example data logging application in `data_log_demo.c`. 
