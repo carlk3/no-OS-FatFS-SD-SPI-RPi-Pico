@@ -12,8 +12,6 @@ extern "C" {
 extern time_t epochtime;
 
 void time_init();
-void setrtc(datetime_t *t);
-void update_epochtime();
 
 #ifdef __cplusplus
 }

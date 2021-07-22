@@ -477,13 +477,7 @@ int main() {
     printf("\n> ");
     stdio_flush();
 
-    absolute_time_t next_epoch_update_time = get_absolute_time();
-
     for (;;) {  // Super Loop
-        if (absolute_time_diff_us(get_absolute_time(), next_epoch_update_time) < 0) {
-            update_epochtime();
-            next_epoch_update_time = delayed_by_ms(next_epoch_update_time, 1000);
-        }
         if (logger_enabled && absolute_time_diff_us(get_absolute_time(), next_log_time) < 0) {
             if (!process_logger()) logger_enabled = false;
             next_log_time = delayed_by_ms(next_log_time, period);

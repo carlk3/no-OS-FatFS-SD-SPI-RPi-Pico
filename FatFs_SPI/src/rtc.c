@@ -12,6 +12,7 @@
 
 time_t epochtime;
 
+// Make an attempt to save a recent time stamp across reset:
 typedef struct rtc_save {
     uint32_t signature;
     datetime_t datetime;
@@ -19,7 +20,7 @@ typedef struct rtc_save {
 } rtc_save_t;
 static rtc_save_t rtc_save __attribute__((section(".uninitialized_data")));
 
-void update_epochtime() {
+static void update_epochtime() {
     bool rc = rtc_get_datetime(&rtc_save.datetime);
     if (rc) {
         rtc_save.signature = 0xBABEBABE;
@@ -44,6 +45,7 @@ void update_epochtime() {
 }
 
 time_t time(time_t *pxTime) {
+    update_epochtime();
     if (pxTime) {
         *pxTime = epochtime;
     }

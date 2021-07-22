@@ -465,7 +465,7 @@ static int sd_cmd(sd_card_t *this, const cmdSupported cmd, uint32_t arg,
                    response);
         return SD_BLOCK_DEVICE_ERROR_NO_DEVICE;  // No device
     }
-    if (response & R1_COM_CRC_ERROR) {
+    if (response & R1_COM_CRC_ERROR && ACMD23_SET_WR_BLK_ERASE_COUNT != cmd) {
         DBG_PRINTF("CRC error CMD:%d response 0x%" PRIx32 "\n", cmd, response);
         return SD_BLOCK_DEVICE_ERROR_CRC;  // CRC error
     }
