@@ -38,21 +38,22 @@ On a SanDisk Class 4 16 GB card, I have been able to push the SPI baud rate as f
 
 ![image](https://www.raspberrypi.org/documentation/rp2040/getting-started/static/64b50c4316a7aefef66290dcdecda8be/Pico-R3-SDK11-Pinout.svg "Pinout")
 
-|       | SPI0  | GPIO  | Pin   | SPI       | MicroSD 0 |
-| ----- | ----  | ----- | ---   | --------  | --------- |
-| MOSI  | TX    | 16    | 25    | DI        | DI        |
-| CS0   | CSn   | 17    | 22    | SS or CS  | CS        |
-| SCK   | SCK   | 18    | 24    | SCLK      | CLK       |
-| MISO  | RX    | 19    | 21    | DO        | DO        |
-| CD    |       | 22    | 29    |           | CD        |
-| GND   |       |       | 18,23 |           | GND       |
-| 3v3   |       |       | 36    |           | 3v3       |
+|       | SPI0  | GPIO  | Pin   | SPI       | MicroSD 0 | Description            | 
+| ----- | ----  | ----- | ---   | --------  | --------- | ---------------------- |
+| MISO  | RX    | 16    | 21    | DO        | DO        | Master In, Slave Out   |
+| CS0   | CSn   | 17    | 22    | SS or CS  | CS        | Slave (or Chip) Select |
+| SCK   | SCK   | 18    | 24    | SCLK      | CLK       | SPI clock              |
+| MOSI  | TX    | 19    | 25    | DI        | DI        | Master Out, Slave In   |
+| CD    |       | 22    | 29    |           | CD        | Card Detect            |
+| GND   |       |       | 18,23 |           | GND       | Ground                 |
+| 3v3   |       |       | 36    |           | 3v3       | 3.3 volt power         |
 
 ## Construction:
 * The wiring is so simple that I didn't bother with a schematic. 
 I just referred to the table above, wiring point-to-point from the Pin column on the Pico to the MicroSD 0 column on the Transflash.
+* Card Detect is optional. Some SD card sockets have no provision for it. 
+Even if it is provided by the hardware, you might not care about it if you intend to leave the card in all the time, so you can skip it and save an I/O pin.
 * You can choose to use either or both of the Pico's SPIs.
-* To add a second SD card on the same SPI, connect it in parallel, except that it will need a unique GPIO for the Card Select/Slave Select (CSn) and another for Card Detect (CD) (optional).
 * Wires should be kept short and direct. SPI operates at HF radio frequencies.
 
 ### Pull Up Resistors
@@ -66,7 +67,8 @@ I just referred to the table above, wiring point-to-point from the Pin column on
 * Customize:
   * Tailor `sd_driver/hw_config.c` to match hardware
   * Customize `ff14a/source/ffconf.h` as desired
-  * Customize `pico_enable_stdio_uart` and `pico_enable_stdio_usb` in CMakeLists.txt as you prefer
+  * Customize `pico_enable_stdio_uart` and `pico_enable_stdio_usb` in CMakeLists.txt as you prefer. 
+(See *4.1. Serial input and output on Raspberry Pi Pico* in [Getting started with Raspberry Pi Pico](https://datasheets.raspberrypi.org/pico/getting-started-with-pico.pdf) and *2.7.1. Standard Input/Output (stdio) Support* in [Raspberry Pi Pico C/C++ SDK](https://datasheets.raspberrypi.org/pico/raspberry-pi-pico-c-sdk.pdf).) 
 * Build:
 ```  
    cd no-OS-FatFS
@@ -157,6 +159,7 @@ stop_logger:
 
 ## Troubleshooting
 * The first thing to try is lowering the SPI baud rate (see hw_config.c). This will also make it easier to use things like logic analyzers.
+* Try another brand of SD card. Some handle the SPI protocol better than others. (Most consumer devices like cameras or PCs use the SDIO interface.) I have had good luck with SanDisk.
 * Tracing: Most of the source files have a couple of lines near the top of the file like:
 ```
 #define TRACE_PRINTF(fmt, args...) // Disable tracing
@@ -164,6 +167,17 @@ stop_logger:
 ```
 You can swap the commenting to enable tracing of what's happening in that file.
 * Logic analyzer: for less than ten bucks, something like this [Comidox 1Set USB Logic Analyzer Device Set USB Cable 24MHz 8CH 24MHz 8 Channel UART IIC SPI Debug for Arduino ARM FPGA M100 Hot](https://smile.amazon.com/gp/product/B07KW445DJ/) and [PulseView - sigrok](https://sigrok.org/) make a nice combination for looking at SPI, as long as you don't run the baud rate too high. 
+
+## Using the Application Programming Interface
+* After `stdio_init_all();`, `time_init();`, and whatever other Pico SDK initialization is required, call `sd_init_driver();` to initialize the SPI block device driver. 
+* Now, you can start using the [FatFs Application Interface](http://elm-chan.org/fsw/ff/00index_e.html). Typically,
+  * f_mount - Register/Unregister the work area of the volume
+  * f_open - Open/Create a file
+  * f_write - Write data to the file
+  * f_read - Read data from the file
+  * f_close - Close an open file
+  * f_unmount
+* There is also POSIX-like API wrapper layer in `ff_stdio.h` and `ff_stdio.c`, written for compatibility with [FreeRTOS+FAT API](https://www.freertos.org/FreeRTOS-Plus/FreeRTOS_Plus_FAT/index.html) (mainly so that I could reuse some tests from that environment.)
 
 ## Next Steps
 There is a example data logging application in `data_log_demo.c`. 
@@ -193,7 +207,9 @@ Happy hacking!
 ![image](https://github.com/carlk3/FreeRTOS-FAT-CLI-for-RPi-Pico/blob/master/images/IMG_20210322_201928116.jpg "Prototype")
 
 ## Appendix: Adding Additional Cards
-When you're dealing with information storage, it's always nice to have redundancy. There are many possible combinations of SPIs and SD cards. One of these is putting multiple SD cards on the same SPI bus, at a cost of one (or two) Pico I/O pins (depending on whether or you care about Card Detect). I will illustrate that example here. 
+When you're dealing with information storage, it's always nice to have redundancy. There are many possible combinations of SPIs and SD cards. One of these is putting multiple SD cards on the same SPI bus, at a cost of one (or two) additional Pico I/O pins (depending on whether or you care about Card Detect). I will illustrate that example here. 
+
+To add a second SD card on the same SPI, connect it in parallel, except that it will need a unique GPIO for the Card Select/Slave Select (CSn) and another for Card Detect (CD) (optional).
 
 Name|SPI0|GPIO|Pin |SPI|MicroSD 0|MicroSD 1
 ----|----|----|----|---|---------|---------
