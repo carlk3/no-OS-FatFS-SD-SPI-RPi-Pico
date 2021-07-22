@@ -39,7 +39,7 @@ static FATFS *get_fs_by_name(const char *name) {
 
 static bool logger_enabled;
 static const uint32_t period = 1000;
-static absolute_time_t next_time;
+static absolute_time_t next_log_time;
 
 static void run_setrtc() {
     const char *dateStr = strtok(NULL, " ");
@@ -91,8 +91,7 @@ static void run_setrtc() {
                     .hour = hour,
                     .min = min,
                     .sec = sec};
-    // bool r = rtc_set_datetime(&t);
-    setrtc(&t);
+    rtc_set_datetime(&t);
 }
 static void run_lliot() {
     size_t pnum = 0;
@@ -320,7 +319,7 @@ static void run_loop_swcwdt() {
 }
 static void run_start_logger() {
     logger_enabled = true;
-    next_time = delayed_by_ms(get_absolute_time(), period);
+    next_log_time = delayed_by_ms(get_absolute_time(), period);
 }
 static void run_stop_logger() { logger_enabled = false; }
 static void run_help();
@@ -478,15 +477,20 @@ int main() {
     printf("\n> ");
     stdio_flush();
 
-    for (;;) {
-        int cRxedChar = getchar_timeout_us(1000);
+    absolute_time_t next_epoch_update_time = get_absolute_time();
+
+    for (;;) {  // Super Loop
+        if (absolute_time_diff_us(get_absolute_time(), next_epoch_update_time) < 0) {
+            update_epochtime();
+            next_epoch_update_time = delayed_by_ms(next_epoch_update_time, 1000);
+        }
+        if (logger_enabled && absolute_time_diff_us(get_absolute_time(), next_log_time) < 0) {
+            if (!process_logger()) logger_enabled = false;
+            next_log_time = delayed_by_ms(next_log_time, period);
+        }
+        int cRxedChar = getchar_timeout_us(0);
         /* Get the character from terminal */
         if (PICO_ERROR_TIMEOUT != cRxedChar) process_stdio(cRxedChar);
-        if (logger_enabled &&
-            absolute_time_diff_us(get_absolute_time(), next_time) < 0) {
-            if (!process_logger()) logger_enabled = false;
-            next_time = delayed_by_ms(next_time, period);
-        }
     }
     return 0;
 }

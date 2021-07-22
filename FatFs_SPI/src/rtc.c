@@ -1,7 +1,9 @@
 #include <stdio.h>
 //
+#include "hardware/rtc.h"
 #include "pico/stdio.h"
 #include "pico/stdlib.h"
+#include "pico/util/datetime.h"
 //
 #include "ff.h"
 #include "util.h"  // calculate_checksum
@@ -17,7 +19,7 @@ typedef struct rtc_save {
 } rtc_save_t;
 static rtc_save_t rtc_save __attribute__((section(".uninitialized_data")));
 
-static void update_epochtime() {
+void update_epochtime() {
     bool rc = rtc_get_datetime(&rtc_save.datetime);
     if (rc) {
         rtc_save.signature = 0xBABEBABE;
@@ -48,48 +50,22 @@ time_t time(time_t *pxTime) {
     return epochtime;
 }
 
-static bool repeating_timer_callback(struct repeating_timer *t) {
-    update_epochtime();
-    return true;
-}
-
-static struct repeating_timer timer;
-
 void time_init() {
     rtc_init();
-    {
-        datetime_t t = {0, 0, 0, 0, 0, 0, 0};
-        rtc_get_datetime(&t);
-        if (!t.year && rtc_save.datetime.year) {
-            uint32_t xor_checksum = calculate_checksum(
-                (uint32_t *)&rtc_save, offsetof(rtc_save_t, checksum));
-            if (rtc_save.signature == 0xBABEBABE &&
-                rtc_save.checksum == xor_checksum) {
-                // Set rtc
-                rtc_set_datetime(&rtc_save.datetime);
-            }
+    datetime_t t = {0, 0, 0, 0, 0, 0, 0};
+    rtc_get_datetime(&t);
+    if (!t.year && rtc_save.datetime.year) {
+        uint32_t xor_checksum = calculate_checksum(
+            (uint32_t *)&rtc_save, offsetof(rtc_save_t, checksum));
+        if (rtc_save.signature == 0xBABEBABE &&
+            rtc_save.checksum == xor_checksum) {
+            // Set rtc
+            rtc_set_datetime(&rtc_save.datetime);
         }
     }
-    if (rtc_running()) {
-        // Create a repeating timer that calls repeating_timer_callback.
-        // If the delay is > 0 then this is the delay between the previous
-        // callback ending and the next starting. If the delay is negative (see
-        // below) then the next call to the callback will be exactly 500ms after
-        // the start of the call to the last callback
-        // Negative delay so means we will call repeating_timer_callback, and
-        // call it again 500ms later regardless of how long the callback took to
-        // execute
-        add_repeating_timer_ms(-1000, repeating_timer_callback, NULL, &timer);
-    }
 }
 
-void setrtc(datetime_t *t) {
-    rtc_set_datetime(t);
-    if (rtc_running()) {
-        add_repeating_timer_ms(-1000, repeating_timer_callback, NULL, &timer);
-    }
-}
-
+// Called by FatFs:
 DWORD get_fattime(void) {
     datetime_t t = {0, 0, 0, 0, 0, 0, 0};
     bool rc = rtc_get_datetime(&t);
