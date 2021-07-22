@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <time.h>
 //
 #include "hardware/rtc.h"
 #include "pico/stdio.h"
@@ -10,7 +11,7 @@
 //
 #include "rtc.h"
 
-time_t epochtime;
+static time_t epochtime;
 
 // Make an attempt to save a recent time stamp across reset:
 typedef struct rtc_save {

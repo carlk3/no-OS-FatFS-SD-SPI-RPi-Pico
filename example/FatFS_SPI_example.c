@@ -6,6 +6,7 @@
 #include <time.h>
 //
 #include "hardware/adc.h"
+#include "hardware/rtc.h"
 #include "pico/stdlib.h"
 //
 #include "f_util.h"
