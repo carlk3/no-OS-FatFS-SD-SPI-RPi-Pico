@@ -472,7 +472,7 @@ int main() {
     stdio_init_all();
     time_init();
     adc_init();
-    sd_init_driver();
+    // sd_init_driver(); // now called from sd_init_card
 
     printf("\033[2J\033[H");  // Clear Screen
     printf("\n> ");

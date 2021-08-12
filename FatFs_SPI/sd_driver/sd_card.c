@@ -175,8 +175,8 @@ static bool crc_on = true;
     {                                \
         printf(format, __VA_ARGS__); \
         fflush(stdout);              \
-    }
-*/    
+    }    
+*/
 
 /* Control Tokens   */
 #define SPI_DATA_RESPONSE_MASK (0x1F)
@@ -272,8 +272,6 @@ typedef enum {
 #define OCR_3_3V (0x1 << 20)
 
 #define SPI_CMD(x) (0x40 | (x & 0x3f))
-
-static bool driver_initialized;
 
 static uint8_t sd_cmd_spi(sd_card_t *this, cmdSupported cmd, uint32_t arg) {
     uint8_t response;
@@ -784,9 +782,23 @@ uint64_t sd_sectors(sd_card_t *this) {
     return sectors;
 }
 
+static void card_detect_callback(uint gpio, uint32_t events) {
+    DBG_PRINTF("GPIO %d interrupt ", gpio);
+    for (size_t i = 0; i < sd_get_num(); ++i) {
+        sd_card_t *this = sd_get_by_num(i);
+        if (this->card_detect_gpio == gpio) {
+            this->m_Status |= (STA_NODISK | STA_NOINIT);
+            DBG_PRINTF("(Card Detect %s)\n", this->pcName);
+        }
+    }
+}
+
 int sd_init_card(sd_card_t *this) {
     TRACE_PRINTF("> %s\n", __FUNCTION__);
-    myASSERT(driver_initialized);
+    if (!sd_init_driver()) {
+        this->m_Status &= STA_NOINIT;
+        return this->m_Status;
+    }
     //	STA_NOINIT = 0x01, /* Drive not initialized */
     //	STA_NODISK = 0x02, /* No medium in the drive */
     //	STA_PROTECT = 0x04 /* Write protected */
@@ -796,6 +808,14 @@ int sd_init_card(sd_card_t *this) {
     if (this->m_Status & STA_NODISK) {
         return this->m_Status;
     }
+
+    if (0 == this->card_detected_true || 1 == this->card_detected_true) {
+        // Set up an interrupt on card detect to detect removal of the card when it happens:
+        gpio_set_irq_enabled_with_callback(this->card_detect_gpio,
+                                        GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL,
+                                        true, &card_detect_callback);
+    }
+
     // Make sure we're not already initialized before proceeding
     if (!(this->m_Status & STA_NOINIT)) {
         return this->m_Status;
@@ -1093,6 +1113,16 @@ int sd_write_blocks(sd_card_t *this, const uint8_t *buffer,
 }
 
 bool sd_init_driver() {
+
+    static bool driver_initialized;
+    // bool __atomic_test_and_set (void *ptr, int memorder)
+    // This built-in function performs an atomic test-and-set operation on the
+    // byte at *ptr. The byte is set to some implementation defined nonzero
+    // “set” value and the return value is true if and only if the previous
+    // contents were “set”.
+    if (__atomic_test_and_set(&driver_initialized, __ATOMIC_SEQ_CST))
+        return true;
+
     for (size_t i = 0; i < sd_get_num(); ++i) {
         sd_card_t *this = sd_get_by_num(i);
         gpio_init(this->card_detect_gpio);
@@ -1109,7 +1139,6 @@ bool sd_init_driver() {
         spi_t *this = spi_get_by_num(i);
         if (!my_spi_init(this)) return false;
     }
-    driver_initialized = true;
     return true;
 }
 

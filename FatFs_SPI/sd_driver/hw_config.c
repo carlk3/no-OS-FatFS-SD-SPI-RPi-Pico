@@ -36,7 +36,7 @@ void spi0_dma_isr();
 static spi_t spis[] = {  // One for each SPI.
     {
         .hw_inst = spi0,  // SPI component
-        .miso_gpio = 16,
+        .miso_gpio = 16, // GPIO number (not pin number)
         .mosi_gpio = 19,
         .sck_gpio = 18,
         /* The choice of SD card matters! SanDisk runs at the highest speed. PNY
