@@ -16,19 +16,22 @@
 #include "rtc.h"
 #include "sd_card.h"
 
-extern void lliot();
-extern void simple();
-extern void big_file_test(const char *const pathname, size_t size,
-                          uint32_t seed);
-extern void vCreateAndVerifyExampleFiles(const char *pcMountPath);
-extern void vStdioWithCWDTest(const char *pcMountPath);
-extern bool process_logger();
+extern "C" {
+    int lliot(size_t pnum);
+    extern void ls(const char *dir);
+    extern void simple();
+    extern void big_file_test(const char *const pathname, size_t size,
+                            uint32_t seed);
+    extern void vCreateAndVerifyExampleFiles(const char *pcMountPath);
+    extern void vStdioWithCWDTest(const char *pcMountPath);
+    extern bool process_logger();
+}
 
 typedef struct {
     FATFS fatfs;
     char const *const name;
 } fatfs_dscr_t;
-static fatfs_dscr_t fatfs_dscrs[2] = {{.name = "0:"}, {.name = "1:"}};
+static fatfs_dscr_t fatfs_dscrs[2] = {{.name = "0:"}, {.name = "1:"}}; // Static, so the fatfs part is all 0s until mount
 static FATFS *get_fs_by_name(const char *name) {
     for (size_t i = 0; i < count_of(fatfs_dscrs); ++i) {
         if (0 == strcmp(fatfs_dscrs[i].name, name)) {
@@ -85,13 +88,13 @@ static void run_setrtc() {
     }
     int sec = atoi(secStr);
 
-    datetime_t t = {.year = year,
-                    .month = month,
-                    .day = date,
+    datetime_t t = {.year = static_cast<int16_t>(year),
+                    .month = static_cast<int8_t>(month),
+                    .day = static_cast<int8_t>(date),
                     .dotw = 0,  // 0 is Sunday, so 5 is Friday
-                    .hour = hour,
-                    .min = min,
-                    .sec = sec};
+                    .hour = static_cast<int8_t>(hour),
+                    .min = static_cast<int8_t>(min),
+                    .sec = static_cast<int8_t>(sec)};
     rtc_set_datetime(&t);
 }
 static void run_lliot() {
@@ -130,7 +133,7 @@ static void run_format() {
     if (FR_OK != fr) printf("f_mkfs error: %s (%d)\n", FRESULT_str(fr), fr);
 }
 static void run_mount() {
-    char *arg1 = strtok(NULL, " ");
+    const char *arg1 = strtok(NULL, " ");
     if (!arg1) arg1 = "0:";
     FATFS *p_fs = get_fs_by_name(arg1);
     if (!p_fs) {
@@ -141,19 +144,19 @@ static void run_mount() {
     if (FR_OK != fr) printf("f_mount error: %s (%d)\n", FRESULT_str(fr), fr);
 }
 static void run_unmount() {
-    char *arg1 = strtok(NULL, " ");
+    const char *arg1 = strtok(NULL, " ");
     if (!arg1) arg1 = "";
     FRESULT fr = f_unmount(arg1);
     if (FR_OK != fr) printf("f_mount error: %s (%d)\n", FRESULT_str(fr), fr);
 }
 static void run_chdrive() {
-    char *arg1 = strtok(NULL, " ");
+    const char *arg1 = strtok(NULL, " ");
     if (!arg1) arg1 = "0:";
     FRESULT fr = f_chdrive(arg1);
     if (FR_OK != fr) printf("f_mount error: %s (%d)\n", FRESULT_str(fr), fr);
 }
 static void run_getfree() {
-    char *arg1 = strtok(NULL, " ");
+    const char *arg1 = strtok(NULL, " ");
     if (!arg1) arg1 = "0:";
     DWORD fre_clust, fre_sect, tot_sect;
     /* Get volume information and free clusters of drive */
@@ -240,7 +243,7 @@ void ls(const char *dir) {
     f_closedir(&dj);
 }
 static void run_ls() {
-    char *arg1 = strtok(NULL, " ");
+    const char *arg1 = strtok(NULL, " ");
     if (!arg1) arg1 = "";
     ls(arg1);
 }

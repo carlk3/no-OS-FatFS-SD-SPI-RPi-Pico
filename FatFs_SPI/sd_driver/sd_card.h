@@ -61,13 +61,13 @@ enum {
 #endif
 
 bool sd_init_driver();
-int sd_init_card(sd_card_t *this);
-int sd_write_blocks(sd_card_t *this, const uint8_t *buffer,
+int sd_init_card(sd_card_t *pSD);
+int sd_write_blocks(sd_card_t *pSD, const uint8_t *buffer,
                     uint64_t ulSectorNumber, uint32_t blockCnt);
-int sd_read_blocks(sd_card_t *this, uint8_t *buffer, uint64_t ulSectorNumber,
+int sd_read_blocks(sd_card_t *pSD, uint8_t *buffer, uint64_t ulSectorNumber,
                    uint32_t ulSectorCount);
-bool sd_card_detect(sd_card_t *this);
-uint64_t sd_sectors(sd_card_t *this);
+bool sd_card_detect(sd_card_t *pSD);
+uint64_t sd_sectors(sd_card_t *pSD);
 
 #endif
 /* [] END OF FILE */

@@ -15,7 +15,7 @@ add_subdirectory(../FatFs_SPI build)
 
 # Add executable. Default name is the project name, version 0.1
 add_executable(FatFS_SPI_example 
-    FatFS_SPI_example.c 
+    FatFS_SPI_example.cpp 
     data_log_demo.c
     tests/simple.c
     tests/app4-IO_module_function_checker.c

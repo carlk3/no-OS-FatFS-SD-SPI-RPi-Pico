@@ -42,11 +42,19 @@ typedef struct {
     semaphore_t sem;
 } spi_t;
 
-// SPI DMA interrupts
-void spi_irq_handler(spi_t *this);
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-bool spi_transfer(spi_t *this, const uint8_t *tx, uint8_t *rx, size_t length);
-bool my_spi_init(spi_t *this);
+    // SPI DMA interrupts
+    void spi_irq_handler(spi_t *pSPI);
+
+    bool spi_transfer(spi_t *pSPI, const uint8_t *tx, uint8_t *rx, size_t length);
+    bool my_spi_init(spi_t *pSPI);
+
+#ifdef __cplusplus
+}
+#endif
 
 #define USE_LED 1
 #if USE_LED
