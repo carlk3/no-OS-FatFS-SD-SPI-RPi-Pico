@@ -174,7 +174,7 @@ You can swap the commenting to enable tracing of what's happening in that file.
 * Logic analyzer: for less than ten bucks, something like this [Comidox 1Set USB Logic Analyzer Device Set USB Cable 24MHz 8CH 24MHz 8 Channel UART IIC SPI Debug for Arduino ARM FPGA M100 Hot](https://smile.amazon.com/gp/product/B07KW445DJ/) and [PulseView - sigrok](https://sigrok.org/) make a nice combination for looking at SPI, as long as you don't run the baud rate too high. 
 
 ## Using the Application Programming Interface
-* After `stdio_init_all();`, `time_init();`, and whatever other Pico SDK initialization is required, call `sd_init_driver();` to initialize the SPI block device driver. 
+<strike>After `stdio_init_all();`, `time_init();`, and whatever other Pico SDK initialization is required, call `sd_init_driver();` to initialize the SPI block device driver.</strike> \[sd_init_driver() is now called implicitly.\]
 * Now, you can start using the [FatFs Application Interface](http://elm-chan.org/fsw/ff/00index_e.html). Typically,
   * f_mount - Register/Unregister the work area of the volume
   * f_open - Open/Create a file
