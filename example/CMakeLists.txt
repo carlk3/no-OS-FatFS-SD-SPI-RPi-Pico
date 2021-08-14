@@ -35,6 +35,8 @@ target_compile_definitions(FatFS_SPI_example PUBLIC DEBUG N_SD_CARDS=${N_SD_CARD
 pico_set_program_name(FatFS_SPI_example "FatFS_SPI_example")
 pico_set_program_version(FatFS_SPI_example "0.1")
 
+# See 4.1. Serial input and output on Raspberry Pi Pico in Getting started with Raspberry Pi Pico (https://datasheets.raspberrypi.org/pico/getting-started-with-pico.pdf)
+# and 2.7.1. Standard Input/Output (stdio) Support in Raspberry Pi Pico C/C++ SDK (https://datasheets.raspberrypi.org/pico/raspberry-pi-pico-c-sdk.pdf):
 pico_enable_stdio_uart(FatFS_SPI_example 1)
 pico_enable_stdio_usb(FatFS_SPI_example 0)
 
