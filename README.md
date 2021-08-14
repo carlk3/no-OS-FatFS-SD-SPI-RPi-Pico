@@ -76,7 +76,7 @@ Even if it is provided by the hardware, you might not care about it if you inten
 (See *4.1. Serial input and output on Raspberry Pi Pico* in [Getting started with Raspberry Pi Pico](https://datasheets.raspberrypi.org/pico/getting-started-with-pico.pdf) and *2.7.1. Standard Input/Output (stdio) Support* in [Raspberry Pi Pico C/C++ SDK](https://datasheets.raspberrypi.org/pico/raspberry-pi-pico-c-sdk.pdf).) 
 * Build:
 ```  
-   cd no-OS-FatFS
+   cd no-OS-FatFS/example
    mkdir build
    cd build
    cmake ..
