@@ -18,13 +18,13 @@
 
 extern "C" {
     int lliot(size_t pnum);
-    extern void ls(const char *dir);
-    extern void simple();
-    extern void big_file_test(const char *const pathname, size_t size,
+    void ls(const char *dir);
+    void simple();
+    void big_file_test(const char *const pathname, size_t size,
                             uint32_t seed);
-    extern void vCreateAndVerifyExampleFiles(const char *pcMountPath);
-    extern void vStdioWithCWDTest(const char *pcMountPath);
-    extern bool process_logger();
+    void vCreateAndVerifyExampleFiles(const char *pcMountPath);
+    void vStdioWithCWDTest(const char *pcMountPath);
+    bool process_logger();
 }
 
 typedef struct {
