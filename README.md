@@ -76,7 +76,7 @@ Even if it is provided by the hardware, you might not care about it if you inten
 (See *4.1. Serial input and output on Raspberry Pi Pico* in [Getting started with Raspberry Pi Pico](https://datasheets.raspberrypi.org/pico/getting-started-with-pico.pdf) and *2.7.1. Standard Input/Output (stdio) Support* in [Raspberry Pi Pico C/C++ SDK](https://datasheets.raspberrypi.org/pico/raspberry-pi-pico-c-sdk.pdf).) 
 * Build:
 ```  
-   cd no-OS-FatFS
+   cd no-OS-FatFS/example
    mkdir build
    cd build
    cmake ..
@@ -182,6 +182,7 @@ You can swap the commenting to enable tracing of what's happening in that file.
   * f_read - Read data from the file
   * f_close - Close an open file
   * f_unmount
+    * There is a simple example in the `simple_example` subdirectory.
 * There is also POSIX-like API wrapper layer in `ff_stdio.h` and `ff_stdio.c`, written for compatibility with [FreeRTOS+FAT API](https://www.freertos.org/FreeRTOS-Plus/FreeRTOS_Plus_FAT/index.html) (mainly so that I could reuse some tests from that environment.)
 
 ## Next Steps
