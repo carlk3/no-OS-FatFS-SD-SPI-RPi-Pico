@@ -27,6 +27,10 @@ socket, which SPI it is driven by, and how it is wired.
 #include "my_debug.h"
 //
 #include "hw_config.h"
+//
+#include "ff.h" /* Obtains integer types */
+//
+#include "diskio.h" /* Declarations of disk functions */
 
 void spi0_dma_isr();
 

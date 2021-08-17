@@ -155,6 +155,10 @@
 #include "sd_spi.h"
 //
 #include "sd_card.h"
+// 
+#include "ff.h" /* Obtains integer types */
+//
+#include "diskio.h" /* Declarations of disk functions */ // Needed for STA_NOINIT, ...
 
 #define SD_CRC_ENABLED 1
 
@@ -782,17 +786,6 @@ uint64_t sd_sectors(sd_card_t *pSD) {
     return sectors;
 }
 
-static void card_detect_callback(uint gpio, uint32_t events) {
-    DBG_PRINTF("GPIO %d interrupt ", gpio);
-    for (size_t i = 0; i < sd_get_num(); ++i) {
-        sd_card_t *pSD = sd_get_by_num(i);
-        if (pSD->card_detect_gpio == gpio) {
-            sd_card_detect(pSD);
-            DBG_PRINTF("(Card Detect %s)\n", pSD->pcName);
-        }
-    }
-}
-
 int sd_init_card(sd_card_t *pSD) {
     TRACE_PRINTF("> %s\n", __FUNCTION__);
     if (!sd_init_driver()) {
@@ -807,13 +800,6 @@ int sd_init_card(sd_card_t *pSD) {
     sd_card_detect(pSD);
     if (pSD->m_Status & STA_NODISK) {
         return pSD->m_Status;
-    }
-
-    if (0 == pSD->card_detected_true || 1 == pSD->card_detected_true) {
-        // Set up an interrupt on card detect to detect removal of the card when it happens:
-        gpio_set_irq_enabled_with_callback(pSD->card_detect_gpio,
-                                        GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL,
-                                        true, &card_detect_callback);
     }
 
     // Make sure we're not already initialized before proceeding

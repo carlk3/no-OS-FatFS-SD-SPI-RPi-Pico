@@ -9,8 +9,11 @@
 #include "hardware/rtc.h"
 #include "pico/stdlib.h"
 //
+#include "ff.h" /* Obtains integer types */
+//
+#include "diskio.h" /* Declarations of disk functions */
+//
 #include "f_util.h"
-#include "ff.h"
 #include "hw_config.h"
 #include "my_debug.h"
 #include "rtc.h"
@@ -44,6 +47,30 @@ static FATFS *get_fs_by_name(const char *name) {
 static bool logger_enabled;
 static const uint32_t period = 1000;
 static absolute_time_t next_log_time;
+static bool mounted;
+
+// If the card is physically removed, unmount the filesystem:
+static void card_detect_callback(uint gpio, uint32_t events) {
+    static bool busy;
+    if (busy) return; // Avoid switch bounce
+    busy = true;
+    for (size_t i = 0; i < sd_get_num(); ++i) {
+        sd_card_t *pSD = sd_get_by_num(i);
+        if (pSD->card_detect_gpio == gpio) {
+            if (mounted) {
+                DBG_PRINTF("(Card Detect Interrupt: unmounting %s)\n", pSD->pcName);
+                FRESULT fr = f_unmount(pSD->pcName);
+                if (FR_OK == fr) {
+                    mounted = false;
+                } else {
+                    printf("f_unmount error: %s (%d)\n", FRESULT_str(fr), fr);
+                }
+            }
+            sd_card_detect(pSD);
+        }
+    }
+    busy = false;
+}
 
 static void run_setrtc() {
     const char *dateStr = strtok(NULL, " ");
@@ -141,13 +168,34 @@ static void run_mount() {
         return;
     }
     FRESULT fr = f_mount(p_fs, arg1, 1);
-    if (FR_OK != fr) printf("f_mount error: %s (%d)\n", FRESULT_str(fr), fr);
+    if (FR_OK != fr) {
+        printf("f_mount error: %s (%d)\n", FRESULT_str(fr), fr);
+        return;
+    }
+    mounted = true;
+    sd_card_t *pSD = sd_get_by_name(arg1);
+    myASSERT(pSD);
+    if (0 == pSD->card_detected_true || 1 == pSD->card_detected_true) {
+        // Set up an interrupt on Card Detect to detect removal of the card when it happens:
+        gpio_set_irq_enabled_with_callback(pSD->card_detect_gpio,
+                                        GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL,
+                                        true, &card_detect_callback);
+    }
 }
 static void run_unmount() {
     const char *arg1 = strtok(NULL, " ");
-    if (!arg1) arg1 = "";
+    if (!arg1) arg1 = "0:";
+    FATFS *p_fs = get_fs_by_name(arg1);
+    if (!p_fs) {
+        printf("Unknown logical drive number: \"%s\"\n", arg1);
+        return;
+    }
     FRESULT fr = f_unmount(arg1);
-    if (FR_OK != fr) printf("f_mount error: %s (%d)\n", FRESULT_str(fr), fr);
+    if (FR_OK != fr) {
+        printf("f_unmount error: %s (%d)\n", FRESULT_str(fr), fr);
+        return;
+    }
+    mounted = false;
 }
 static void run_chdrive() {
     const char *arg1 = strtok(NULL, " ");

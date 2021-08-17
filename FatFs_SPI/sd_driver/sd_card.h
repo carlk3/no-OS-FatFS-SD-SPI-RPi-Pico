@@ -19,6 +19,10 @@
 //
 #include "spi.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // "Class" representing SD Cards
 typedef struct {
     const char *pcName;
@@ -27,8 +31,6 @@ typedef struct {
     uint ss_gpio;                   // Slave select for this SD card
     const uint card_detect_gpio;    // Card detect
     const uint card_detected_true;  // Varies with card socket
-    const gpio_irq_callback_t card_detect_callback;  // Port Interrupt callback
-    //TaskHandle_t card_detect_task;                   // handles card detect ISRs
     int m_Status;                                    // Card status
     uint64_t sectors;                                // Assigned dynamically
     int card_type;                                   // Assigned dynamically
@@ -51,14 +53,13 @@ typedef struct {
 #define SD_BLOCK_DEVICE_ERROR_WRITE \
     -5011 /*!< SPI Write error: !SPI_DATA_ACCEPTED */
 
-/* Disk Status Bits (DSTATUS) */
-#ifndef FF_DEFINED
-enum {
-    STA_NOINIT = 0x01, /* Drive not initialized */
-    STA_NODISK = 0x02, /* No medium in the drive */
-    STA_PROTECT = 0x04 /* Write protected */
-};
-#endif
+///* Disk Status Bits (DSTATUS) */
+// See diskio.h.
+//enum {
+//    STA_NOINIT = 0x01, /* Drive not initialized */
+//    STA_NODISK = 0x02, /* No medium in the drive */
+//    STA_PROTECT = 0x04 /* Write protected */
+//};
 
 bool sd_init_driver();
 int sd_init_card(sd_card_t *pSD);
@@ -68,6 +69,10 @@ int sd_read_blocks(sd_card_t *pSD, uint8_t *buffer, uint64_t ulSectorNumber,
                    uint32_t ulSectorCount);
 bool sd_card_detect(sd_card_t *pSD);
 uint64_t sd_sectors(sd_card_t *pSD);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 /* [] END OF FILE */
