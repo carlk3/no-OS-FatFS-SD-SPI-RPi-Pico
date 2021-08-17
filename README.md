@@ -17,6 +17,18 @@ It is wrapped up in a complete runnable project, with a little command line inte
 * Supports Cyclic Redundancy Check (CRC)
 * Plus all the neat features provided by [FatFS](http://elm-chan.org/fsw/ff/00index_e.html)
 
+## Resources Used
+* At least one (depending on configuration) of the two Serial Peripheral Interface (SPI) controllers is used.
+* For each SPI controller used, two DMA channels are claimed with `dma_claim_unused_channel`.
+* DMA_IRQ_0 is hooked with `irq_add_shared_handler` and enabled.
+* For each SPI controller used, one GPIO is needed for each of RX, TX, and SCK. Note: each SPI controller can only use a limited set of GPIOs for these functions.
+* For each SD card attached to an SPI controller, a GPIO is needed for CS, and, optionally, another for CD (Card Detect).
+<!--* `size simple_example.elf`
+```
+   text	   data	    bss	    dec	    hex	filename
+  68428	     44	   4388	  72860	  11c9c	simple_example.elf
+```-->
+
 ## Performance
 Using a Debug build: Writing and reading a file of 0xC0000000 (3,221,225,472) random bytes (3 GiB) on a SanDisk 32GB card with SPI baud rate 12,500,000:
 * Writing
