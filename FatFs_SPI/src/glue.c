@@ -28,6 +28,7 @@ DSTATUS disk_status(BYTE pdrv /* Physical drive nmuber to identify the drive */
     TRACE_PRINTF(">>> %s\n", __FUNCTION__);
     sd_card_t *p_sd = sd_get_by_num(pdrv);
     if (!p_sd) return RES_PARERR;
+    sd_card_detect(p_sd);  // Fast: just a GPIO read
     return p_sd->m_Status; // See http://elm-chan.org/fsw/ff/doc/dstat.html
 }
 

@@ -549,7 +549,7 @@ bool sd_card_detect(sd_card_t *pSD) {
         // The socket is now empty
         pSD->m_Status |= (STA_NODISK | STA_NOINIT);
         pSD->card_type = SDCARD_NONE;
-        DBG_PRINTF("No SD card detected!\n");
+        TRACE_PRINTF("No SD card detected!\n");
         return false;
     }
 }
@@ -787,7 +787,7 @@ static void card_detect_callback(uint gpio, uint32_t events) {
     for (size_t i = 0; i < sd_get_num(); ++i) {
         sd_card_t *pSD = sd_get_by_num(i);
         if (pSD->card_detect_gpio == gpio) {
-            pSD->m_Status |= (STA_NODISK | STA_NOINIT);
+            sd_card_detect(pSD);
             DBG_PRINTF("(Card Detect %s)\n", pSD->pcName);
         }
     }
