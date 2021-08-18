@@ -88,23 +88,21 @@ static sd_card_t sd_cards[] = {  // One for each SD card
 void spi0_dma_isr() { spi_irq_handler(&spis[0]); }
 
 /* ********************************************************************** */
-size_t sd_get_num() { return count_of(sd_cards); }
-sd_card_t *sd_get_by_num(size_t num) {
+size_t const sd_get_num() { return count_of(sd_cards); }
+sd_card_t *const sd_get_by_num(size_t num) {
     if (num <= sd_get_num()) {
         return &sd_cards[num];
     } else {
         return NULL;
     }
 }
-sd_card_t *sd_get_by_name(const char *const name) {
-    size_t i;
-    for (i = 0; i < sd_get_num(); ++i) {
+sd_card_t *const sd_get_by_name(const char *const name) {
+    for (size_t i = 0; i < sd_get_num(); ++i)
         if (0 == strcmp(sd_cards[i].pcName, name)) return &sd_cards[i];
-    }
     DBG_PRINTF("%s: unknown name %s\n", __func__, name);
     return NULL;
 }
-size_t spi_get_num() { return count_of(spis); }
+size_t const spi_get_num() { return count_of(spis); }
 spi_t *spi_get_by_num(size_t num) {
     if (num <= sd_get_num()) {
         return &spis[num];
@@ -112,4 +110,11 @@ spi_t *spi_get_by_num(size_t num) {
         return NULL;
     }
 }
+FATFS *const get_fs_by_name(const char *name) {
+    for (size_t i = 0; i < sd_get_num(); ++i)
+        if (0 == strcmp(sd_cards[i].pcName, name)) return &sd_cards[i].fatfs;
+    DBG_PRINTF("%s: unknown name %s\n", __func__, name);
+    return NULL;
+}
+
 /* [] END OF FILE */

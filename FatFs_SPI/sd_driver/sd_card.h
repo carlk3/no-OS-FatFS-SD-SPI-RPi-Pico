@@ -17,6 +17,8 @@
 //
 #include "hardware/gpio.h"
 //
+#include "ff.h"
+//
 #include "spi.h"
 
 #ifdef __cplusplus
@@ -34,6 +36,8 @@ typedef struct {
     int m_Status;                                    // Card status
     uint64_t sectors;                                // Assigned dynamically
     int card_type;                                   // Assigned dynamically
+    FATFS fatfs;
+    bool mounted;
 } sd_card_t;
 
 #define SD_BLOCK_DEVICE_ERROR_NONE 0

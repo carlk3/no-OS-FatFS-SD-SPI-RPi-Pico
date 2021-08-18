@@ -30,47 +30,9 @@ extern "C" {
     bool process_logger();
 }
 
-typedef struct {
-    FATFS fatfs;
-    char const *const name;
-} fatfs_dscr_t;
-static fatfs_dscr_t fatfs_dscrs[2] = {{.name = "0:"}, {.name = "1:"}}; // Static, so the fatfs part is all 0s until mount
-static FATFS *get_fs_by_name(const char *name) {
-    for (size_t i = 0; i < count_of(fatfs_dscrs); ++i) {
-        if (0 == strcmp(fatfs_dscrs[i].name, name)) {
-            return &fatfs_dscrs[i].fatfs;
-        }
-    }
-    return NULL;
-}
-
 static bool logger_enabled;
 static const uint32_t period = 1000;
 static absolute_time_t next_log_time;
-static bool mounted;
-
-// If the card is physically removed, unmount the filesystem:
-static void card_detect_callback(uint gpio, uint32_t events) {
-    static bool busy;
-    if (busy) return; // Avoid switch bounce
-    busy = true;
-    for (size_t i = 0; i < sd_get_num(); ++i) {
-        sd_card_t *pSD = sd_get_by_num(i);
-        if (pSD->card_detect_gpio == gpio) {
-            if (mounted) {
-                DBG_PRINTF("(Card Detect Interrupt: unmounting %s)\n", pSD->pcName);
-                FRESULT fr = f_unmount(pSD->pcName);
-                if (FR_OK == fr) {
-                    mounted = false;
-                } else {
-                    printf("f_unmount error: %s (%d)\n", FRESULT_str(fr), fr);
-                }
-            }
-            sd_card_detect(pSD);
-        }
-    }
-    busy = false;
-}
 
 static void run_setrtc() {
     const char *dateStr = strtok(NULL, " ");
@@ -161,7 +123,7 @@ static void run_format() {
 }
 static void run_mount() {
     const char *arg1 = strtok(NULL, " ");
-    if (!arg1) arg1 = "0:";
+    if (!arg1) arg1 = sd_get_by_num(0)->pcName;
     FATFS *p_fs = get_fs_by_name(arg1);
     if (!p_fs) {
         printf("Unknown logical drive number: \"%s\"\n", arg1);
@@ -172,19 +134,13 @@ static void run_mount() {
         printf("f_mount error: %s (%d)\n", FRESULT_str(fr), fr);
         return;
     }
-    mounted = true;
     sd_card_t *pSD = sd_get_by_name(arg1);
     myASSERT(pSD);
-    if (0 == pSD->card_detected_true || 1 == pSD->card_detected_true) {
-        // Set up an interrupt on Card Detect to detect removal of the card when it happens:
-        gpio_set_irq_enabled_with_callback(pSD->card_detect_gpio,
-                                        GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL,
-                                        true, &card_detect_callback);
-    }
+    pSD->mounted = true;
 }
 static void run_unmount() {
     const char *arg1 = strtok(NULL, " ");
-    if (!arg1) arg1 = "0:";
+    if (!arg1) arg1 = sd_get_by_num(0)->pcName;
     FATFS *p_fs = get_fs_by_name(arg1);
     if (!p_fs) {
         printf("Unknown logical drive number: \"%s\"\n", arg1);
@@ -195,17 +151,19 @@ static void run_unmount() {
         printf("f_unmount error: %s (%d)\n", FRESULT_str(fr), fr);
         return;
     }
-    mounted = false;
+    sd_card_t *pSD = sd_get_by_name(arg1);
+    myASSERT(pSD);
+    pSD->mounted = false;
 }
 static void run_chdrive() {
     const char *arg1 = strtok(NULL, " ");
-    if (!arg1) arg1 = "0:";
+    if (!arg1) arg1 = sd_get_by_num(0)->pcName;
     FRESULT fr = f_chdrive(arg1);
     if (FR_OK != fr) printf("f_mount error: %s (%d)\n", FRESULT_str(fr), fr);
 }
 static void run_getfree() {
     const char *arg1 = strtok(NULL, " ");
-    if (!arg1) arg1 = "0:";
+    if (!arg1) arg1 = sd_get_by_num(0)->pcName;
     DWORD fre_clust, fre_sect, tot_sect;
     /* Get volume information and free clusters of drive */
     FATFS *p_fs = get_fs_by_name(arg1);
@@ -519,6 +477,29 @@ static void process_stdio(int cRxedChar) {
     }
 }
 
+// If the card is physically removed, unmount the filesystem:
+static void card_detect_callback(uint gpio, uint32_t events) {
+    static bool busy;
+    if (busy) return; // Avoid switch bounce
+    busy = true;
+    for (size_t i = 0; i < sd_get_num(); ++i) {
+        sd_card_t *pSD = sd_get_by_num(i);
+        if (pSD->card_detect_gpio == gpio) {
+            if (pSD->mounted) {
+                DBG_PRINTF("(Card Detect Interrupt: unmounting %s)\n", pSD->pcName);
+                FRESULT fr = f_unmount(pSD->pcName);
+                if (FR_OK == fr) {
+                    pSD->mounted = false;
+                } else {
+                    printf("f_unmount error: %s (%d)\n", FRESULT_str(fr), fr);
+                }
+            }
+            sd_card_detect(pSD);
+        }
+    }
+    busy = false;
+}
+
 int main() {
     stdio_init_all();
     time_init();
@@ -529,8 +510,20 @@ int main() {
     printf("\n> ");
     stdio_flush();
 
+    for (size_t i = 0; i < sd_get_num(); ++i) {
+        sd_card_t *pSD = sd_get_by_num(i);
+        if (0 == pSD->card_detected_true || 1 == pSD->card_detected_true) {
+            // Set up an interrupt on Card Detect to detect removal of the card
+            // when it happens:
+            gpio_set_irq_enabled_with_callback(
+                pSD->card_detect_gpio, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL,
+                true, &card_detect_callback);
+        }
+    }
+
     for (;;) {  // Super Loop
-        if (logger_enabled && absolute_time_diff_us(get_absolute_time(), next_log_time) < 0) {
+        if (logger_enabled &&
+            absolute_time_diff_us(get_absolute_time(), next_log_time) < 0) {
             if (!process_logger()) logger_enabled = false;
             next_log_time = delayed_by_ms(next_log_time, period);
         }
