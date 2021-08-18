@@ -19,10 +19,11 @@
 #include "spi.h"
 
 void spi_irq_handler(spi_t *pSPI) {
-    // Clear the interrupt request.
-    dma_hw->ints0 = 1u << pSPI->rx_dma;
-    myASSERT(!dma_channel_is_busy(pSPI->rx_dma));
-    sem_release(&pSPI->sem);
+    if (dma_hw->ints0 & 1u << pSPI->rx_dma) { // Ours?
+        dma_hw->ints0 = 1u << pSPI->rx_dma; // clear it
+        myASSERT(!dma_channel_is_busy(pSPI->rx_dma));
+        sem_release(&pSPI->sem);
+    }
 }
 
 // SPI Transfer: Read & Write (simultaneously) on SPI bus
@@ -145,9 +146,8 @@ bool my_spi_init(spi_t *pSPI) {
     /* Theory: we only need an interrupt on rx complete,
     since if rx is complete, tx must also be complete. */
 
-    // Configure the processor to run dma_handler() when DMA IRQ 0 is
-    // asserted
-    irq_set_exclusive_handler(DMA_IRQ_0, pSPI->dma_isr);
+    // Configure the processor to run dma_handler() when DMA IRQ 0 is asserted:
+    irq_add_shared_handler(DMA_IRQ_0, pSPI->dma_isr, PICO_SHARED_IRQ_HANDLER_DEFAULT_ORDER_PRIORITY);
 
     // Tell the DMA to raise IRQ line 0 when the channel finishes a block
     dma_channel_set_irq0_enabled(pSPI->rx_dma, true);
