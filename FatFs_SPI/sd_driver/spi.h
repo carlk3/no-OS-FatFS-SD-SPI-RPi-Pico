@@ -28,10 +28,10 @@
 typedef struct {
     // SPI HW
     spi_inst_t *hw_inst;
-    const uint miso_gpio;  // SPI MISO GPIO number (not pin number)
-    const uint mosi_gpio;
-    const uint sck_gpio;
-    const uint baud_rate;
+    uint miso_gpio;  // SPI MISO GPIO number (not pin number)
+    uint mosi_gpio;
+    uint sck_gpio;
+    uint baud_rate;
     // State variables:
     uint tx_dma;
     uint rx_dma;
