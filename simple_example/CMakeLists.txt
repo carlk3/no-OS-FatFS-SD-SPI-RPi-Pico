@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD 17)
 
 # initalize pico_sdk from installed location
 # (note this can come from environment, CMake cache etc)
-set(PICO_SDK_PATH "/home/carlk/pi/pico/pico-sdk")
+#set(PICO_SDK_PATH "/home/carlk/pi/pico/pico-sdk")
 
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
@@ -20,7 +20,16 @@ pico_sdk_init()
 add_subdirectory(../FatFs_SPI build)
 
 # Add executable. Default name is the project name, version 0.1
-add_executable(simple_example simple_example.cpp )
+add_executable(simple_example 
+    simple_example.cpp
+    hw_config.c
+)
+
+# Add the standard library and FatFS/SPI to the build
+target_link_libraries(simple_example 
+    pico_stdlib
+    FatFs_SPI
+)
 
 pico_set_program_name(simple_example "simple_example")
 pico_set_program_version(simple_example "0.1")
@@ -30,21 +39,6 @@ pico_set_program_version(simple_example "0.1")
 #   and 2.7.1. Standard Input/Output (stdio) Support in Raspberry Pi Pico C/C++ SDK (https://datasheets.raspberrypi.org/pico/raspberry-pi-pico-c-sdk.pdf):
 pico_enable_stdio_uart(simple_example 1)
 pico_enable_stdio_usb(simple_example 1)
-
-# Add the standard library and FatFS/SPI to the build
-target_link_libraries(simple_example 
-    pico_stdlib
-    FatFs_SPI
-)
-
-# Get number of SD cards from the environment, else set to 1:
-#   In Visual Studio this can be set in .vscode/settings.json. E.g.:
-#      "cmake.configureArgs": ["-DN_SD_CARDS=2"],
-IF (NOT DEFINED N_SD_CARDS)
-    SET(N_SD_CARDS 1)
-ENDIF()
-# Set DEBUG and N_SD_CARDS compile definitions:
-target_compile_definitions(simple_example PUBLIC DEBUG=1 N_SD_CARDS=${N_SD_CARDS})
 
 pico_add_extra_outputs(simple_example)
 

@@ -10,6 +10,9 @@
  * ========================================
  */
 
+// Note: The model used here is one FatFS per SD card. 
+// Multiple partitions on a card are not supported.
+
 #ifndef _SD_CARD_H_
 #define _SD_CARD_H_
 
@@ -33,6 +36,7 @@ typedef struct {
     uint ss_gpio;                   // Slave select for this SD card
     const uint card_detect_gpio;    // Card detect
     const uint card_detected_true;  // Varies with card socket
+    // Following fields are used to keep track of the state of the card:
     int m_Status;                                    // Card status
     uint64_t sectors;                                // Assigned dynamically
     int card_type;                                   // Assigned dynamically
