@@ -2,7 +2,6 @@
    create configuration dynamically */
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 //
 #include "f_util.h"
@@ -51,7 +50,8 @@ int main() {
     puts("Hello, world!");
 
     // Hardware Configuration of SPI "object"
-    p_spi = (spi_t *)malloc(sizeof(spi_t));
+    p_spi = new spi_t;
+    memset(p_spi, 0, sizeof(spi_t));
     if (!p_spi) panic("Out of memory");
     p_spi->hw_inst = spi0;  // SPI component
     p_spi->miso_gpio = 16;  // GPIO number (not pin number)
@@ -63,7 +63,7 @@ int main() {
     add_spi(p_spi);
 
     // Hardware Configuration of the SD Card "object"
-    sd_card_t *p_sd_card = (sd_card_t *)malloc(sizeof(sd_card_t));
+    sd_card_t *p_sd_card = new sd_card_t;
     if (!p_sd_card) panic("Out of memory");
     memset(p_sd_card, 0, sizeof(sd_card_t));
     p_sd_card->pcName = "0:";  // Name used to mount device
@@ -80,7 +80,7 @@ int main() {
     add_sd_card(p_sd_card);
 
     /* Add another SD card */
-    p_sd_card = (sd_card_t *)malloc(sizeof(sd_card_t));
+    p_sd_card = new sd_card_t;
     if (!p_sd_card) panic("Out of memory");
     memset(p_sd_card, 0, sizeof(sd_card_t));
     p_sd_card->pcName = "1:";  // Name used to mount device

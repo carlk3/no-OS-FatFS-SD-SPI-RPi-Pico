@@ -134,9 +134,14 @@ void vCreateAndVerifyExampleFiles( const char *pcMountPath )
 	TRACE_PRINTF("%s(pcMountPath=%s)\n", __FUNCTION__, pcMountPath);
 
 	// Pretend mount path:
-	ff_mkdir(pcMountPath);
+	int lResult = ff_mkdir(pcMountPath);
+	if (-1 == lResult && errno != EEXIST) {
+		printf("ff_mkdir %s failed: %s (%d)\n", pcMountPath,
+				strerror(errno), errno);
+		return;
+	}
 
-	/* Create and verify a few example files using both line based and character
+        /* Create and verify a few example files using both line based and character
 	based reads and writes. */
 	prvCreateDemoFilesUsing_ff_fwrite( pcMountPath );
     // vTaskDelay(rand() % 5);

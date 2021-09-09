@@ -277,6 +277,8 @@ typedef enum {
 
 #define SPI_CMD(x) (0x40 | (x & 0x3f))
 
+static bool driver_initialized;
+
 static uint8_t sd_cmd_spi(sd_card_t *pSD, cmdSupported cmd, uint32_t arg) {
     uint8_t response;
     char cmdPacket[PACKET_SIZE];
@@ -1122,8 +1124,8 @@ bool sd_init_driver() {
         gpio_put(pSD->ss_gpio, 1); // In case set_dir does anything
     }
     for (size_t i = 0; i < spi_get_num(); ++i) {
-        spi_t *pSD = spi_get_by_num(i);
-        if (!my_spi_init(pSD)) return false;
+        spi_t *pSPI = spi_get_by_num(i);
+        if (!my_spi_init(pSPI)) return false;
     }
     return true;
 }

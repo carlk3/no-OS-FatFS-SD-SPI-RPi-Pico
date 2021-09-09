@@ -22,7 +22,7 @@
 #include "pico/sem.h"
 
 #define SPI_FILL_CHAR (0xFF)
-#define XFER_BLOCK_SIZE 512  // Block size supported for SD card is 512 bytes
+//#define XFER_BLOCK_SIZE 512  // Block size supported for SD card is 512 bytes
 
 // "Class" representing SPIs
 typedef struct {

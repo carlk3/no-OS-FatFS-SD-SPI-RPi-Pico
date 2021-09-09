@@ -32,22 +32,16 @@ void sd_spi_go_low_frequency(sd_card_t *this) {
 }
 
 // Would do nothing if this->ss_gpio were set to GPIO_FUNC_SPI.
-void sd_spi_select(sd_card_t *this) {
-    uint8_t fill = SPI_FILL_CHAR;
-    spi_write_blocking(this->spi->hw_inst, &fill, 1); 
-    // asm volatile("nop \n nop \n nop");  // FIXME
+static void sd_spi_select(sd_card_t *this) {
     gpio_put(this->ss_gpio, 0);
-    //asm volatile("nop \n nop \n nop");  // FIXME
+    // A fill byte seems to be necessary, sometimes:
+    uint8_t fill = SPI_FILL_CHAR;
     spi_write_blocking(this->spi->hw_inst, &fill, 1);
     LED_ON();
 }
 
-void sd_spi_deselect(sd_card_t *this) {
-    uint8_t fill = SPI_FILL_CHAR;
-    spi_write_blocking(this->spi->hw_inst, &fill, 1);
-    // asm volatile("nop \n nop \n nop");  // FIXME
+static void sd_spi_deselect(sd_card_t *this) {
     gpio_put(this->ss_gpio, 1);
-    //asm volatile("nop \n nop \n nop");  // FIXME
     LED_OFF();
     /*
     MMC/SDC enables/disables the DO output in synchronising to the SCLK. This
@@ -56,6 +50,7 @@ void sd_spi_deselect(sd_card_t *this) {
     line, the master device needs to send a byte after the CS signal is
     deasserted.
     */
+    uint8_t fill = SPI_FILL_CHAR;
     spi_write_blocking(this->spi->hw_inst, &fill, 1);
 }
 
@@ -75,10 +70,19 @@ uint8_t sd_spi_write(sd_card_t *this, const uint8_t value) {
     return received;
 }
 
+//uint8_t sd_spi_write(sd_card_t *this, const uint8_t value) {
+//    // TRACE_PRINTF("%s\n", __FUNCTION__);
+//    u_int8_t received = SPI_FILL_CHAR;
+//    bool success = spi_transfer(this->spi, &value, &received, 1);
+//    myASSERT(success);
+//    return received;
+//}
+
 bool sd_spi_transfer(sd_card_t *this, const uint8_t *tx, uint8_t *rx,
                      size_t length) {
     return spi_transfer(this->spi, tx, rx, length);
 }
+
 
 void sd_spi_init_pl022(sd_card_t *this) {
     // Let the PL022 SPI handle it.

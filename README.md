@@ -70,7 +70,7 @@ Even if it is provided by the hardware, you might not care about it if you inten
 
 ### Pull Up Resistors
 * The SPI MISO (**DO** on SD card, **SPI**x **RX** on Pico) is open collector (or tristate). It should be pulled up. The Pico internal gpio_pull_up is weak: around 56uA or 60kΩ. It's best to add an external pull up resistor of around 5kΩ to 3.3v. You might get away without one if you only run one SD card and don't push the SPI baud rate too high.
-* The SPI Slave Select (SS), or Chip Select (CS) line enables one SPI slave of possibly multiple slaves on the bus. This is what enables the tristate buffer for Data Out (DO), among other things. It's best to pull CS up so that it doesn't float before the Pico GPIO is initialized. It is imperative to pull it up for any devices on the bus that aren't initialized. For example, if you have two SD cards on one bus but the firmware is aware of only one card (see hw_config.c); you can't let the CS float on the unused one. 
+* The SPI Slave Select (SS), or Chip Select (CS) line enables one SPI slave of possibly multiple slaves on the bus. This is what enables the tristate buffer for Data Out (DO), among other things. It's best to pull CS up so that it doesn't float before the Pico GPIO is initialized. It is imperative to pull it up for any devices on the bus that aren't initialized. For example, if you have two SD cards on one bus but the firmware is aware of only one card (see hw_config); you can't let the CS float on the unused one. 
 
 ## Notes about prewired boards with SD card sockets:
 * I don't think the [Pimoroni Pico VGA Demo Base](https://shop.pimoroni.com/products/pimoroni-pico-vga-demo-base) can work with a built in RP2040 SPI controller. It looks like RP20040 SPI0 SCK needs to be on GPIO 2, 6, or 18 (pin 4, 9, or 24, respectively), but Pimoroni wired it to GPIO 5 (pin 7).
@@ -82,7 +82,8 @@ Even if it is provided by the hardware, you might not care about it if you inten
 * Install source code:
   `git clone --recurse-submodules git@github.com:carlk3/no-OS-FatFS-SD-SPI-RPi-Pico.git no-OS-FatFS`
 * Customize:
-  * Tailor `sd_driver/hw_config.c` to match hardware
+  * Configure the code to match the hardware: You must provide a definition for the functions declared in `sd_driver/hw_config.h`. 
+  See `simple_example.dir/hw_config.c`, `example/hw_config.c` or `dynamic_config_example/hw_config.cpp` for examples.
   * Customize `ff14a/source/ffconf.h` as desired
   * Customize `pico_enable_stdio_uart` and `pico_enable_stdio_usb` in CMakeLists.txt as you prefer. 
 (See *4.1. Serial input and output on Raspberry Pi Pico* in [Getting started with Raspberry Pi Pico](https://datasheets.raspberrypi.org/pico/getting-started-with-pico.pdf) and *2.7.1. Standard Input/Output (stdio) Support* in [Raspberry Pi Pico C/C++ SDK](https://datasheets.raspberrypi.org/pico/raspberry-pi-pico-c-sdk.pdf).) 
@@ -234,7 +235,7 @@ Name|SPI0|GPIO|Pin |SPI|MicroSD 0|MicroSD 1
 CD1||14|19|||CD
 CS1||15|20|SS or CS||CS
 MISO|RX|16|21|DO|DO|DO
-CS0||17|22|SS or CS|CS|CS
+CS0||17|22|SS or CS|CS|
 SCK|SCK|18|24|SCLK|SCK|SCK
 MOSI|TX|19|25|DI|DI|DI
 CD0||22|29||CD|
