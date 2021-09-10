@@ -9,10 +9,9 @@ extern "C" {
 
     size_t sd_get_num();
     sd_card_t *sd_get_by_num(size_t num);
-    sd_card_t *sd_get_by_name(const char * name);
+    
     size_t spi_get_num();
     spi_t *spi_get_by_num(size_t num);
-    FATFS *get_fs_by_name(const char *name);
 
 #ifdef __cplusplus
 }
