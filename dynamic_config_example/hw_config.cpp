@@ -1,17 +1,7 @@
-/*
+#include <vector>
+#include "sd_card.h"
 
-*/
-
-#include <string.h>
-//
-#include "my_debug.h"
-//
 #include "hw_config.h"
-//
-#include "ff.h" /* Obtains integer types */
-//
-#include "diskio.h" /* Declarations of disk functions */
-#include "vector"
 
 static std::vector<spi_t *> spis;
 static std::vector<sd_card_t *> sd_cards;
