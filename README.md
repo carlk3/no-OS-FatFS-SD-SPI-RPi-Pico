@@ -48,7 +48,7 @@ On a SanDisk Class 4 16 GB card, I have been able to push the SPI baud rate as f
 
 ![image](https://github.com/carlk3/FreeRTOS-FAT-CLI-for-RPi-Pico/blob/master/images/IMG_1478.JPG "Prototype")
 
-![image](https://www.raspberrypi.org/documentation/rp2040/getting-started/static/64b50c4316a7aefef66290dcdecda8be/Pico-R3-SDK11-Pinout.svg "Pinout")
+![image](https://www.raspberrypi.org/documentation/microcontrollers/images/Pico-R3-SDK11-Pinout.svg "Pinout")
 
 |       | SPI0  | GPIO  | Pin   | SPI       | MicroSD 0 | Description            | 
 | ----- | ----  | ----- | ---   | --------  | --------- | ---------------------- |
@@ -230,18 +230,18 @@ When you're dealing with information storage, it's always nice to have redundanc
 
 To add a second SD card on the same SPI, connect it in parallel, except that it will need a unique GPIO for the Card Select/Slave Select (CSn) and another for Card Detect (CD) (optional).
 
-Name|SPI0|GPIO|Pin |SPI|MicroSD 0|MicroSD 1
-----|----|----|----|---|---------|---------
-CD1||14|19|||CD
-CS1||15|20|SS or CS||CS
-MISO|RX|16|21|DO|DO|DO
-CS0||17|22|SS or CS|CS|
-SCK|SCK|18|24|SCLK|SCK|SCK
-MOSI|TX|19|25|DI|DI|DI
-CD0||22|29||CD|
-||||||
-GND|||18, 23||GND|GND
-3v3|||36||3v3|3v3
+Name|SPI0|GPIO|Pin |SPI|SDIO|MicroSD 0|MicroSD 1
+----|----|----|----|---|----|---------|---------
+CD1||14|19||||CD
+CS1||15|20|SS or CS|||CS
+MISO|RX|16|21|DO|DAT0|DO|DO
+CS0||17|22|SS or CS||CS|
+SCK|SCK|18|24|SCLK|CLK|SCK|SCK
+MOSI|TX|19|25|DI|CMD|DI|DI
+CD0||22|29|||CD|
+|||||||
+GND|||18, 23|||GND|GND
+3v3|||36|||3v3|3v3
 
 ### Wiring: 
 As you can see from the table above, the only new signals are CD1 and CS1. Otherwise, the new card is wired in parallel with the first card.
