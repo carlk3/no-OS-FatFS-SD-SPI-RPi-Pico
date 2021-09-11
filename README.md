@@ -233,9 +233,9 @@ To add a second SD card on the same SPI, connect it in parallel, except that it 
 Name|SPI0|GPIO|Pin |SPI|SDIO|MicroSD 0|MicroSD 1
 ----|----|----|----|---|----|---------|---------
 CD1||14|19||||CD
-CS1||15|20|SS or CS|||CS
+CS1||15|20|SS or CS|DAT3||CS
 MISO|RX|16|21|DO|DAT0|DO|DO
-CS0||17|22|SS or CS||CS|
+CS0||17|22|SS or CS|DAT3|CS|
 SCK|SCK|18|24|SCLK|CLK|SCK|SCK
 MOSI|TX|19|25|DI|CMD|DI|DI
 CD0||22|29|||CD|
