@@ -553,7 +553,7 @@ bool sd_card_detect(sd_card_t *pSD) {
         // The socket is now empty
         pSD->m_Status |= (STA_NODISK | STA_NOINIT);
         pSD->card_type = SDCARD_NONE;
-        TRACE_PRINTF("No SD card detected!\n");
+        printf("No SD card detected!\n");
         return false;
     }
 }
@@ -1122,8 +1122,8 @@ bool sd_init_driver() {
         gpio_put(pSD->ss_gpio, 1); // In case set_dir does anything
     }
     for (size_t i = 0; i < spi_get_num(); ++i) {
-        spi_t *pSD = spi_get_by_num(i);
-        if (!my_spi_init(pSD)) return false;
+        spi_t *pSPI = spi_get_by_num(i);
+        if (!my_spi_init(pSPI)) return false;
     }
     return true;
 }

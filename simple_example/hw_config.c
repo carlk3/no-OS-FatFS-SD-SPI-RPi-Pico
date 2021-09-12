@@ -1,23 +1,13 @@
-/* ========================================
- *
- * Copyright YOUR COMPANY, THE YEAR
- * All Rights Reserved
- * UNPUBLISHED, LICENSED SOFTWARE.
- *
- * CONFIDENTIAL AND PROPRIETARY INFORMATION
- * WHICH IS THE PROPERTY OF your company.
- *
- * ========================================
- */
 /*
 
-This file should be tailored to match the hardware design that is specified in
-TopDesign.cysch and Design Wide Resources/Pins (the .cydwr file).
+This file should be tailored to match the hardware design.
 
 There should be one element of the spi[] array for each hardware SPI used.
 
 There should be one element of the sd_cards[] array for each SD card slot.
-The name is arbitrary. The rest of the constants will depend on the type of
+The name is should correspond to the FatFs "logical drive" identifier.
+(See http://elm-chan.org/fsw/ff/doc/filename.html#vol)
+The rest of the constants will depend on the type of
 socket, which SPI it is driven by, and how it is wired.
 
 */
@@ -53,7 +43,8 @@ static spi_t spis[] = {  // One for each SPI.
         // Following attributes are dynamically assigned
         .dma_isr = spi0_dma_isr,
         .initialized = false,  // initialized flag
-    }};
+    }
+};
 
 // Hardware Configuration of the SD Card "objects"
 static sd_card_t sd_cards[] = {  // One for each SD card
@@ -69,52 +60,26 @@ static sd_card_t sd_cards[] = {  // One for each SD card
         .sectors = 0,
         .card_type = 0,
     }
-#if defined N_SD_CARDS && N_SD_CARDS > 1    // See CMakeLists.txt
-    ,{
-        .pcName = "1:",           // Name used to mount device
-        .spi = &spis[0],          // Pointer to the SPI driving this card
-        .ss_gpio = 15,            // The SPI slave select GPIO for this SD card
-        .card_detect_gpio = 14,   // Card detect
-        .card_detected_true = 1,  // What the GPIO read returns when a card is
-                                  // present. Use -1 if there is no card detect.
-        // Following attributes are dynamically assigned
-        .m_Status = STA_NOINIT,
-        .sectors = 0,
-        .card_type = 0,
-    }
-#endif    
-    };
+};
 
 void spi0_dma_isr() { spi_irq_handler(&spis[0]); }
 
 /* ********************************************************************** */
-size_t const sd_get_num() { return count_of(sd_cards); }
-sd_card_t *const sd_get_by_num(size_t num) {
+size_t sd_get_num() { return count_of(sd_cards); }
+sd_card_t *sd_get_by_num(size_t num) {
     if (num <= sd_get_num()) {
         return &sd_cards[num];
     } else {
         return NULL;
     }
 }
-sd_card_t *const sd_get_by_name(const char *const name) {
-    for (size_t i = 0; i < sd_get_num(); ++i)
-        if (0 == strcmp(sd_cards[i].pcName, name)) return &sd_cards[i];
-    DBG_PRINTF("%s: unknown name %s\n", __func__, name);
-    return NULL;
-}
-size_t const spi_get_num() { return count_of(spis); }
+size_t spi_get_num() { return count_of(spis); }
 spi_t *spi_get_by_num(size_t num) {
     if (num <= sd_get_num()) {
         return &spis[num];
     } else {
         return NULL;
     }
-}
-FATFS *const get_fs_by_name(const char *name) {
-    for (size_t i = 0; i < sd_get_num(); ++i)
-        if (0 == strcmp(sd_cards[i].pcName, name)) return &sd_cards[i].fatfs;
-    DBG_PRINTF("%s: unknown name %s\n", __func__, name);
-    return NULL;
 }
 
 /* [] END OF FILE */

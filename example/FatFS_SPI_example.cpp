@@ -34,6 +34,19 @@ static bool logger_enabled;
 static const uint32_t period = 1000;
 static absolute_time_t next_log_time;
 
+static sd_card_t *sd_get_by_name(const char *const name) {
+    for (size_t i = 0; i < sd_get_num(); ++i)
+        if (0 == strcmp(sd_get_by_num(i)->pcName, name)) return sd_get_by_num(i);
+    DBG_PRINTF("%s: unknown name %s\n", __func__, name);
+    return NULL;
+}
+static FATFS *sd_get_fs_by_name(const char *name) {
+    for (size_t i = 0; i < sd_get_num(); ++i)
+        if (0 == strcmp(sd_get_by_num(i)->pcName, name)) return &sd_get_by_num(i)->fatfs;
+    DBG_PRINTF("%s: unknown name %s\n", __func__, name);
+    return NULL;
+}
+
 static void run_setrtc() {
     const char *dateStr = strtok(NULL, " ");
     if (!dateStr) {
@@ -112,7 +125,7 @@ static void run_format() {
         printf("Missing argument\n");
         return;
     }
-    FATFS *p_fs = get_fs_by_name(arg1);
+    FATFS *p_fs = sd_get_fs_by_name(arg1);
     if (!p_fs) {
         printf("Unknown logical drive number: \"%s\"\n", arg1);
         return;
@@ -124,7 +137,7 @@ static void run_format() {
 static void run_mount() {
     const char *arg1 = strtok(NULL, " ");
     if (!arg1) arg1 = sd_get_by_num(0)->pcName;
-    FATFS *p_fs = get_fs_by_name(arg1);
+    FATFS *p_fs = sd_get_fs_by_name(arg1);
     if (!p_fs) {
         printf("Unknown logical drive number: \"%s\"\n", arg1);
         return;
@@ -141,7 +154,7 @@ static void run_mount() {
 static void run_unmount() {
     const char *arg1 = strtok(NULL, " ");
     if (!arg1) arg1 = sd_get_by_num(0)->pcName;
-    FATFS *p_fs = get_fs_by_name(arg1);
+    FATFS *p_fs = sd_get_fs_by_name(arg1);
     if (!p_fs) {
         printf("Unknown logical drive number: \"%s\"\n", arg1);
         return;
@@ -166,7 +179,7 @@ static void run_getfree() {
     if (!arg1) arg1 = sd_get_by_num(0)->pcName;
     DWORD fre_clust, fre_sect, tot_sect;
     /* Get volume information and free clusters of drive */
-    FATFS *p_fs = get_fs_by_name(arg1);
+    FATFS *p_fs = sd_get_fs_by_name(arg1);
     if (!p_fs) {
         printf("Unknown logical drive number: \"%s\"\n", arg1);
         return;

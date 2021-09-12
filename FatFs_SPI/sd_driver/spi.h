@@ -22,16 +22,16 @@
 #include "pico/sem.h"
 
 #define SPI_FILL_CHAR (0xFF)
-#define XFER_BLOCK_SIZE 512  // Block size supported for SD card is 512 bytes
+//#define XFER_BLOCK_SIZE 512  // Block size supported for SD card is 512 bytes
 
 // "Class" representing SPIs
 typedef struct {
     // SPI HW
     spi_inst_t *hw_inst;
-    const uint miso_gpio;  // SPI MISO GPIO number (not pin number)
-    const uint mosi_gpio;
-    const uint sck_gpio;
-    const uint baud_rate;
+    uint miso_gpio;  // SPI MISO GPIO number (not pin number)
+    uint mosi_gpio;
+    uint sck_gpio;
+    uint baud_rate;
     // State variables:
     uint tx_dma;
     uint rx_dma;

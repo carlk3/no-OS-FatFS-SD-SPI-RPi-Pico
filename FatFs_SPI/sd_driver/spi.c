@@ -31,9 +31,8 @@ void spi_irq_handler(spi_t *pSPI) {
 //   If the data that will be transmitted is not important,
 //     pass NULL as tx and then the SPI_FILL_CHAR is sent out as each data
 //     element.
-
 bool spi_transfer(spi_t *pSPI, const uint8_t *tx, uint8_t *rx, size_t length) {
-    myASSERT(512 == length);
+    myASSERT(512 == length || 1 == length);
     myASSERT(tx || rx);
     // myASSERT(!(tx && rx));
 
@@ -45,6 +44,7 @@ bool spi_transfer(spi_t *pSPI, const uint8_t *tx, uint8_t *rx, size_t length) {
         tx = &dummy;
         channel_config_set_read_increment(&pSPI->tx_dma_cfg, false);
     }
+    
     // rx read increment is already false
     if (rx) {
         channel_config_set_write_increment(&pSPI->rx_dma_cfg, true);
@@ -59,15 +59,15 @@ bool spi_transfer(spi_t *pSPI, const uint8_t *tx, uint8_t *rx, size_t length) {
     dma_channel_configure(pSPI->tx_dma, &pSPI->tx_dma_cfg,
                           &spi_get_hw(pSPI->hw_inst)->dr,  // write address
                           tx,                              // read address
-                          XFER_BLOCK_SIZE,  // element count (each element is of
-                                            // size transfer_data_size)
-                          false);           // start
+                          length,  // element count (each element is of
+                                   // size transfer_data_size)
+                          false);  // start
     dma_channel_configure(pSPI->rx_dma, &pSPI->rx_dma_cfg,
                           rx,                              // write address
                           &spi_get_hw(pSPI->hw_inst)->dr,  // read address
-                          XFER_BLOCK_SIZE,  // element count (each element is of
-                                            // size transfer_data_size)
-                          false);           // start
+                          length,  // element count (each element is of
+                                   // size transfer_data_size)
+                          false);  // start
 
     // start them exactly simultaneously to avoid races (in extreme cases
     // the FIFO could overflow)
@@ -76,7 +76,8 @@ bool spi_transfer(spi_t *pSPI, const uint8_t *tx, uint8_t *rx, size_t length) {
     /* Timeout 1 sec */
     uint32_t timeOut = 1000;
     /* Wait until master completes transfer or time out has occured. */
-    bool rc = sem_acquire_timeout_ms(&pSPI->sem, timeOut);  // Wait for notification from ISR
+    bool rc = sem_acquire_timeout_ms(
+        &pSPI->sem, timeOut);  // Wait for notification from ISR
     if (!rc) {
         // If the timeout is reached the function will return false
         DBG_PRINTF("Notification wait timed out in %s\n", __FUNCTION__);
