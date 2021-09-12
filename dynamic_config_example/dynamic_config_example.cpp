@@ -89,7 +89,7 @@ int main() {
     p_sd_card->card_detect_gpio = 14;  // Card detect
     // What the GPIO read returns when a card is
     // present. Use -1 if there is no card detect.
-    p_sd_card->card_detected_true = 1;
+    p_sd_card->card_detected_true = 0;
     // State attributes:
     p_sd_card->m_Status = STA_NOINIT;
     p_sd_card->sectors = 0;

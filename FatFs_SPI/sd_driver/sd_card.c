@@ -277,8 +277,6 @@ typedef enum {
 
 #define SPI_CMD(x) (0x40 | (x & 0x3f))
 
-static bool driver_initialized;
-
 static uint8_t sd_cmd_spi(sd_card_t *pSD, cmdSupported cmd, uint32_t arg) {
     uint8_t response;
     char cmdPacket[PACKET_SIZE];
@@ -555,7 +553,7 @@ bool sd_card_detect(sd_card_t *pSD) {
         // The socket is now empty
         pSD->m_Status |= (STA_NODISK | STA_NOINIT);
         pSD->card_type = SDCARD_NONE;
-        TRACE_PRINTF("No SD card detected!\n");
+        printf("No SD card detected!\n");
         return false;
     }
 }
