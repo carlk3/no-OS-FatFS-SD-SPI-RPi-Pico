@@ -56,8 +56,10 @@ extern "C" {
 }
 #endif
 
+#ifndef NO_PICO_LED
 #define USE_LED 1
-#if USE_LED
+#endif
+#if USE_PICO_LED
 #   define LED_PIN 25
 #   include "hardware/gpio.h"
 #   define LED_INIT()                       \
