@@ -16,6 +16,7 @@
 //
 // Pico includes
 #include "hardware/dma.h"
+#include "hardware/gpio.h"
 #include "hardware/irq.h"
 #include "hardware/spi.h"
 #include "pico/types.h"

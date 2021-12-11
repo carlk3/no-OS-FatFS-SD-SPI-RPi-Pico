@@ -13,6 +13,9 @@
 /* Standard includes. */
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
+//
+#include "hardware/gpio.h"
 //
 #include "my_debug.h"
 #include "sd_card.h"
@@ -22,26 +25,26 @@
 //#define TRACE_PRINTF(fmt, args...)
 #define TRACE_PRINTF printf  // task_printf
 
-void sd_spi_go_high_frequency(sd_card_t *this) {
-    uint actual = spi_set_baudrate(this->spi->hw_inst, this->spi->baud_rate);
+void sd_spi_go_high_frequency(sd_card_t *pSD) {
+    uint actual = spi_set_baudrate(pSD->spi->hw_inst, pSD->spi->baud_rate);
     TRACE_PRINTF("%s: Actual frequency: %lu\n", __FUNCTION__, (long)actual);
 }
-void sd_spi_go_low_frequency(sd_card_t *this) {
-    uint actual = spi_set_baudrate(this->spi->hw_inst, 100 * 1000);
+void sd_spi_go_low_frequency(sd_card_t *pSD) {
+    uint actual = spi_set_baudrate(pSD->spi->hw_inst, 100 * 1000);
     TRACE_PRINTF("%s: Actual frequency: %lu\n", __FUNCTION__, (long)actual);
 }
 
-// Would do nothing if this->ss_gpio were set to GPIO_FUNC_SPI.
-static void sd_spi_select(sd_card_t *this) {
-    gpio_put(this->ss_gpio, 0);
+// Would do nothing if pSD->ss_gpio were set to GPIO_FUNC_SPI.
+static void sd_spi_select(sd_card_t *pSD) {
+    gpio_put(pSD->ss_gpio, 0);
     // A fill byte seems to be necessary, sometimes:
     uint8_t fill = SPI_FILL_CHAR;
-    spi_write_blocking(this->spi->hw_inst, &fill, 1);
+    spi_write_blocking(pSD->spi->hw_inst, &fill, 1);
     LED_ON();
 }
 
-static void sd_spi_deselect(sd_card_t *this) {
-    gpio_put(this->ss_gpio, 1);
+static void sd_spi_deselect(sd_card_t *pSD) {
+    gpio_put(pSD->ss_gpio, 1);
     LED_OFF();
     /*
     MMC/SDC enables/disables the DO output in synchronising to the SCLK. This
@@ -51,43 +54,55 @@ static void sd_spi_deselect(sd_card_t *this) {
     deasserted.
     */
     uint8_t fill = SPI_FILL_CHAR;
-    spi_write_blocking(this->spi->hw_inst, &fill, 1);
+    spi_write_blocking(pSD->spi->hw_inst, &fill, 1);
 }
 
-void sd_spi_acquire(sd_card_t *this) {
-    sd_spi_select(this);
+void sd_spi_acquire(sd_card_t *pSD) {
+    sd_spi_select(pSD);
 }
 
-void sd_spi_release(sd_card_t *this) {
-    sd_spi_deselect(this);
+void sd_spi_release(sd_card_t *pSD) {
+    sd_spi_deselect(pSD);
 }
 
-uint8_t sd_spi_write(sd_card_t *this, const uint8_t value) {
+uint8_t sd_spi_write(sd_card_t *pSD, const uint8_t value) {
     // TRACE_PRINTF("%s\n", __FUNCTION__);
     u_int8_t received = SPI_FILL_CHAR;
-    int num = spi_write_read_blocking(this->spi->hw_inst, &value, &received, 1);
+    int num = spi_write_read_blocking(pSD->spi->hw_inst, &value, &received, 1);
     myASSERT(1 == num);
     return received;
 }
 
-//uint8_t sd_spi_write(sd_card_t *this, const uint8_t value) {
+//uint8_t sd_spi_write(sd_card_t *pSD, const uint8_t value) {
 //    // TRACE_PRINTF("%s\n", __FUNCTION__);
 //    u_int8_t received = SPI_FILL_CHAR;
-//    bool success = spi_transfer(this->spi, &value, &received, 1);
+//    bool success = spi_transfer(pSD->spi, &value, &received, 1);
 //    myASSERT(success);
 //    return received;
 //}
 
-bool sd_spi_transfer(sd_card_t *this, const uint8_t *tx, uint8_t *rx,
+bool sd_spi_transfer(sd_card_t *pSD, const uint8_t *tx, uint8_t *rx,
                      size_t length) {
-    return spi_transfer(this->spi, tx, rx, length);
+    return spi_transfer(pSD->spi, tx, rx, length);
 }
 
+void sd_spi_send_initializing_sequence(sd_card_t * pSD) {
+    bool old_ss = gpio_get(pSD->ss_gpio);
+    // Set DI and CS high and apply 74 or more clock pulses to SCLK:
+    gpio_put(pSD->ss_gpio, 1);
+    uint8_t ones[10];
+    memset(ones, 0xFF, sizeof ones);
+    absolute_time_t timeout_time = make_timeout_time_ms(1);
+    do {
+        sd_spi_transfer(pSD, ones, NULL, sizeof ones);
+    } while (0 < absolute_time_diff_us(get_absolute_time(), timeout_time));
+    gpio_put(pSD->ss_gpio, old_ss);
+}
 
-void sd_spi_init_pl022(sd_card_t *this) {
+void sd_spi_init_pl022(sd_card_t *pSD) {
     // Let the PL022 SPI handle it.
     // the CS line is brought high between each byte during transmission.
-    gpio_set_function(this->ss_gpio, GPIO_FUNC_SPI);
+    gpio_set_function(pSD->ss_gpio, GPIO_FUNC_SPI);
 }
 
 /* [] END OF FILE */

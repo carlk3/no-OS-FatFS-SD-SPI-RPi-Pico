@@ -28,8 +28,8 @@ DSTATUS disk_status(BYTE pdrv /* Physical drive nmuber to identify the drive */
     TRACE_PRINTF(">>> %s\n", __FUNCTION__);
     sd_card_t *p_sd = sd_get_by_num(pdrv);
     if (!p_sd) return RES_PARERR;
-    sd_card_detect(p_sd);  // Fast: just a GPIO read
-    return p_sd->m_Status; // See http://elm-chan.org/fsw/ff/doc/dstat.html
+    sd_card_detect(p_sd);   // Fast: just a GPIO read
+    return p_sd->m_Status;  // See http://elm-chan.org/fsw/ff/doc/dstat.html
 }
 
 /*-----------------------------------------------------------------------*/
@@ -42,7 +42,7 @@ DSTATUS disk_initialize(
     TRACE_PRINTF(">>> %s\n", __FUNCTION__);
     sd_card_t *p_sd = sd_get_by_num(pdrv);
     if (!p_sd) return RES_PARERR;
-    return sd_init_card(p_sd); // See http://elm-chan.org/fsw/ff/doc/dstat.html
+    return sd_init_card(p_sd);  // See http://elm-chan.org/fsw/ff/doc/dstat.html
 }
 
 static int sdrc2dresult(int sd_rc) {
@@ -139,7 +139,7 @@ DRESULT disk_ioctl(BYTE pdrv, /* Physical drive nmuber (0..) */
                                 // area on the erase block boundary. It is
                                 // required when FF_USE_MKFS == 1.
             static DWORD bs = 1;
-            buff = &bs;
+            *(DWORD *)buff = bs;
             return RES_OK;
         }
         case CTRL_SYNC:
