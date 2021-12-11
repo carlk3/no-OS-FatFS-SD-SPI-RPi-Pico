@@ -18,8 +18,8 @@
 //
 #include "spi.h"
 
-bool irqChannel1 = false;
-bool irqShared = true;
+static bool irqChannel1 = false;
+static bool irqShared = true;
 
 void spi_irq_handler(spi_t *pSPI) {
     if (irqChannel1) {
