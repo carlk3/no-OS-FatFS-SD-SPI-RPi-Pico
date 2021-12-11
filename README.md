@@ -64,7 +64,7 @@ On a SanDisk Class 4 16 GB card, I have been able to push the SPI baud rate as f
 * The wiring is so simple that I didn't bother with a schematic. 
 I just referred to the table above, wiring point-to-point from the Pin column on the Pico to the MicroSD 0 column on the Transflash.
 * Card Detect is optional. Some SD card sockets have no provision for it. 
-Even if it is provided by the hardware, you might not care about it if you intend to leave the card in all the time, so you can skip it and save an I/O pin.
+Even if it is provided by the hardware, if you have no requirement for it you can skip it and save a Pico I/O pin.
 * You can choose to use either or both of the Pico's SPIs.
 * Wires should be kept short and direct. SPI operates at HF radio frequencies.
 
@@ -177,7 +177,7 @@ stop_logger:
 
 ## Troubleshooting
 * The first thing to try is lowering the SPI baud rate (see hw_config.c). This will also make it easier to use things like logic analyzers.
-* Try another brand of SD card. Some handle the SPI protocol better than others. (Most consumer devices like cameras or PCs use the SDIO interface.) I have had good luck with SanDisk.
+* Try another brand of SD card. Some handle the SPI interface better than others. (Most consumer devices like cameras or PCs use the SDIO interface.) I have had good luck with SanDisk.
 * Tracing: Most of the source files have a couple of lines near the top of the file like:
 ```
 #define TRACE_PRINTF(fmt, args...) // Disable tracing
@@ -246,7 +246,7 @@ GND|||18, 23|||GND|GND
 ### Wiring: 
 As you can see from the table above, the only new signals are CD1 and CS1. Otherwise, the new card is wired in parallel with the first card.
 ### Firmware:
-* `sd_driver/hw_config.c` must be edited to add a new instance to `static sd_card_t sd_cards[]`
+* `hw_config.c` (or equivalent) must be edited to add a new instance to `static sd_card_t sd_cards[]`
 * Edit `ff14a/source/ffconf.h`. In particular, `FF_VOLUMES`:
 ```
 #define FF_VOLUMES		2

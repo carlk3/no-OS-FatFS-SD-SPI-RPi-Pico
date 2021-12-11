@@ -32,7 +32,7 @@ void spi_irq_handler(spi_t *pSPI) {
 //     pass NULL as tx and then the SPI_FILL_CHAR is sent out as each data
 //     element.
 bool spi_transfer(spi_t *pSPI, const uint8_t *tx, uint8_t *rx, size_t length) {
-    myASSERT(512 == length || 1 == length);
+    //myASSERT(512 == length || 1 == length);
     myASSERT(tx || rx);
     // myASSERT(!(tx && rx));
 

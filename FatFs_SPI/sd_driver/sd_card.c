@@ -558,8 +558,8 @@ bool sd_card_detect(sd_card_t *pSD) {
     }
 }
 
-#define SD_CMD0_GO_IDLE_STATE_RETRIES \
-    10 /*!< Number of retries for sending CMDO */
+/*!< Number of retries for sending CMDO */
+#define SD_CMD0_GO_IDLE_STATE_RETRIES 10 
 
 static uint32_t sd_go_idle_state(sd_card_t *pSD) {
     uint32_t response;
@@ -606,11 +606,9 @@ static int sd_cmd8(sd_card_t *pSD) {
     return status;
 }
 
-static int sd_initialise_card_nolock(sd_card_t *pSD) {
+static int sd_init_card3(sd_card_t *pSD) {
     int32_t status = SD_BLOCK_DEVICE_ERROR_NONE;
     uint32_t response, arg;
-
-    sd_spi_go_low_frequency(pSD);
 
     // The card is transitioned from SDCard mode to SPI mode by sending the CMD0
     // + CS Asserted("0")
@@ -663,7 +661,7 @@ static int sd_initialise_card_nolock(sd_card_t *pSD) {
     absolute_time_t timeout_time = make_timeout_time_ms(SD_COMMAND_TIMEOUT);
     do {
         status = sd_cmd(pSD, ACMD41_SD_SEND_OP_COND, arg, 1, &response);
-    } while ((response & R1_IDLE_STATE) &&
+    } while (response & R1_IDLE_STATE &&
              0 < absolute_time_diff_us(get_absolute_time(), timeout_time));
 
     // Initialization complete: ACMD41 successful
@@ -702,9 +700,21 @@ static int sd_initialise_card_nolock(sd_card_t *pSD) {
 
     return status;
 }
-static int sd_initialise_card(sd_card_t *pSD) {
+static int sd_init_card2(sd_card_t *pSD) {
+    /*
+    Power ON or card insersion
+    After supply voltage reached above 2.2 volts,
+    wait for one millisecond at least.
+    Set SPI clock rate between 100 kHz and 400 kHz.
+    Set DI and CS high and apply 74 or more clock pulses to SCLK.
+    The card will enter its native operating mode and go ready to accept native
+    command.
+    */
+    sd_spi_go_low_frequency(pSD);
+    sd_spi_send_initializing_sequence(pSD);
+    
     sd_lock(pSD);
-    int rc = sd_initialise_card_nolock(pSD);
+    int rc = sd_init_card3(pSD);
     sd_unlock(pSD);
     return rc;
 }
@@ -789,7 +799,7 @@ uint64_t sd_sectors(sd_card_t *pSD) {
 int sd_init_card(sd_card_t *pSD) {
     TRACE_PRINTF("> %s\n", __FUNCTION__);
     if (!sd_init_driver()) {
-        pSD->m_Status &= STA_NOINIT;
+        pSD->m_Status |= STA_NOINIT;
         return pSD->m_Status;
     }
     //	STA_NOINIT = 0x01, /* Drive not initialized */
@@ -810,7 +820,7 @@ int sd_init_card(sd_card_t *pSD) {
     // Initialize the member variables
     pSD->card_type = SDCARD_NONE;
 
-    int err = sd_initialise_card(pSD);
+    int err = sd_init_card2(pSD);
     if (SD_BLOCK_DEVICE_ERROR_NONE != err) {
         DBG_PRINTF("Failed to initialize card\n");
         return pSD->m_Status;
@@ -1116,8 +1126,8 @@ bool sd_init_driver() {
         gpio_set_dir(pSD->card_detect_gpio, GPIO_IN);
         // Chip select is active-low, so we'll initialise it to a driven-high
         // state.
-        gpio_init(pSD->ss_gpio);
         gpio_put(pSD->ss_gpio, 1); // Avoid any glitches when enabling output
+        gpio_init(pSD->ss_gpio);
         gpio_set_dir(pSD->ss_gpio, GPIO_OUT);
         gpio_put(pSD->ss_gpio, 1); // In case set_dir does anything
     }

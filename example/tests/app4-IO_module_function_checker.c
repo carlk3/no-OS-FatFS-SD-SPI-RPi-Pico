@@ -9,7 +9,7 @@
 #include "ff.h"         /* Declarations of sector size */
 #include "diskio.h"     /* Declarations of disk functions */
 
-
+#include "hardware/gpio.h" // gpio_put
 
 static DWORD pn (       /* Pseudo random number generator */
     DWORD pns   /* 0:Initialize, !0:Read */
@@ -46,7 +46,6 @@ int test_diskio (
     BYTE *pbuff = (BYTE*)buff;
     DSTATUS ds;
     DRESULT dr;
-
 
     printf("test_diskio(%u, %u, 0x%08X, 0x%08X)\n", pdrv, ncyc, (UINT)buff, sz_buff);
 
