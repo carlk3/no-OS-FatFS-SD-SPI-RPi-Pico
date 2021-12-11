@@ -177,6 +177,9 @@ stop_logger:
 
 ## Troubleshooting
 * The first thing to try is lowering the SPI baud rate (see hw_config.c). This will also make it easier to use things like logic analyzers.
+* Make sure the SD card(s) are getting enough power. Try an external supply. Try adding a decoupling capacitor between Vcc and GND. 
+  * Hint: check voltage while formatting card. It must be 2.7 to 3.6 volts. 
+  * Hint: If you are powering a Pico with a PicoProbe, try adding a USB cable to a wall charger to the Pico under test.
 * Try another brand of SD card. Some handle the SPI interface better than others. (Most consumer devices like cameras or PCs use the SDIO interface.) I have had good luck with SanDisk.
 * Tracing: Most of the source files have a couple of lines near the top of the file like:
 ```
