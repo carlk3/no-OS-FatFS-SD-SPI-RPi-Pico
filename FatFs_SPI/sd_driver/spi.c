@@ -18,12 +18,28 @@
 //
 #include "spi.h"
 
+static bool irqChannel1 = false;
+static bool irqShared = true;
+
 void spi_irq_handler(spi_t *pSPI) {
-    if (dma_hw->ints0 & 1u << pSPI->rx_dma) { // Ours?
-        dma_hw->ints0 = 1u << pSPI->rx_dma; // clear it
-        myASSERT(!dma_channel_is_busy(pSPI->rx_dma));
-        sem_release(&pSPI->sem);
+    if (irqChannel1) {
+        if (dma_hw->ints1 & 1u << pSPI->rx_dma) { // Ours?
+            dma_hw->ints1 = 1u << pSPI->rx_dma; // clear it
+            myASSERT(!dma_channel_is_busy(pSPI->rx_dma));
+            sem_release(&pSPI->sem);
+        }
+    } else {
+        if (dma_hw->ints0 & 1u << pSPI->rx_dma) { // Ours?
+            dma_hw->ints0 = 1u << pSPI->rx_dma; // clear it
+            myASSERT(!dma_channel_is_busy(pSPI->rx_dma));
+            sem_release(&pSPI->sem);
+        }
     }
+}
+
+void set_spi_dma_irq_channel(bool useChannel1, bool shared) {
+    irqChannel1 = useChannel1;
+    irqShared = shared;
 }
 
 // SPI Transfer: Read & Write (simultaneously) on SPI bus
@@ -147,12 +163,21 @@ bool my_spi_init(spi_t *pSPI) {
     /* Theory: we only need an interrupt on rx complete,
     since if rx is complete, tx must also be complete. */
 
-    // Configure the processor to run dma_handler() when DMA IRQ 0 is asserted:
-    irq_add_shared_handler(DMA_IRQ_0, pSPI->dma_isr, PICO_SHARED_IRQ_HANDLER_DEFAULT_ORDER_PRIORITY);
+    // Configure the processor to run dma_handler() when DMA IRQ 0/1 is asserted:
+    int irq = irqChannel1 ? DMA_IRQ_1 : DMA_IRQ_0;
+    if (irqShared) {
+        irq_add_shared_handler(irq, pSPI->dma_isr, PICO_SHARED_IRQ_HANDLER_DEFAULT_ORDER_PRIORITY);
+    } else {
+        irq_set_exclusive_handler(irq, pSPI->dma_isr);
+    }
 
-    // Tell the DMA to raise IRQ line 0 when the channel finishes a block
-    dma_channel_set_irq0_enabled(pSPI->rx_dma, true);
-    irq_set_enabled(DMA_IRQ_0, true);
+    // Tell the DMA to raise IRQ line 0/1 when the channel finishes a block
+    if (irqChannel1) {
+        dma_channel_set_irq1_enabled(pSPI->rx_dma, true);
+    } else {
+        dma_channel_set_irq0_enabled(pSPI->rx_dma, true);
+    }
+    irq_set_enabled(irq, true);
 
     LED_INIT();
     return true;

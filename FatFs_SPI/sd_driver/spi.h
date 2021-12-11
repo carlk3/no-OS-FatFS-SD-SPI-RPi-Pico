@@ -51,6 +51,7 @@ extern "C" {
 
     bool spi_transfer(spi_t *pSPI, const uint8_t *tx, uint8_t *rx, size_t length);
     bool my_spi_init(spi_t *pSPI);
+    void set_spi_dma_irq_channel(bool useChannel1, bool shared);
 
 #ifdef __cplusplus
 }
