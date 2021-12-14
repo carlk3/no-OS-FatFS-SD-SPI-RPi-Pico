@@ -21,7 +21,6 @@ specific language governing permissions and limitations under the License.
 #include "hardware/gpio.h"
 #include "hardware/irq.h"
 #include "hardware/spi.h"
-#include "pico/mutex.h"
 #include "pico/sem.h"
 #include "pico/types.h"
 
@@ -43,7 +42,6 @@ typedef struct {
     irq_handler_t dma_isr;
     bool initialized;  // Assigned dynamically
     semaphore_t sem;
-    mutex_t mutex;
 } spi_t;
 
 #ifdef __cplusplus

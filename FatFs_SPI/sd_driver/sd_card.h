@@ -21,6 +21,7 @@ specific language governing permissions and limitations under the License.
 #include <stdint.h>
 //
 #include "hardware/gpio.h"
+#include "pico/mutex.h"
 //
 #include "ff.h"
 //
@@ -42,6 +43,7 @@ typedef struct {
     int m_Status;                                    // Card status
     uint64_t sectors;                                // Assigned dynamically
     int card_type;                                   // Assigned dynamically
+    mutex_t mutex;
     FATFS fatfs;
     bool mounted;
 } sd_card_t;
