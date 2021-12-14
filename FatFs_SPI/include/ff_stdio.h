@@ -74,4 +74,4 @@ int ff_findnext( FF_FindData_t *pxFindData );
 FF_FILE *ff_truncate( const char * pcFileName, long lTruncateSize );
 int ff_seteof( FF_FILE *pxStream );
 int ff_rename( const char *pcOldName, const char *pcNewName, int bDeleteIfExists );
-char *ff_fgets(char *pcBuffer, size_t xCount, FF_FILE *pxStream)
+char *ff_fgets(char *pcBuffer, size_t xCount, FF_FILE *pxStream);

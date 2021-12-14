@@ -20,11 +20,10 @@ specific language governing permissions and limitations under the License.
 
 /* Transfer tx to SPI while receiving SPI to rx. 
 tx or rx can be NULL if not important. */
-bool sd_spi_transfer(sd_card_t *this, const uint8_t *tx, uint8_t *rx, size_t length);
-
-uint8_t sd_spi_write(sd_card_t *this, const uint8_t value);
-void sd_spi_acquire(sd_card_t *this);
-void sd_spi_release(sd_card_t *this);
+bool sd_spi_transfer(sd_card_t *pSD, const uint8_t *tx, uint8_t *rx, size_t length);
+uint8_t sd_spi_write(sd_card_t *pSD, const uint8_t value);
+void sd_spi_acquire(sd_card_t *pSD);
+void sd_spi_release(sd_card_t *pSD);
 void sd_spi_go_low_frequency(sd_card_t *this);
 void sd_spi_go_high_frequency(sd_card_t *this);
 bool sd_spi_init(sd_card_t *this);

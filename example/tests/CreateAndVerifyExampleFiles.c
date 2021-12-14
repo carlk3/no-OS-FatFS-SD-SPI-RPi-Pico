@@ -87,7 +87,7 @@ specific language governing permissions and limitations under the License.
  */
 
 /* FreeRTOS+FAT headers. */
-#include "ff_headers.h"
+//#include "ff_headers.h"
 #include "ff_stdio.h"
 
 #include <stdio.h>
@@ -488,4 +488,3 @@ char *pcRAMBuffer, *pcFileName;
 
 #endif /* ipconfigUSE_HTTP */
 /*-----------------------------------------------------------*/
-

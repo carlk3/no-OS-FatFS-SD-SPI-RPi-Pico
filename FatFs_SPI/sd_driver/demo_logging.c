@@ -51,7 +51,7 @@ specific language governing permissions and limitations under the License.
 
     http://www.FreeRTOS.org/FAQHelp.html - Having a problem?  Start by reading
     the FAQ page "My application does not run, what could be wrong?".  Have you
-    defined myASSERT()?
+    defined configASSERT()?
 
     http://www.FreeRTOS.org/support - In return for receiving this top quality
     embedded software for free we request you assist our global community by
