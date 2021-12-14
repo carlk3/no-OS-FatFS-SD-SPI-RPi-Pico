@@ -198,6 +198,8 @@ stop_logger:
 ```
 You can swap the commenting to enable tracing of what's happening in that file.
 * Logic analyzer: for less than ten bucks, something like this [Comidox 1Set USB Logic Analyzer Device Set USB Cable 24MHz 8CH 24MHz 8 Channel UART IIC SPI Debug for Arduino ARM FPGA M100 Hot](https://smile.amazon.com/gp/product/B07KW445DJ/) and [PulseView - sigrok](https://sigrok.org/) make a nice combination for looking at SPI, as long as you don't run the baud rate too high. 
+* Get yourself a protoboard and solder everything. So much more reliable than solderless breadboard!
+![image](https://github.com/carlk3/FreeRTOS-FAT-CLI-for-RPi-Pico/blob/master/images/PXL_20211214_165648888.MP.jpg)
 
 ## Using the Application Programming Interface
 <strike>After `stdio_init_all();`, `time_init();`, and whatever other Pico SDK initialization is required, call `sd_init_driver();` to initialize the SPI block device driver.</strike> \[sd_init_driver() is now called implicitly.\]
