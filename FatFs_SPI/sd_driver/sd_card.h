@@ -21,6 +21,7 @@ specific language governing permissions and limitations under the License.
 #include <stdint.h>
 //
 #include "hardware/gpio.h"
+#include "pico/mutex.h"
 //
 #include "ff.h"
 //
@@ -36,12 +37,14 @@ typedef struct {
     spi_t *spi;
     // Slave select is here in sd_card_t because multiple SDs can share an SPI
     uint ss_gpio;                   // Slave select for this SD card
-    uint card_detect_gpio;    // Card detect
-    uint card_detected_true;  // Varies with card socket
+    bool use_card_detect;
+    uint card_detect_gpio;    // Card detect; ignored if !use_card_detect
+    uint card_detected_true;  // Varies with card socket; ignored if !use_card_detect
     // Following fields are used to keep track of the state of the card:
     int m_Status;                                    // Card status
     uint64_t sectors;                                // Assigned dynamically
     int card_type;                                   // Assigned dynamically
+    mutex_t mutex;
     FATFS fatfs;
     bool mounted;
 } sd_card_t;

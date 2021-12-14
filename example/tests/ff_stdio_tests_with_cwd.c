@@ -87,7 +87,7 @@ specific language governing permissions and limitations under the License.
 #include <stdbool.h>
 
 /* FreeRTOS+FAT headers. */
-#include "ff_headers.h"
+//#include "ff_headers.h"
 #include "ff_stdio.h"
 
 /* The number of bytes read/written to the example files at a time. */

@@ -75,6 +75,14 @@ Even if it is provided by the hardware, if you have no requirement for it you ca
 ## Notes about prewired boards with SD card sockets:
 * I don't think the [Pimoroni Pico VGA Demo Base](https://shop.pimoroni.com/products/pimoroni-pico-vga-demo-base) can work with a built in RP2040 SPI controller. It looks like RP20040 SPI0 SCK needs to be on GPIO 2, 6, or 18 (pin 4, 9, or 24, respectively), but Pimoroni wired it to GPIO 5 (pin 7).
 * The [SparkFun RP2040 Thing Plus](https://learn.sparkfun.com/tutorials/rp2040-thing-plus-hookup-guide/hardware-overview) looks like it should work, on SPI1.
+  * For SparkFun RP2040 Thing Plus:
+  |       | SPI0  | GPIO  | Description            | 
+  | ----- | ----  | ----- | ---------------------- |
+  | MISO  | RX    | 12    | Master In, Slave Out   |
+  | CS0   | CSn   | 09    | Slave (or Chip) Select |
+  | SCK   | SCK   | 14    | SPI clock              |
+  | MOSI  | TX    | 15    | Master Out, Slave In   |
+  | CD    |       |       | Card Detect            |
 * [Maker Pi Pico](https://www.cytron.io/p-maker-pi-pico) looks like it could work on SPI1. It has CS on GPIO 15, which is not a pin that the RP2040 built in SPI1 controller would drive as CS, but this driver controls CS explicitly with `gpio_put`, so it doesn't matter.
 
 ## Firmware:
@@ -177,6 +185,9 @@ stop_logger:
 
 ## Troubleshooting
 * The first thing to try is lowering the SPI baud rate (see hw_config.c). This will also make it easier to use things like logic analyzers.
+* Make sure the SD card(s) are getting enough power. Try an external supply. Try adding a decoupling capacitor between Vcc and GND. 
+  * Hint: check voltage while formatting card. It must be 2.7 to 3.6 volts. 
+  * Hint: If you are powering a Pico with a PicoProbe, try adding a USB cable to a wall charger to the Pico under test.
 * Try another brand of SD card. Some handle the SPI interface better than others. (Most consumer devices like cameras or PCs use the SDIO interface.) I have had good luck with SanDisk.
 * Tracing: Most of the source files have a couple of lines near the top of the file like:
 ```

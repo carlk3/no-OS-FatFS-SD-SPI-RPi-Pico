@@ -525,7 +525,7 @@ int main() {
 
     for (size_t i = 0; i < sd_get_num(); ++i) {
         sd_card_t *pSD = sd_get_by_num(i);
-        if (0 == pSD->card_detected_true || 1 == pSD->card_detected_true) {
+        if (pSD->use_card_detect) {
             // Set up an interrupt on Card Detect to detect removal of the card
             // when it happens:
             gpio_set_irq_enabled_with_callback(
