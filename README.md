@@ -76,13 +76,15 @@ Even if it is provided by the hardware, if you have no requirement for it you ca
 * I don't think the [Pimoroni Pico VGA Demo Base](https://shop.pimoroni.com/products/pimoroni-pico-vga-demo-base) can work with a built in RP2040 SPI controller. It looks like RP20040 SPI0 SCK needs to be on GPIO 2, 6, or 18 (pin 4, 9, or 24, respectively), but Pimoroni wired it to GPIO 5 (pin 7).
 * The [SparkFun RP2040 Thing Plus](https://learn.sparkfun.com/tutorials/rp2040-thing-plus-hookup-guide/hardware-overview) looks like it should work, on SPI1.
   * For SparkFun RP2040 Thing Plus:
-  |       | SPI0  | GPIO  | Description            | 
-  | ----- | ----  | ----- | ---------------------- |
-  | MISO  | RX    | 12    | Master In, Slave Out   |
-  | CS0   | CSn   | 09    | Slave (or Chip) Select |
-  | SCK   | SCK   | 14    | SPI clock              |
-  | MOSI  | TX    | 15    | Master Out, Slave In   |
-  | CD    |       |       | Card Detect            |
+
+    |       | SPI0  | GPIO  | Description            | 
+    | ----- | ----  | ----- | ---------------------- |
+    | MISO  | RX    | 12    | Master In, Slave Out   |
+    | CS0   | CSn   | 09    | Slave (or Chip) Select |
+    | SCK   | SCK   | 14    | SPI clock              |
+    | MOSI  | TX    | 15    | Master Out, Slave In   |
+    | CD    |       |       | Card Detect            |
+  
 * [Maker Pi Pico](https://www.cytron.io/p-maker-pi-pico) looks like it could work on SPI1. It has CS on GPIO 15, which is not a pin that the RP2040 built in SPI1 controller would drive as CS, but this driver controls CS explicitly with `gpio_put`, so it doesn't matter.
 
 ## Firmware:
