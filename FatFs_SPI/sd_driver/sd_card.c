@@ -591,7 +591,7 @@ static int sd_cmd(sd_card_t *pSD, const cmdSupported cmd, uint32_t arg,
 /* Return non-zero if the SD-card is present. */
 bool sd_card_detect(sd_card_t *pSD) {
     TRACE_PRINTF("> %s\r\n", __FUNCTION__);
-    if (0 != pSD->card_detected_true && 1 != pSD->card_detected_true) {
+    if (!pSD->use_card_detect) {
         pSD->m_Status &= ~STA_NODISK;
         return true;
     }
@@ -656,117 +656,6 @@ static int sd_cmd8(sd_card_t *pSD) {
         }
     }
     return status;
-}
-
-static int sd_init_card3(sd_card_t *pSD) {
-    int32_t status = SD_BLOCK_DEVICE_ERROR_NONE;
-    uint32_t response, arg;
-    /*
-    Power ON or card insersion
-    After supply voltage reached above 2.2 volts,
-    wait for one millisecond at least.
-    Set SPI clock rate between 100 kHz and 400 kHz.
-    Set DI and CS high and apply 74 or more clock pulses to SCLK.
-    The card will enter its native operating mode and go ready to accept native
-    command.
-    */
-    sd_spi_go_low_frequency(pSD);
-    sd_spi_send_initializing_sequence(pSD);
-
-    // The card is transitioned from SDCard mode to SPI mode by sending the CMD0
-    // + CS Asserted("0")
-    if (sd_go_idle_state(pSD) != R1_IDLE_STATE) {
-        DBG_PRINTF("No disk, or could not put SD card in to SPI idle state\r\n");
-        return SD_BLOCK_DEVICE_ERROR_NO_DEVICE;
-    }
-
-    // Send CMD8, if the card rejects the command then it's probably using the
-    // legacy protocol, or is a MMC, or just flat-out broken
-    status = sd_cmd8(pSD);
-    if (SD_BLOCK_DEVICE_ERROR_NONE != status &&
-        SD_BLOCK_DEVICE_ERROR_UNSUPPORTED != status) {
-        return status;
-    }
-
-#if SD_CRC_ENABLED
-    if (crc_on) {
-        // Enable CRC
-        // int sd_cmd(sd_card_t *pSD, cmdSupported cmd, uint32_t arg, bool
-        // isAcmd, uint32_t *resp)
-        status = sd_cmd(pSD, CMD59_CRC_ON_OFF, 1, false, 0);
-    }
-#endif
-
-    // Read OCR - CMD58 Response contains OCR register
-    if (SD_BLOCK_DEVICE_ERROR_NONE !=
-        (status = sd_cmd(pSD, CMD58_READ_OCR, 0x0, false, &response))) {
-        return status;
-    }
-    // Check if card supports voltage range: 3.3V
-    if (!(response & OCR_3_3V)) {
-        pSD->card_type = CARD_UNKNOWN;
-        status = SD_BLOCK_DEVICE_ERROR_UNUSABLE;
-        return status;
-    }
-
-    // HCS is set 1 for HC/XC capacity cards for ACMD41, if supported
-    arg = 0x0;
-    if (SDCARD_V2 == pSD->card_type) {
-        arg |= OCR_HCS_CCS;
-    }
-
-    /* Idle state bit in the R1 response of ACMD41 is used by the card to inform
-     * the host if initialization of ACMD41 is completed. "1" indicates that the
-     * card is still initializing. "0" indicates completion of initialization.
-     * The host repeatedly issues ACMD41 until this bit is set to "0".
-     */
-    absolute_time_t timeout_time = make_timeout_time_ms(SD_COMMAND_TIMEOUT);
-    do {
-        status = sd_cmd(pSD, ACMD41_SD_SEND_OP_COND, arg, true, &response);
-    } while (response & R1_IDLE_STATE &&
-             0 < absolute_time_diff_us(get_absolute_time(), timeout_time));
-
-    // Initialization complete: ACMD41 successful
-    if ((SD_BLOCK_DEVICE_ERROR_NONE != status) || (0x00 != response)) {
-        pSD->card_type = CARD_UNKNOWN;
-        DBG_PRINTF("Timeout waiting for card\r\n");
-        return status;
-    }
-
-    if (SDCARD_V2 == pSD->card_type) {
-        // Get the card capacity CCS: CMD58
-        if (SD_BLOCK_DEVICE_ERROR_NONE ==
-            (status = sd_cmd(pSD, CMD58_READ_OCR, 0x0, false, &response))) {
-            // High Capacity card
-            if (response & OCR_HCS_CCS) {
-                pSD->card_type = SDCARD_V2HC;
-                DBG_PRINTF("Card Initialized: High Capacity Card\r\n");
-            } else {
-                DBG_PRINTF(
-                    "Card Initialized: Standard Capacity Card: Version 2.x\r\n");
-            }
-        }
-    } else {
-        pSD->card_type = SDCARD_V1;
-        DBG_PRINTF("Card Initialized: Version 1.x Card\r\n");
-    }
-
-#if SD_CRC_ENABLED
-    if (!crc_on) {
-        // Disable CRC
-        status = sd_cmd(pSD, CMD59_CRC_ON_OFF, 0, false, 0);
-    }
-#else
-    status = sd_cmd(pSD, CMD59_CRC_ON_OFF, 0, false, 0);
-#endif
-
-    return status;
-}
-static int sd_init_card2(sd_card_t *pSD) {
-    sd_lock(pSD);
-    int rc = sd_init_card3(pSD);
-    sd_unlock(pSD);
-    return rc;
 }
 
 static uint32_t ext_bits(unsigned char *data, int msb, int lsb) {
@@ -844,68 +733,6 @@ uint64_t sd_sectors(sd_card_t *pSD) {
     uint64_t sectors = sd_sectors_nolock(pSD);
     sd_release(pSD);
     return sectors;
-}
-
-int sd_init_card(sd_card_t *pSD) {
-    TRACE_PRINTF("> %s\r\n", __FUNCTION__);
-    if (!sd_init_driver()) {
-        pSD->m_Status |= STA_NOINIT;
-        return pSD->m_Status;
-    }
-    //	STA_NOINIT = 0x01, /* Drive not initialized */
-    //	STA_NODISK = 0x02, /* No medium in the drive */
-    //	STA_PROTECT = 0x04 /* Write protected */
-
-    if (!mutex_is_initialized(&pSD->mutex)) mutex_init(&pSD->mutex);
-    sd_lock(pSD);
-
-    // Make sure there's a card in the socket before proceeding
-    sd_card_detect(pSD);
-    if (pSD->m_Status & STA_NODISK) {
-        sd_unlock(pSD);
-        return pSD->m_Status;
-    }
-    // Make sure we're not already initialized before proceeding
-    if (!(pSD->m_Status & STA_NOINIT)) {
-        sd_unlock(pSD);
-        return pSD->m_Status;
-    }
-    // Initialize the member variables
-    pSD->card_type = SDCARD_NONE;
-
-    sd_spi_acquire(pSD);
-
-    int err = sd_init_card2(pSD);
-    if (SD_BLOCK_DEVICE_ERROR_NONE != err) {
-        DBG_PRINTF("Failed to initialize card\r\n");
-        sd_unlock(pSD);
-        return pSD->m_Status;
-    }
-    DBG_PRINTF("SD card initialized\r\n");
-    pSD->sectors = sd_sectors_nolock(pSD);
-    if (0 == pSD->sectors) {
-        // CMD9 failed
-        sd_unlock(pSD);
-        return pSD->m_Status;
-    }
-    // Set block length to 512 (CMD16)
-    if (sd_cmd(pSD, CMD16_SET_BLOCKLEN, _block_size, false, 0) != 0) {
-        DBG_PRINTF("Set %" PRIu32 "-byte block timed out\r\n", _block_size);
-        sd_spi_release(pSD);
-        sd_unlock(pSD);
-        return pSD->m_Status;
-    }
-    // Set SCK for data transfer
-    sd_spi_go_high_frequency(pSD);
-
-    // The card is now initialized
-    pSD->m_Status &= ~STA_NOINIT;
-
-    sd_spi_release(pSD);
-    sd_unlock(pSD);
-
-    // Return the disk status
-    return pSD->m_Status;
 }
 
 // SPI function to wait till chip is ready and sends start token
@@ -1170,6 +997,171 @@ int sd_write_blocks(sd_card_t *pSD, const uint8_t *buffer,
     return status;
 }
 
+static int sd_init_card2(sd_card_t *pSD) {
+    int32_t status = SD_BLOCK_DEVICE_ERROR_NONE;
+    uint32_t response, arg;
+    /*
+    Power ON or card insersion
+    After supply voltage reached above 2.2 volts,
+    wait for one millisecond at least.
+    Set SPI clock rate between 100 kHz and 400 kHz.
+    Set DI and CS high and apply 74 or more clock pulses to SCLK.
+    The card will enter its native operating mode and go ready to accept native
+    command.
+    */
+    sd_spi_go_low_frequency(pSD);
+    sd_spi_send_initializing_sequence(pSD);
+
+    // The card is transitioned from SDCard mode to SPI mode by sending the CMD0
+    // + CS Asserted("0")
+    if (sd_go_idle_state(pSD) != R1_IDLE_STATE) {
+        DBG_PRINTF("No disk, or could not put SD card in to SPI idle state\r\n");
+        return SD_BLOCK_DEVICE_ERROR_NO_DEVICE;
+    }
+
+    // Send CMD8, if the card rejects the command then it's probably using the
+    // legacy protocol, or is a MMC, or just flat-out broken
+    status = sd_cmd8(pSD);
+    if (SD_BLOCK_DEVICE_ERROR_NONE != status &&
+        SD_BLOCK_DEVICE_ERROR_UNSUPPORTED != status) {
+        return status;
+    }
+
+#if SD_CRC_ENABLED
+    if (crc_on) {
+        // Enable CRC
+        // int sd_cmd(sd_card_t *pSD, cmdSupported cmd, uint32_t arg, bool
+        // isAcmd, uint32_t *resp)
+        status = sd_cmd(pSD, CMD59_CRC_ON_OFF, 1, false, 0);
+    }
+#endif
+
+    // Read OCR - CMD58 Response contains OCR register
+    if (SD_BLOCK_DEVICE_ERROR_NONE !=
+        (status = sd_cmd(pSD, CMD58_READ_OCR, 0x0, false, &response))) {
+        return status;
+    }
+    // Check if card supports voltage range: 3.3V
+    if (!(response & OCR_3_3V)) {
+        pSD->card_type = CARD_UNKNOWN;
+        status = SD_BLOCK_DEVICE_ERROR_UNUSABLE;
+        return status;
+    }
+
+    // HCS is set 1 for HC/XC capacity cards for ACMD41, if supported
+    arg = 0x0;
+    if (SDCARD_V2 == pSD->card_type) {
+        arg |= OCR_HCS_CCS;
+    }
+
+    /* Idle state bit in the R1 response of ACMD41 is used by the card to inform
+     * the host if initialization of ACMD41 is completed. "1" indicates that the
+     * card is still initializing. "0" indicates completion of initialization.
+     * The host repeatedly issues ACMD41 until this bit is set to "0".
+     */
+    absolute_time_t timeout_time = make_timeout_time_ms(SD_COMMAND_TIMEOUT);
+    do {
+        status = sd_cmd(pSD, ACMD41_SD_SEND_OP_COND, arg, true, &response);
+    } while (response & R1_IDLE_STATE &&
+             0 < absolute_time_diff_us(get_absolute_time(), timeout_time));
+
+    // Initialization complete: ACMD41 successful
+    if ((SD_BLOCK_DEVICE_ERROR_NONE != status) || (0x00 != response)) {
+        pSD->card_type = CARD_UNKNOWN;
+        DBG_PRINTF("Timeout waiting for card\r\n");
+        return status;
+    }
+
+    if (SDCARD_V2 == pSD->card_type) {
+        // Get the card capacity CCS: CMD58
+        if (SD_BLOCK_DEVICE_ERROR_NONE ==
+            (status = sd_cmd(pSD, CMD58_READ_OCR, 0x0, false, &response))) {
+            // High Capacity card
+            if (response & OCR_HCS_CCS) {
+                pSD->card_type = SDCARD_V2HC;
+                DBG_PRINTF("Card Initialized: High Capacity Card\r\n");
+            } else {
+                DBG_PRINTF(
+                    "Card Initialized: Standard Capacity Card: Version 2.x\r\n");
+            }
+        }
+    } else {
+        pSD->card_type = SDCARD_V1;
+        DBG_PRINTF("Card Initialized: Version 1.x Card\r\n");
+    }
+
+#if SD_CRC_ENABLED
+    if (!crc_on) {
+        // Disable CRC
+        status = sd_cmd(pSD, CMD59_CRC_ON_OFF, 0, false, 0);
+    }
+#else
+    status = sd_cmd(pSD, CMD59_CRC_ON_OFF, 0, false, 0);
+#endif
+
+    return status;
+}
+int sd_init_card(sd_card_t *pSD) {
+    TRACE_PRINTF("> %s\r\n", __FUNCTION__);
+    if (!sd_init_driver()) {
+        pSD->m_Status |= STA_NOINIT;
+        return pSD->m_Status;
+    }
+    //	STA_NOINIT = 0x01, /* Drive not initialized */
+    //	STA_NODISK = 0x02, /* No medium in the drive */
+    //	STA_PROTECT = 0x04 /* Write protected */
+
+    if (!mutex_is_initialized(&pSD->mutex)) mutex_init(&pSD->mutex);
+    sd_lock(pSD);
+
+    // Make sure there's a card in the socket before proceeding
+    sd_card_detect(pSD);
+    if (pSD->m_Status & STA_NODISK) {
+        sd_unlock(pSD);
+        return pSD->m_Status;
+    }
+    // Make sure we're not already initialized before proceeding
+    if (!(pSD->m_Status & STA_NOINIT)) {
+        sd_unlock(pSD);
+        return pSD->m_Status;
+    }
+    // Initialize the member variables
+    pSD->card_type = SDCARD_NONE;
+
+    sd_spi_acquire(pSD);
+
+    int err = sd_init_card2(pSD);
+    if (SD_BLOCK_DEVICE_ERROR_NONE != err) {
+        DBG_PRINTF("Failed to initialize card\r\n");
+        sd_unlock(pSD);
+        return pSD->m_Status;
+    }
+    DBG_PRINTF("SD card initialized\r\n");
+    pSD->sectors = sd_sectors_nolock(pSD);
+    if (0 == pSD->sectors) {
+        // CMD9 failed
+        sd_unlock(pSD);
+        return pSD->m_Status;
+    }
+    // Set block length to 512 (CMD16)
+    if (sd_cmd(pSD, CMD16_SET_BLOCKLEN, _block_size, false, 0) != 0) {
+        DBG_PRINTF("Set %" PRIu32 "-byte block timed out\r\n", _block_size);
+        sd_spi_release(pSD);
+        sd_unlock(pSD);
+        return pSD->m_Status;
+    }
+    // Set SCK for data transfer
+    sd_spi_go_high_frequency(pSD);
+
+    // The card is now initialized
+    pSD->m_Status &= ~STA_NOINIT;
+
+    sd_spi_release(pSD);
+    sd_unlock(pSD);
+
+    // Return the disk status
+    return pSD->m_Status;
+}
 bool sd_init_driver() {
     static bool initialized;
     auto_init_mutex(sd_init_driver_mutex);
@@ -1177,9 +1169,11 @@ bool sd_init_driver() {
     if (!initialized) {
         for (size_t i = 0; i < sd_get_num(); ++i) {
             sd_card_t *pSD = sd_get_by_num(i);
-            gpio_init(pSD->card_detect_gpio);
-            gpio_pull_up(pSD->card_detect_gpio);
-            gpio_set_dir(pSD->card_detect_gpio, GPIO_IN);
+            if (pSD->use_card_detect) {
+                gpio_init(pSD->card_detect_gpio);
+                gpio_pull_up(pSD->card_detect_gpio);
+                gpio_set_dir(pSD->card_detect_gpio, GPIO_IN);
+            }
             // Chip select is active-low, so we'll initialise it to a
             // driven-high state.
             gpio_put(pSD->ss_gpio,
