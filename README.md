@@ -45,6 +45,8 @@ On a SanDisk Class 4 16 GB card, I have been able to push the SPI baud rate as f
 * Something like the [SparkFun microSD Transflash Breakout](https://www.sparkfun.com/products/544)
 * Breadboard and wires
 * Raspberry Pi Pico C/C++ SDK
+* (Optional) A couple of ~5-10kΩ resistors for pull-ups
+* (Optional) A couple of ~100 pF capacitors for decoupling
 
 ![image](https://github.com/carlk3/FreeRTOS-FAT-CLI-for-RPi-Pico/blob/master/images/IMG_1478.JPG "Prototype")
 

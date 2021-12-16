@@ -21,6 +21,7 @@ specific language governing permissions and limitations under the License.
 #include "hardware/gpio.h"
 #include "hardware/irq.h"
 #include "hardware/spi.h"
+#include "pico/mutex.h"
 #include "pico/sem.h"
 #include "pico/types.h"
 
@@ -42,6 +43,7 @@ typedef struct {
     irq_handler_t dma_isr;
     bool initialized;  // Assigned dynamically
     semaphore_t sem;
+    mutex_t mutex;    
 } spi_t;
 
 #ifdef __cplusplus
@@ -50,8 +52,10 @@ extern "C" {
 
 // SPI DMA interrupts
 void __not_in_flash_func(spi_irq_handler)(spi_t *pSPI);
-
-bool __not_in_flash_func(spi_transfer)(spi_t *pSPI, const uint8_t *tx, uint8_t *rx, size_t length);
+  
+bool __not_in_flash_func(spi_transfer)(spi_t *pSPI, const uint8_t *tx, uint8_t *rx, size_t length);  
+void spi_lock(spi_t *pSPI);
+void spi_unlock(spi_t *pSPI);
 bool my_spi_init(spi_t *pSPI);
 void set_spi_dma_irq_channel(bool useChannel1, bool shared);
 

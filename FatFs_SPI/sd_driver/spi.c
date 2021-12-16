@@ -113,6 +113,15 @@ bool spi_transfer(spi_t *pSPI, const uint8_t *tx, uint8_t *rx, size_t length) {
     return true;
 }
 
+void spi_lock(spi_t *pSPI) {
+    myASSERT(mutex_is_initialized(&pSPI->mutex));
+    mutex_enter_blocking(&pSPI->mutex);
+}
+void spi_unlock(spi_t *pSPI) {
+    myASSERT(mutex_is_initialized(&pSPI->mutex));
+    mutex_exit(&pSPI->mutex);
+}
+
 bool my_spi_init(spi_t *pSPI) {
     auto_init_mutex(my_spi_init_mutex);
     mutex_enter_blocking(&my_spi_init_mutex);
@@ -120,6 +129,8 @@ bool my_spi_init(spi_t *pSPI) {
         //// The SPI may be shared (using multiple SSs); protect it
         //pSPI->mutex = xSemaphoreCreateRecursiveMutex();
         //xSemaphoreTakeRecursive(pSPI->mutex, portMAX_DELAY);
+        if (!mutex_is_initialized(&pSPI->mutex)) mutex_init(&pSPI->mutex);
+        spi_lock(pSPI);
 
         // For the IRQ notification:
         sem_init(&pSPI->sem, 0, 1);
@@ -187,6 +198,7 @@ bool my_spi_init(spi_t *pSPI) {
         irq_set_enabled(irq, true);
         LED_INIT();
         pSPI->initialized = true;
+        spi_unlock(pSPI);
     }
     mutex_exit(&my_spi_init_mutex);
     return true;
