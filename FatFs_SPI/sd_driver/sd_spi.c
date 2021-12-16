@@ -32,8 +32,15 @@ void sd_spi_go_high_frequency(sd_card_t *pSD) {
     TRACE_PRINTF("%s: Actual frequency: %lu\n", __FUNCTION__, (long)actual);
 }
 void sd_spi_go_low_frequency(sd_card_t *pSD) {
-    uint actual = spi_set_baudrate(pSD->spi->hw_inst, 100 * 1000);
+    uint actual = spi_set_baudrate(pSD->spi->hw_inst, 400 * 1000); // Actual frequency: 398089
     TRACE_PRINTF("%s: Actual frequency: %lu\n", __FUNCTION__, (long)actual);
+}
+
+static void sd_spi_lock(sd_card_t *pSD) {
+    spi_lock(pSD->spi);
+}
+static void sd_spi_unlock(sd_card_t *pSD) {
+   spi_unlock(pSD->spi);
 }
 
 // Would do nothing if pSD->ss_gpio were set to GPIO_FUNC_SPI.
@@ -60,32 +67,31 @@ static void sd_spi_deselect(sd_card_t *pSD) {
 }
 
 void sd_spi_acquire(sd_card_t *pSD) {
+    sd_spi_lock(pSD);
     sd_spi_select(pSD);
 }
 
 void sd_spi_release(sd_card_t *pSD) {
     sd_spi_deselect(pSD);
+    sd_spi_unlock(pSD);
+}
+
+bool sd_spi_transfer(sd_card_t *pSD, const uint8_t *tx, uint8_t *rx,
+                     size_t length) {
+    return spi_transfer(pSD->spi, tx, rx, length);
 }
 
 uint8_t sd_spi_write(sd_card_t *pSD, const uint8_t value) {
     // TRACE_PRINTF("%s\n", __FUNCTION__);
     u_int8_t received = SPI_FILL_CHAR;
-    int num = spi_write_read_blocking(pSD->spi->hw_inst, &value, &received, 1);
+#if 0
+    int num = spi_write_read_blocking(pSD->spi->hw_inst, &value, &received, 1);    
     myASSERT(1 == num);
+#else
+    bool success = spi_transfer(pSD->spi, &value, &received, 1);
+    myASSERT(success);
+#endif
     return received;
-}
-
-//uint8_t sd_spi_write(sd_card_t *pSD, const uint8_t value) {
-//    // TRACE_PRINTF("%s\n", __FUNCTION__);
-//    u_int8_t received = SPI_FILL_CHAR;
-//    bool success = spi_transfer(pSD->spi, &value, &received, 1);
-//    myASSERT(success);
-//    return received;
-//}
-
-bool sd_spi_transfer(sd_card_t *pSD, const uint8_t *tx, uint8_t *rx,
-                     size_t length) {
-    return spi_transfer(pSD->spi, tx, rx, length);
 }
 
 void sd_spi_send_initializing_sequence(sd_card_t * pSD) {
