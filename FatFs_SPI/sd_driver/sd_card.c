@@ -325,13 +325,11 @@ static uint8_t sd_cmd_spi(sd_card_t *pSD, cmdSupported cmd, uint32_t arg) {
     }
     // send a command
     for (int i = 0; i < PACKET_SIZE; i++) {
-        TRC_PR_ADD("[0x%02hhx] ", cmdPacket[i]);
         sd_spi_write(pSD, cmdPacket[i]);
     }
     // The received byte immediataly following CMD12 is a stuff byte,
     // it should be discarded before receive the response of the CMD12.
     if (CMD12_STOP_TRANSMISSION == cmd) {
-        TRC_PR_ADD("[0x%02hhx] ", cmd);
         sd_spi_write(pSD, SPI_FILL_CHAR);
     }
     // Loop for response: Response is sent back within command response time
@@ -370,7 +368,7 @@ static void sd_lock(sd_card_t *pSD) {
 }
 static void sd_unlock(sd_card_t *pSD) {
     myASSERT(mutex_is_initialized(&pSD->mutex));
-     mutex_exit(&pSD->mutex);
+    mutex_exit(&pSD->mutex);
 }
 
 // Locks the SD card and acquires its SPI
@@ -452,7 +450,6 @@ static const char *cmd2str(const cmdSupported cmd) {
 static int sd_cmd(sd_card_t *pSD, const cmdSupported cmd, uint32_t arg,
                   bool isAcmd, uint32_t *resp) {
     TRACE_PRINTF("%s(%s(0x%08lx)): ", __FUNCTION__, cmd2str(cmd), arg);
-    TRACE_PRINTF2("%s(0x%08lx): ", cmd2str(cmd), arg);
 
     int32_t status = SD_BLOCK_DEVICE_ERROR_NONE;
     uint32_t response;
@@ -467,16 +464,13 @@ static int sd_cmd(sd_card_t *pSD, const cmdSupported cmd, uint32_t arg,
     for (int i = 0; i < 3; i++) {
         // Send CMD55 for APP command first
         if (isAcmd) {
-            TRACE_PRINTF("0x%02hhx ", CMD55_APP_CMD);
             response = sd_cmd_spi(pSD, CMD55_APP_CMD, 0x0);
             // Wait for card to be ready after CMD55
             if (false == sd_wait_ready(pSD, SD_COMMAND_TIMEOUT)) {
-                DBG_PRINTF("%s:%d: Card not ready yet\r\n", __FILE__,
-                           __LINE__);
+                DBG_PRINTF("%s:%d: Card not ready yet\r\n", __FILE__, __LINE__);
             }
         }
         // Send command over SPI interface
-        TRACE_PRINTF("0x02%hhx ", cmd);
         response = sd_cmd_spi(pSD, cmd, arg);
         if (R1_NO_RESPONSE == response) {
             DBG_PRINTF("No response CMD:%d\r\n", cmd);
@@ -484,9 +478,6 @@ static int sd_cmd(sd_card_t *pSD, const cmdSupported cmd, uint32_t arg,
         }
         break;
     }
-    TRC_PR_ADD("response=0x%08lx\n", response);
-    fflush(stdout);
-
     // Pass the response to the command call if required
     if (NULL != resp) {
         *resp = response;
@@ -497,9 +488,8 @@ static int sd_cmd(sd_card_t *pSD, const cmdSupported cmd, uint32_t arg,
                    response);
         return SD_BLOCK_DEVICE_ERROR_NO_DEVICE;  // No device
     }
-    if (response & R1_COM_CRC_ERROR) {
-        DBG_PRINTF("CRC error CMD:%d response 0x%" PRIx32 "\r\n", cmd,
-                   response);
+    if (response & R1_COM_CRC_ERROR && ACMD23_SET_WR_BLK_ERASE_COUNT != cmd) {
+        DBG_PRINTF("CRC error CMD:%d response 0x%" PRIx32 "\r\n", cmd, response);
         return SD_BLOCK_DEVICE_ERROR_CRC;  // CRC error
     }
     if (response & R1_ILLEGAL_COMMAND) {
@@ -513,7 +503,7 @@ static int sd_cmd(sd_card_t *pSD, const cmdSupported cmd, uint32_t arg,
         return SD_BLOCK_DEVICE_ERROR_UNSUPPORTED;  // Command not supported
     }
 
-    //	DBG_PRINTF("CMD:%d \t arg:0x%" PRIx32 " \t Response:0x%" PRIx32 "\n",
+    //	DBG_PRINTF("CMD:%d \t arg:0x%" PRIx32 " \t Response:0x%" PRIx32 "\r\n",
     // cmd, arg, response);
     // Set status for other errors
     if ((response & R1_ERASE_RESET) || (response & R1_ERASE_SEQUENCE_ERROR)) {
@@ -1101,6 +1091,7 @@ static int sd_init_card2(sd_card_t *pSD) {
 
     return status;
 }
+
 int sd_init_card(sd_card_t *pSD) {
     TRACE_PRINTF("> %s\r\n", __FUNCTION__);
     if (!sd_init_driver()) {
