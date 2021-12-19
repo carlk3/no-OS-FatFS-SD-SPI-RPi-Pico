@@ -581,7 +581,8 @@ static int sd_cmd(sd_card_t *pSD, const cmdSupported cmd, uint32_t arg,
 /* Return non-zero if the SD-card is present. */
 bool sd_card_detect(sd_card_t *pSD) {
     TRACE_PRINTF("> %s\r\n", __FUNCTION__);
-    if (!pSD->use_card_detect) {
+    if (!pSD->use_card_detect
+         || pSD->card_detect_gpio) {  // Backward compatibility
         pSD->m_Status &= ~STA_NODISK;
         return true;
     }
