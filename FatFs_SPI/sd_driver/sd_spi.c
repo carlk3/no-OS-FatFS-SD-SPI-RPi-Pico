@@ -44,7 +44,7 @@ static void sd_spi_unlock(sd_card_t *pSD) {
 }
 
 // Would do nothing if pSD->ss_gpio were set to GPIO_FUNC_SPI.
-static void sd_spi_select(sd_card_t *pSD) {
+void sd_spi_select(sd_card_t *pSD) {
     gpio_put(pSD->ss_gpio, 0);
     // A fill byte seems to be necessary, sometimes:
     uint8_t fill = SPI_FILL_CHAR;
@@ -52,7 +52,7 @@ static void sd_spi_select(sd_card_t *pSD) {
     LED_ON();
 }
 
-static void sd_spi_deselect(sd_card_t *pSD) {
+void sd_spi_deselect(sd_card_t *pSD) {
     gpio_put(pSD->ss_gpio, 1);
     LED_OFF();
     /*

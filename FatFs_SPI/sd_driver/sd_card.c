@@ -175,7 +175,9 @@ specific language governing permissions and limitations under the License.
 //
 #include "diskio.h" /* Declarations of disk functions */  // Needed for STA_NOINIT, ...
 
+#ifndef SD_CRC_ENABLED
 #define SD_CRC_ENABLED 1
+#endif
 
 #if SD_CRC_ENABLED
 #include "crc.h"
@@ -581,8 +583,7 @@ static int sd_cmd(sd_card_t *pSD, const cmdSupported cmd, uint32_t arg,
 /* Return non-zero if the SD-card is present. */
 bool sd_card_detect(sd_card_t *pSD) {
     TRACE_PRINTF("> %s\r\n", __FUNCTION__);
-    if (!pSD->use_card_detect
-         || pSD->card_detect_gpio) {  // Backward compatibility
+    if (!pSD->use_card_detect) {
         pSD->m_Status &= ~STA_NODISK;
         return true;
     }
@@ -974,6 +975,9 @@ static int in_sd_write_blocks(sd_card_t *pSD, const uint8_t *buffer,
         sd_spi_write(pSD, SPI_STOP_TRAN);
     }
     uint32_t stat = 0;
+    // Some SD cards want to be deselected between every bus transaction:
+    sd_spi_deselect(pSD);
+    sd_spi_select(pSD);
     sd_cmd(pSD, CMD13_SEND_STATUS, 0, false, &stat);
     return status;
 }
