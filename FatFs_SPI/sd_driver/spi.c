@@ -143,7 +143,13 @@ bool my_spi_init(spi_t *pSPI) {
         gpio_set_function(pSPI->miso_gpio, GPIO_FUNC_SPI);
         gpio_set_function(pSPI->mosi_gpio, GPIO_FUNC_SPI);
         gpio_set_function(pSPI->sck_gpio, GPIO_FUNC_SPI);
-        // ss_gpio is initialized in sd_spi_init()
+        // ss_gpio is initialized in sd_init_driver()
+
+        // Output slew rate can be set to slow or fast:
+        // enum gpio_slew_rate { GPIO_SLEW_RATE_SLOW = 0, GPIO_SLEW_RATE_FAST = 1 }
+        // Slew rate limiting levels for GPIO outputs.
+        // void gpio_set_slew_rate (uint gpio,enum gpio_slew_rate slew)
+        // Default appears to be GPIO_SLEW_RATE_SLOW.
 
         // SD cards' DO MUST be pulled up.
         gpio_pull_up(pSPI->miso_gpio);

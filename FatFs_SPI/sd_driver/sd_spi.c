@@ -44,7 +44,7 @@ static void sd_spi_unlock(sd_card_t *pSD) {
 }
 
 // Would do nothing if pSD->ss_gpio were set to GPIO_FUNC_SPI.
-void sd_spi_select(sd_card_t *pSD) {
+static void sd_spi_select(sd_card_t *pSD) {
     gpio_put(pSD->ss_gpio, 0);
     // A fill byte seems to be necessary, sometimes:
     uint8_t fill = SPI_FILL_CHAR;
@@ -52,7 +52,7 @@ void sd_spi_select(sd_card_t *pSD) {
     LED_ON();
 }
 
-void sd_spi_deselect(sd_card_t *pSD) {
+static void sd_spi_deselect(sd_card_t *pSD) {
     gpio_put(pSD->ss_gpio, 1);
     LED_OFF();
     /*
@@ -64,6 +64,13 @@ void sd_spi_deselect(sd_card_t *pSD) {
     */
     uint8_t fill = SPI_FILL_CHAR;
     spi_write_blocking(pSD->spi->hw_inst, &fill, 1);
+}
+
+/* Some SD cards want to be deselected between every bus transaction */
+void sd_spi_deselect_pulse(sd_card_t *pSD) {
+    sd_spi_deselect(pSD);
+    // tCSH Pulse duration, CS high 200 ns
+    sd_spi_select(pSD);
 }
 
 void sd_spi_acquire(sd_card_t *pSD) {

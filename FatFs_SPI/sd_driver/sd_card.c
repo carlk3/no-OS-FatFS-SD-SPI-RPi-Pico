@@ -951,6 +951,9 @@ static int in_sd_write_blocks(sd_card_t *pSD, const uint8_t *buffer,
         // Pre-erase setting prior to multiple block write operation
         sd_cmd(pSD, ACMD23_SET_WR_BLK_ERASE_COUNT, blockCnt, 1, 0);
 
+        // Some SD cards want to be deselected between every bus transaction:
+        sd_spi_deselect_pulse(pSD);
+
         // Multiple block write command
         if (SD_BLOCK_DEVICE_ERROR_NONE !=
             (status =
@@ -976,8 +979,7 @@ static int in_sd_write_blocks(sd_card_t *pSD, const uint8_t *buffer,
     }
     uint32_t stat = 0;
     // Some SD cards want to be deselected between every bus transaction:
-    sd_spi_deselect(pSD);
-    sd_spi_select(pSD);
+    sd_spi_deselect_pulse(pSD);
     sd_cmd(pSD, CMD13_SEND_STATUS, 0, false, &stat);
     return status;
 }
@@ -1172,8 +1174,7 @@ bool sd_init_driver() {
             }
             // Chip select is active-low, so we'll initialise it to a
             // driven-high state.
-            gpio_put(pSD->ss_gpio,
-                     1);  // Avoid any glitches when enabling output
+            gpio_put(pSD->ss_gpio, 1);  // Avoid any glitches when enabling output
             gpio_init(pSD->ss_gpio);
             gpio_set_dir(pSD->ss_gpio, GPIO_OUT);
             gpio_put(pSD->ss_gpio, 1);  // In case set_dir does anything
