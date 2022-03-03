@@ -1172,6 +1172,9 @@ bool sd_init_driver() {
                 gpio_pull_up(pSD->card_detect_gpio);
                 gpio_set_dir(pSD->card_detect_gpio, GPIO_IN);
             }
+            if (pSD->set_drive_strength) {
+                gpio_set_drive_strength(pSD->ss_gpio, pSD->ss_gpio_drive_strength);
+            }
             // Chip select is active-low, so we'll initialise it to a
             // driven-high state.
             gpio_put(pSD->ss_gpio, 1);  // Avoid any glitches when enabling output

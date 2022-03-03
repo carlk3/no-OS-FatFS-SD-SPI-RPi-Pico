@@ -46,13 +46,14 @@ static spi_t spis[] = {  // One for each SPI.
         .miso_gpio = 12,  // GPIO number (not pin number)
         .mosi_gpio = 15,
         .sck_gpio = 14,
+        .set_drive_strength = true,
+        .mosi_gpio_drive_strength = GPIO_DRIVE_STRENGTH_2MA,
+        .sck_gpio_drive_strength = GPIO_DRIVE_STRENGTH_2MA,
 
-        /* The choice of SD card matters! SanDisk runs at the highest speed. PNY
-           can only mangage 5 MHz. Those are all I've tried. */
         //.baud_rate = 1000 * 1000,
-        .baud_rate = 12500 * 1000,  // The limitation here is SPI slew rate.
-        //.baud_rate = 25 * 1000 * 1000, // Actual frequency: 20833333. Has
-        // worked for me with SanDisk.
+        //.baud_rate = 12500 * 1000,  // The limitation here is SPI slew rate.
+        .baud_rate = 25 * 1000 * 1000, // Actual frequency: 20833333. Has
+        // worked for me with SanDisk.        
 
         .dma_isr = spi_dma_isr
     }
@@ -64,7 +65,11 @@ static sd_card_t sd_cards[] = {  // One for each SD card
         .pcName = "0:",           // Name used to mount device
         .spi = &spis[0],          // Pointer to the SPI driving this card
         .ss_gpio = 9,             // The SPI slave select GPIO for this SD card
-        //.use_card_detect = false,
+        .set_drive_strength = true,
+        .ss_gpio_drive_strength = GPIO_DRIVE_STRENGTH_2MA,
+        //.use_card_detect = false,        
+
+        // State variables:
         .m_Status = STA_NOINIT
     }
 };

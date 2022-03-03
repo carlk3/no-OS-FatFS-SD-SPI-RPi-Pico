@@ -35,13 +35,21 @@ typedef struct {
     uint mosi_gpio;
     uint sck_gpio;
     uint baud_rate;
+
+    // Drive strength levels for GPIO outputs.
+    // enum gpio_drive_strength { GPIO_DRIVE_STRENGTH_2MA = 0, GPIO_DRIVE_STRENGTH_4MA = 1, GPIO_DRIVE_STRENGTH_8MA = 2,
+    // GPIO_DRIVE_STRENGTH_12MA = 3 }
+    bool set_drive_strength;
+    enum gpio_drive_strength mosi_gpio_drive_strength;
+    enum gpio_drive_strength sck_gpio_drive_strength;
+
     // State variables:
     uint tx_dma;
     uint rx_dma;
     dma_channel_config tx_dma_cfg;
     dma_channel_config rx_dma_cfg;
     irq_handler_t dma_isr;
-    bool initialized;  // Assigned dynamically
+    bool initialized;  
     semaphore_t sem;
     mutex_t mutex;    
 } spi_t;

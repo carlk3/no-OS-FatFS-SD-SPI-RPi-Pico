@@ -40,6 +40,12 @@ typedef struct {
     bool use_card_detect;
     uint card_detect_gpio;    // Card detect; ignored if !use_card_detect
     uint card_detected_true;  // Varies with card socket; ignored if !use_card_detect
+    // Drive strength levels for GPIO outputs.
+    // enum gpio_drive_strength { GPIO_DRIVE_STRENGTH_2MA = 0, GPIO_DRIVE_STRENGTH_4MA = 1, GPIO_DRIVE_STRENGTH_8MA = 2,
+    // GPIO_DRIVE_STRENGTH_12MA = 3 }
+    bool set_drive_strength;
+    enum gpio_drive_strength ss_gpio_drive_strength;
+
     // Following fields are used to keep track of the state of the card:
     int m_Status;                                    // Card status
     uint64_t sectors;                                // Assigned dynamically
