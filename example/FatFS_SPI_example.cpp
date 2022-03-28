@@ -120,11 +120,8 @@ static void run_date() {
     printf("Day of year: %s\n", buf);
 }
 static void run_format() {
-    char *arg1 = strtok(NULL, " ");
-    if (!arg1) {
-        printf("Missing argument\n");
-        return;
-    }
+    const char *arg1 = strtok(NULL, " ");
+    if (!arg1) arg1 = sd_get_by_num(0)->pcName;
     FATFS *p_fs = sd_get_fs_by_name(arg1);
     if (!p_fs) {
         printf("Unknown logical drive number: \"%s\"\n", arg1);
