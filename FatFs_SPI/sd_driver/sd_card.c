@@ -1131,6 +1131,7 @@ int sd_init_card(sd_card_t *pSD) {
     int err = sd_init_card2(pSD);
     if (SD_BLOCK_DEVICE_ERROR_NONE != err) {
         DBG_PRINTF("Failed to initialize card\r\n");
+        sd_spi_release(pSD);
         sd_unlock(pSD);
         return pSD->m_Status;
     }
@@ -1138,6 +1139,7 @@ int sd_init_card(sd_card_t *pSD) {
     pSD->sectors = sd_sectors_nolock(pSD);
     if (0 == pSD->sectors) {
         // CMD9 failed
+        sd_spi_release(pSD);
         sd_unlock(pSD);
         return pSD->m_Status;
     }
