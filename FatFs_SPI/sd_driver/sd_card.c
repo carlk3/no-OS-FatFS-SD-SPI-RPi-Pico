@@ -986,14 +986,12 @@ static int in_sd_write_blocks(sd_card_t *pSD, const uint8_t *buffer,
 
         // Multiple block write command
         if (SD_BLOCK_DEVICE_ERROR_NONE !=
-            (status =
-                 sd_cmd(pSD, CMD25_WRITE_MULTIPLE_BLOCK, addr, false, 0))) {
+            (status = sd_cmd(pSD, CMD25_WRITE_MULTIPLE_BLOCK, addr, false, 0))) {
             return status;
         }
         // Write the data: one block at a time
         do {
-            response = sd_write_block(pSD, buffer, SPI_START_BLK_MUL_WRITE,
-                                      _block_size);
+            response = sd_write_block(pSD, buffer, SPI_START_BLK_MUL_WRITE, _block_size);
             if (response != SPI_DATA_ACCEPTED) {
                 DBG_PRINTF("Multiple Block Write failed: 0x%x\r\n", response);
                 status = SD_BLOCK_DEVICE_ERROR_WRITE;
@@ -1010,7 +1008,7 @@ static int in_sd_write_blocks(sd_card_t *pSD, const uint8_t *buffer,
     uint32_t stat = 0;
     // Some SD cards want to be deselected between every bus transaction:
     sd_spi_deselect_pulse(pSD);
-    sd_cmd(pSD, CMD13_SEND_STATUS, 0, false, &stat);
+    status = sd_cmd(pSD, CMD13_SEND_STATUS, 0, false, &stat);
     return status;
 }
 
