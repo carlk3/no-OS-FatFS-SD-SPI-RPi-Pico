@@ -64,9 +64,7 @@ static sd_card_t sd_cards[] = {  // One for each SD card
         .pcName = "0:",           // Name used to mount device
         .spi = &spis[0],          // Pointer to the SPI driving this card
         .ss_gpio = 9,             // The SPI slave select GPIO for this SD card
-        .use_card_detect = false,
-        .card_detect_gpio = 0,    // Card detect
-        .card_detected_true = 0, 
+        //.use_card_detect = false,
         .m_Status = STA_NOINIT
     }
 };

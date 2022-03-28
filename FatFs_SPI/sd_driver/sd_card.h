@@ -40,6 +40,12 @@ typedef struct {
     bool use_card_detect;
     uint card_detect_gpio;    // Card detect; ignored if !use_card_detect
     uint card_detected_true;  // Varies with card socket; ignored if !use_card_detect
+    // Drive strength levels for GPIO outputs.
+    // enum gpio_drive_strength { GPIO_DRIVE_STRENGTH_2MA = 0, GPIO_DRIVE_STRENGTH_4MA = 1, GPIO_DRIVE_STRENGTH_8MA = 2,
+    // GPIO_DRIVE_STRENGTH_12MA = 3 }
+    bool set_drive_strength;
+    enum gpio_drive_strength ss_gpio_drive_strength;
+
     // Following fields are used to keep track of the state of the card:
     int m_Status;                                    // Card status
     uint64_t sectors;                                // Assigned dynamically
@@ -54,17 +60,13 @@ typedef struct {
 #define SD_BLOCK_DEVICE_ERROR_UNSUPPORTED -5002 /*!< unsupported operation */
 #define SD_BLOCK_DEVICE_ERROR_PARAMETER -5003   /*!< invalid parameter */
 #define SD_BLOCK_DEVICE_ERROR_NO_INIT -5004     /*!< uninitialized */
-#define SD_BLOCK_DEVICE_ERROR_NO_DEVICE \
-    -5005 /*!< device is missing or not connected */
+#define SD_BLOCK_DEVICE_ERROR_NO_DEVICE -5005   /*!< device is missing or not connected */
 #define SD_BLOCK_DEVICE_ERROR_WRITE_PROTECTED -5006 /*!< write protected */
-#define SD_BLOCK_DEVICE_ERROR_UNUSABLE -5007        /*!< unusable card */
-#define SD_BLOCK_DEVICE_ERROR_NO_RESPONSE                              \
-    -5008                                 /*!< No response from device \
-                                           */
-#define SD_BLOCK_DEVICE_ERROR_CRC -5009   /*!< CRC error */
+#define SD_BLOCK_DEVICE_ERROR_UNUSABLE -5007    /*!< unusable card */
+#define SD_BLOCK_DEVICE_ERROR_NO_RESPONSE -5008 /*!< No response from device */
+#define SD_BLOCK_DEVICE_ERROR_CRC -5009    /*!< CRC error */
 #define SD_BLOCK_DEVICE_ERROR_ERASE -5010 /*!< Erase error: reset/sequence */
-#define SD_BLOCK_DEVICE_ERROR_WRITE \
-    -5011 /*!< SPI Write error: !SPI_DATA_ACCEPTED */
+#define SD_BLOCK_DEVICE_ERROR_WRITE -5011 /*!< SPI Write error: !SPI_DATA_ACCEPTED */
 
 ///* Disk Status Bits (DSTATUS) */
 // See diskio.h.
