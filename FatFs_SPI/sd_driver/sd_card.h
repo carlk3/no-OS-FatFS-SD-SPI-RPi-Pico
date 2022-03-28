@@ -60,17 +60,13 @@ typedef struct {
 #define SD_BLOCK_DEVICE_ERROR_UNSUPPORTED -5002 /*!< unsupported operation */
 #define SD_BLOCK_DEVICE_ERROR_PARAMETER -5003   /*!< invalid parameter */
 #define SD_BLOCK_DEVICE_ERROR_NO_INIT -5004     /*!< uninitialized */
-#define SD_BLOCK_DEVICE_ERROR_NO_DEVICE \
-    -5005 /*!< device is missing or not connected */
+#define SD_BLOCK_DEVICE_ERROR_NO_DEVICE -5005   /*!< device is missing or not connected */
 #define SD_BLOCK_DEVICE_ERROR_WRITE_PROTECTED -5006 /*!< write protected */
-#define SD_BLOCK_DEVICE_ERROR_UNUSABLE -5007        /*!< unusable card */
-#define SD_BLOCK_DEVICE_ERROR_NO_RESPONSE                              \
-    -5008                                 /*!< No response from device \
-                                           */
-#define SD_BLOCK_DEVICE_ERROR_CRC -5009   /*!< CRC error */
+#define SD_BLOCK_DEVICE_ERROR_UNUSABLE -5007    /*!< unusable card */
+#define SD_BLOCK_DEVICE_ERROR_NO_RESPONSE -5008 /*!< No response from device */
+#define SD_BLOCK_DEVICE_ERROR_CRC -5009    /*!< CRC error */
 #define SD_BLOCK_DEVICE_ERROR_ERASE -5010 /*!< Erase error: reset/sequence */
-#define SD_BLOCK_DEVICE_ERROR_WRITE \
-    -5011 /*!< SPI Write error: !SPI_DATA_ACCEPTED */
+#define SD_BLOCK_DEVICE_ERROR_WRITE -5011 /*!< SPI Write error: !SPI_DATA_ACCEPTED */
 
 ///* Disk Status Bits (DSTATUS) */
 // See diskio.h.
