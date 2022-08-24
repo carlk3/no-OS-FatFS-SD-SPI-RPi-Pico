@@ -117,7 +117,9 @@ Therefore, the hardware configuration definition is not built in to the library[
 Instead, the application must provide it. 
 The configuration is defined in "objects" of type `spi_t` (see `sd_driver/spi.h`) and `sd_card_t` (see `sd_driver/sd_card.h`). 
 There can be one or more objects of both types.
-These objects specify which pins to use for what, SPI baud rate, features like Card Detect, etc.  
+These objects specify which pins to use for what, SPI baud rate, features like Card Detect, etc.
+An instance of `spi_t` describes the configuration of one SPI controller.
+An instance of `sd_card_t`describes the configuration of one SD card socket.
 
 You must provide a definition for the functions declared in `sd_driver/hw_config.h`:  
 `size_t spi_get_num()` Returns the number of SPIs to use  
