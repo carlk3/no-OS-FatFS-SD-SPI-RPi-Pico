@@ -164,6 +164,7 @@ static void run_unmount() {
     sd_card_t *pSD = sd_get_by_name(arg1);
     myASSERT(pSD);
     pSD->mounted = false;
+    pSD->m_Status |= STA_NOINIT; // in case medium is removed
 }
 static void run_chdrive() {
     const char *arg1 = strtok(NULL, " ");
@@ -504,6 +505,7 @@ static void card_detect_callback(uint gpio, uint32_t events) {
                     printf("f_unmount error: %s (%d)\n", FRESULT_str(fr), fr);
                 }
             }
+            pSD->m_Status |= STA_NOINIT; // in case medium is removed
             sd_card_detect(pSD);
         }
     }
@@ -514,7 +516,6 @@ int main() {
     stdio_init_all();
     time_init();
     adc_init();
-    // sd_init_driver(); // now called from sd_init_card
 
     printf("\033[2J\033[H");  // Clear Screen
     printf("\n> ");

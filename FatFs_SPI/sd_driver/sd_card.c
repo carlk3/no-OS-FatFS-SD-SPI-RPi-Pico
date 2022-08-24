@@ -1022,7 +1022,7 @@ int sd_write_blocks(sd_card_t *pSD, const uint8_t *buffer,
     return status;
 }
 
-static int sd_init_card2(sd_card_t *pSD) {
+static int sd_init_medium(sd_card_t *pSD) {
     int32_t status = SD_BLOCK_DEVICE_ERROR_NONE;
     uint32_t response, arg;
     /*
@@ -1127,7 +1127,7 @@ static int sd_init_card2(sd_card_t *pSD) {
     return status;
 }
 
-int sd_init_card(sd_card_t *pSD) {
+int sd_init(sd_card_t *pSD) {
     TRACE_PRINTF("> %s\r\n", __FUNCTION__);
     if (!sd_init_driver()) {
         pSD->m_Status |= STA_NOINIT;
@@ -1156,7 +1156,7 @@ int sd_init_card(sd_card_t *pSD) {
 
     sd_spi_acquire(pSD);
 
-    int err = sd_init_card2(pSD);
+    int err = sd_init_medium(pSD);
     if (SD_BLOCK_DEVICE_ERROR_NONE != err) {
         DBG_PRINTF("Failed to initialize card\r\n");
         sd_spi_release(pSD);
