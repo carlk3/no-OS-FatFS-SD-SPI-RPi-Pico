@@ -50,7 +50,7 @@ On a SanDisk Class 4 16 GB card, I have been able to push the SPI baud rate as f
 
 ![image](https://github.com/carlk3/FreeRTOS-FAT-CLI-for-RPi-Pico/blob/master/images/IMG_1478.JPG "Prototype")
 
-![image](https://www.raspberrypi.org/documentation/microcontrollers/images/Pico-R3-SDK11-Pinout.svg "Pinout")
+![image](https://www.raspberrypi.com/documentation/microcontrollers/images/pico-pinout.svg "Pinout")
 
 |       | SPI0  | GPIO  | Pin   | SPI       | MicroSD 0 | Description            | 
 | ----- | ----  | ----- | ---   | --------  | --------- | ---------------------- |
@@ -97,8 +97,7 @@ Even if it is provided by the hardware, if you have no requirement for it you ca
 * Install source code:
   `git clone --recurse-submodules git@github.com:carlk3/no-OS-FatFS-SD-SPI-RPi-Pico.git no-OS-FatFS`
 * Customize:
-  * Configure the code to match the hardware: You must provide a definition for the functions declared in `sd_driver/hw_config.h`. 
-  See `simple_example.dir/hw_config.c`, `example/hw_config.c` or `dynamic_config_example/hw_config.cpp` for examples.
+  * Configure the code to match the hardware: see section [Customizing for the Hardware Configuration](#customizing-for-the-hardware-configuration), below.
   * Customize `ff14a/source/ffconf.h` as desired
   * Customize `pico_enable_stdio_uart` and `pico_enable_stdio_usb` in CMakeLists.txt as you prefer. 
 (See *4.1. Serial input and output on Raspberry Pi Pico* in [Getting started with Raspberry Pi Pico](https://datasheets.raspberrypi.org/pico/getting-started-with-pico.pdf) and *2.7.1. Standard Input/Output (stdio) Support* in [Raspberry Pi Pico C/C++ SDK](https://datasheets.raspberrypi.org/pico/raspberry-pi-pico-c-sdk.pdf).) 
@@ -111,6 +110,26 @@ Even if it is provided by the hardware, if you have no requirement for it you ca
    make
 ```   
   * Program the device
+  
+## Customizing for the Hardware Configuration 
+This library can support many different hardware configurations. 
+Therefore, the hardware configuration definition is not built in to the library[^1]. 
+Instead, the application must provide it. 
+The configuration is defined in "objects" of type `spi_t` (see `sd_driver/spi.h`) and `sd_card_t` (see `sd_driver/sd_card.h`). 
+There can be one or more objects of both types.
+These objects specify which pins to use for what, SPI baud rate, features like Card Detect, etc.  
+
+You must provide a definition for the functions declared in `sd_driver/hw_config.h`:  
+`size_t spi_get_num()` Returns the number of SPIs to use  
+`spi_t *spi_get_by_num(size_t num)` Returns a pointer to the SPI "object" at the given (zero origin) index  
+`size_t sd_get_num()` Returns the number of SD cards  
+`sd_card_t *sd_get_by_num(size_t num)` Returns a pointer to the SD card "object" at the given (zero origin) index.  
+
+### Static vs. Dynamic Configuration
+The definition of the hardware configuration can either be built in at build time, which I'm calling "static configuration", or supplied at run time, which I call "dynamic configuration". 
+In either case, the application simply provides an implementation of the functions declared in `sd_driver/hw_config.h`. 
+* See `simple_example.dir/hw_config.c` or `example/hw_config.c` for examples of static configuration.
+* See `dynamic_config_example/hw_config.cpp` for an example of dynamic configuration.
   
 ## Operation:
 * Connect a terminal. [PuTTY](https://www.putty.org/) or `tio` work OK. For example:
@@ -271,3 +290,5 @@ As you can see from the table above, the only new signals are CD1 and CS1. Other
 ```
 #define FF_VOLUMES		2
 ```
+
+[^1]: as of [Pull Request #12 Dynamic configuration](https://github.com/carlk3/no-OS-FatFS-SD-SPI-RPi-Pico/pull/12) (in response to [Issue #11 Configurable GPIO pins](https://github.com/carlk3/no-OS-FatFS-SD-SPI-RPi-Pico/issues/11)), Sep 11, 2021
