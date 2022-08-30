@@ -113,7 +113,7 @@ Even if it is provided by the hardware, if you have no requirement for it you ca
   
 ## Customizing for the Hardware Configuration 
 This library can support many different hardware configurations. 
-Therefore, the hardware configuration definition is not built in to the library[^1]. 
+Therefore, the hardware configuration is not defined in the library[^1]. 
 Instead, the application must provide it. 
 The configuration is defined in "objects" of type `spi_t` (see `sd_driver/spi.h`) and `sd_card_t` (see `sd_driver/sd_card.h`). 
 There can be one or more objects of both types.
@@ -132,8 +132,76 @@ The definition of the hardware configuration can either be built in at build tim
 In either case, the application simply provides an implementation of the functions declared in `sd_driver/hw_config.h`. 
 * See `simple_example.dir/hw_config.c` or `example/hw_config.c` for examples of static configuration.
 * See `dynamic_config_example/hw_config.cpp` for an example of dynamic configuration.
+
+![image](https://github.com/carlk3/FreeRTOS-FAT-CLI-for-RPi-Pico/blob/master/images/IMG_1481.JPG "Prototype")
+
+## Using the Application Programming Interface
+<strike>After `stdio_init_all();`, `time_init();`, and whatever other Pico SDK initialization is required, call `sd_init_driver();` to initialize the SPI block device driver.</strike> \[sd_init_driver() is now[^2] called implicitly.\]
+* Now, you can start using the [FatFs Application Interface](http://elm-chan.org/fsw/ff/00index_e.html). Typically,
+  * f_mount - Register/Unregister the work area of the volume
+  * f_open - Open/Create a file
+  * f_write - Write data to the file
+  * f_read - Read data from the file
+  * f_close - Close an open file
+  * f_unmount
+    * There is a simple example in the `simple_example` subdirectory.
+* There is also POSIX-like API wrapper layer in `ff_stdio.h` and `ff_stdio.c`, written for compatibility with [FreeRTOS+FAT API](https://www.freertos.org/FreeRTOS-Plus/FreeRTOS_Plus_FAT/index.html) (mainly so that I could reuse some tests from that environment.)
+
+## Next Steps
+* There is a example data logging application in `data_log_demo.c`. 
+It can be launched from the `no-OS-FatFS/example` CLI with the `start_logger` command.
+(Stop it with the `stop_logger` command.)
+It records the temperature as reported by the RP2040 internal Temperature Sensor once per second 
+in files named something like `/data/2021-03-21/11.csv`.
+Use this as a starting point for your own data logging application!
+
+* If you want to use FatFs_SPI as a library embedded in another project, use something like:
+  ```
+  git submodule add git@github.com:carlk3/no-OS-FatFS-SD-SPI-RPi-Pico.git
+  ```
+  or
+  ```
+  git submodule add https://github.com/carlk3/no-OS-FatFS-SD-SPI-RPi-Pico.git
+  ```
   
-## Operation:
+You will need to pick up the library in CMakeLists.txt:
+```
+add_subdirectory(no-OS-FatFS-SD-SPI-RPi-Pico/FatFs_SPI build)
+target_link_libraries(_my_app_ FatFs_SPI)
+```
+and `#include "ff.h"`.
+
+Happy hacking!
+![image](https://github.com/carlk3/FreeRTOS-FAT-CLI-for-RPi-Pico/blob/master/images/IMG_20210322_201928116.jpg "Prototype")
+
+## Appendix A: Adding Additional Cards
+When you're dealing with information storage, it's always nice to have redundancy. There are many possible combinations of SPIs and SD cards. One of these is putting multiple SD cards on the same SPI bus, at a cost of one (or two) additional Pico I/O pins (depending on whether or you care about Card Detect). I will illustrate that example here. 
+
+To add a second SD card on the same SPI, connect it in parallel, except that it will need a unique GPIO for the Card Select/Slave Select (CSn) and another for Card Detect (CD) (optional).
+
+Name|SPI0|GPIO|Pin |SPI|SDIO|MicroSD 0|MicroSD 1
+----|----|----|----|---|----|---------|---------
+CD1||14|19||||CD
+CS1||15|20|SS or CS|DAT3||CS
+MISO|RX|16|21|DO|DAT0|DO|DO
+CS0||17|22|SS or CS|DAT3|CS|
+SCK|SCK|18|24|SCLK|CLK|SCK|SCK
+MOSI|TX|19|25|DI|CMD|DI|DI
+CD0||22|29|||CD|
+|||||||
+GND|||18, 23|||GND|GND
+3v3|||36|||3v3|3v3
+
+### Wiring: 
+As you can see from the table above, the only new signals are CD1 and CS1. Otherwise, the new card is wired in parallel with the first card.
+### Firmware:
+* `hw_config.c` (or equivalent) must be edited to add a new instance to `static sd_card_t sd_cards[]`
+* Edit `ff14a/source/ffconf.h`. In particular, `FF_VOLUMES`:
+```
+#define FF_VOLUMES		2
+```
+
+## Appendix B: Operation of `no-OS-FatFS/example`:
 * Connect a terminal. [PuTTY](https://www.putty.org/) or `tio` work OK. For example:
   * `tio -m ODELBS /dev/ttyACM0`
 * Press Enter to start the CLI. You should see a prompt like:
@@ -209,9 +277,8 @@ stop_logger:
   Stop Data Log Demo
 
 ```
-![image](https://github.com/carlk3/FreeRTOS-FAT-CLI-for-RPi-Pico/blob/master/images/IMG_1481.JPG "Prototype")
 
-## Troubleshooting
+## Appendix C: Troubleshooting
 * The first thing to try is lowering the SPI baud rate (see hw_config.c). This will also make it easier to use things like logic analyzers.
 * Make sure the SD card(s) are getting enough power. Try an external supply. Try adding a decoupling capacitor between Vcc and GND. 
   * Hint: check voltage while formatting card. It must be 2.7 to 3.6 volts. 
@@ -227,70 +294,6 @@ You can swap the commenting to enable tracing of what's happening in that file.
 * Get yourself a protoboard and solder everything. So much more reliable than solderless breadboard!
 ![image](https://github.com/carlk3/FreeRTOS-FAT-CLI-for-RPi-Pico/blob/master/images/PXL_20211214_165648888.MP.jpg)
 
-## Using the Application Programming Interface
-<strike>After `stdio_init_all();`, `time_init();`, and whatever other Pico SDK initialization is required, call `sd_init_driver();` to initialize the SPI block device driver.</strike> \[sd_init_driver() is now called implicitly.\]
-* Now, you can start using the [FatFs Application Interface](http://elm-chan.org/fsw/ff/00index_e.html). Typically,
-  * f_mount - Register/Unregister the work area of the volume
-  * f_open - Open/Create a file
-  * f_write - Write data to the file
-  * f_read - Read data from the file
-  * f_close - Close an open file
-  * f_unmount
-    * There is a simple example in the `simple_example` subdirectory.
-* There is also POSIX-like API wrapper layer in `ff_stdio.h` and `ff_stdio.c`, written for compatibility with [FreeRTOS+FAT API](https://www.freertos.org/FreeRTOS-Plus/FreeRTOS_Plus_FAT/index.html) (mainly so that I could reuse some tests from that environment.)
-
-## Next Steps
-There is a example data logging application in `data_log_demo.c`. 
-It can be launched from the CLI with the `start_logger` command.
-(Stop it with the `stop_logger` command.)
-It records the temperature as reported by the RP2040 internal Temperature Sensor once per second 
-in files named something like `/data/2021-03-21/11.csv`.
-Use this as a starting point for your own data logging application!
-
-If you want to use FatFs_SPI as a library embedded in another project, use something like:
-  ```
-  git submodule add git@github.com:carlk3/no-OS-FatFS-SD-SPI-RPi-Pico.git
-  ```
-  or
-  ```
-  git submodule add https://github.com/carlk3/no-OS-FatFS-SD-SPI-RPi-Pico.git
-  ```
-  
-You will need to pick up the library in CMakeLists.txt:
-```
-add_subdirectory(no-OS-FatFS-SD-SPI-RPi-Pico/FatFs_SPI build)
-target_link_libraries(_my_app_ FatFs_SPI)
-```
-and `#include "ff.h"`.
-
-Happy hacking!
-![image](https://github.com/carlk3/FreeRTOS-FAT-CLI-for-RPi-Pico/blob/master/images/IMG_20210322_201928116.jpg "Prototype")
-
-## Appendix: Adding Additional Cards
-When you're dealing with information storage, it's always nice to have redundancy. There are many possible combinations of SPIs and SD cards. One of these is putting multiple SD cards on the same SPI bus, at a cost of one (or two) additional Pico I/O pins (depending on whether or you care about Card Detect). I will illustrate that example here. 
-
-To add a second SD card on the same SPI, connect it in parallel, except that it will need a unique GPIO for the Card Select/Slave Select (CSn) and another for Card Detect (CD) (optional).
-
-Name|SPI0|GPIO|Pin |SPI|SDIO|MicroSD 0|MicroSD 1
-----|----|----|----|---|----|---------|---------
-CD1||14|19||||CD
-CS1||15|20|SS or CS|DAT3||CS
-MISO|RX|16|21|DO|DAT0|DO|DO
-CS0||17|22|SS or CS|DAT3|CS|
-SCK|SCK|18|24|SCLK|CLK|SCK|SCK
-MOSI|TX|19|25|DI|CMD|DI|DI
-CD0||22|29|||CD|
-|||||||
-GND|||18, 23|||GND|GND
-3v3|||36|||3v3|3v3
-
-### Wiring: 
-As you can see from the table above, the only new signals are CD1 and CS1. Otherwise, the new card is wired in parallel with the first card.
-### Firmware:
-* `hw_config.c` (or equivalent) must be edited to add a new instance to `static sd_card_t sd_cards[]`
-* Edit `ff14a/source/ffconf.h`. In particular, `FF_VOLUMES`:
-```
-#define FF_VOLUMES		2
-```
 
 [^1]: as of [Pull Request #12 Dynamic configuration](https://github.com/carlk3/no-OS-FatFS-SD-SPI-RPi-Pico/pull/12) (in response to [Issue #11 Configurable GPIO pins](https://github.com/carlk3/no-OS-FatFS-SD-SPI-RPi-Pico/issues/11)), Sep 11, 2021
+[^2]: as of [Pull Request #5 Bug in ff_getcwd when FF_VOLUMES < 2](https://github.com/carlk3/no-OS-FatFS-SD-SPI-RPi-Pico/pull/5), Aug 13, 2021
