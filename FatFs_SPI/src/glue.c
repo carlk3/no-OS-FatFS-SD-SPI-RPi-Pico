@@ -55,7 +55,7 @@ DSTATUS disk_initialize(
     TRACE_PRINTF(">>> %s\n", __FUNCTION__);
     sd_card_t *p_sd = sd_get_by_num(pdrv);
     if (!p_sd) return RES_PARERR;
-    return sd_init_card(p_sd);  // See http://elm-chan.org/fsw/ff/doc/dstat.html
+    return sd_init(p_sd);  // See http://elm-chan.org/fsw/ff/doc/dstat.html
 }
 
 static int sdrc2dresult(int sd_rc) {

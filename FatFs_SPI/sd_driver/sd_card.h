@@ -77,7 +77,7 @@ typedef struct {
 //};
 
 bool sd_init_driver();
-int sd_init_card(sd_card_t *pSD);
+int sd_init(sd_card_t *pSD);
 int sd_write_blocks(sd_card_t *pSD, const uint8_t *buffer,
                     uint64_t ulSectorNumber, uint32_t blockCnt);
 int sd_read_blocks(sd_card_t *pSD, uint8_t *buffer, uint64_t ulSectorNumber,
