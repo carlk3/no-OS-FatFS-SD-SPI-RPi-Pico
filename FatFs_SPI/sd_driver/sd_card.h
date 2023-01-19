@@ -31,8 +31,10 @@ specific language governing permissions and limitations under the License.
 extern "C" {
 #endif
 
+typedef struct sd_card_t sd_card_t;
+
 // "Class" representing SD Cards
-typedef struct {
+struct sd_card_t {
     const char *pcName;
     spi_t *spi;
     // Slave select is here in sd_card_t because multiple SDs can share an SPI
@@ -53,7 +55,13 @@ typedef struct {
     mutex_t mutex;
     FATFS fatfs;
     bool mounted;
-} sd_card_t;
+
+    int (*init)(sd_card_t *pSD);
+    int (*write_blocks)(sd_card_t *pSD, const uint8_t *buffer,
+                    uint64_t ulSectorNumber, uint32_t blockCnt);
+    int (*read_blocks)(sd_card_t *pSD, uint8_t *buffer, uint64_t ulSectorNumber,
+                    uint32_t ulSectorCount);
+};
 
 #define SD_BLOCK_DEVICE_ERROR_NONE 0
 #define SD_BLOCK_DEVICE_ERROR_WOULD_BLOCK -5001 /*!< operation would block */
@@ -76,12 +84,6 @@ typedef struct {
 //    STA_PROTECT = 0x04 /* Write protected */
 //};
 
-bool sd_init_driver();
-int sd_init(sd_card_t *pSD);
-int sd_write_blocks(sd_card_t *pSD, const uint8_t *buffer,
-                    uint64_t ulSectorNumber, uint32_t blockCnt);
-int sd_read_blocks(sd_card_t *pSD, uint8_t *buffer, uint64_t ulSectorNumber,
-                   uint32_t ulSectorCount);
 bool sd_card_detect(sd_card_t *pSD);
 uint64_t sd_sectors(sd_card_t *pSD);
 

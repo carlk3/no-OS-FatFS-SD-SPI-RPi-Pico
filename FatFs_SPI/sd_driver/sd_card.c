@@ -185,10 +185,10 @@ static bool crc_on = true;
 #endif
 
 #define TRACE_PRINTF(fmt, args...)
-//#define TRACE_PRINTF printf
+// #define TRACE_PRINTF printf
 
 #define TRC_PR_ADD(fmt, args...)
-//#define TRC_PR_ADD printf
+// #define TRC_PR_ADD printf
 
 #define TRACE_PRINTF2(fmt, args...)
 /*
@@ -205,7 +205,7 @@ static bool crc_on = true;
 #define SPI_DATA_CRC_ERROR (0x0B)
 #define SPI_DATA_WRITE_ERROR (0x0D)
 #define SPI_START_BLOCK \
-    (0xFE) /*!< For Single Block Read/Write and Multiple Block Read */
+    (0xFE)                             /*!< For Single Block Read/Write and Multiple Block Read */
 #define SPI_START_BLK_MUL_WRITE (0xFC) /*!< Start Multi-block write */
 #define SPI_STOP_TRAN (0xFD)           /*!< Stop Multi-block write */
 
@@ -229,7 +229,7 @@ static bool crc_on = true;
 
 // Only HC block size is supported. Making this a static constant reduces code
 // size.
-#define BLOCK_SIZE_HC  512 /*!< Block size supported for SD card is 512 bytes */
+#define BLOCK_SIZE_HC 512 /*!< Block size supported for SD card is 512 bytes */
 static const uint32_t _block_size = BLOCK_SIZE_HC;
 
 /* R1 Response Format */
@@ -245,20 +245,20 @@ static const uint32_t _block_size = BLOCK_SIZE_HC;
 
 // Supported SD Card Commands
 typedef enum {
-    CMD_NOT_SUPPORTED = -1,         /**< Command not supported error */
-    CMD0_GO_IDLE_STATE = 0,         /**< Resets the SD Memory Card */
-    CMD1_SEND_OP_COND = 1,          /**< Sends host capacity support */
-    CMD6_SWITCH_FUNC = 6,           /**< Check and Switches card function */
-    CMD8_SEND_IF_COND = 8,          /**< Supply voltage info */
-    CMD9_SEND_CSD = 9,              /**< Provides Card Specific data */
-    CMD10_SEND_CID = 10,            /**< Provides Card Identification */
-    CMD12_STOP_TRANSMISSION = 12,   /**< Forces the card to stop transmission */
-    CMD13_SEND_STATUS = 13,         /**< Card responds with status */
-    CMD16_SET_BLOCKLEN = 16,        /**< Length for SC card is set */
-    CMD17_READ_SINGLE_BLOCK = 17,   /**< Read single block of data */
-    CMD18_READ_MULTIPLE_BLOCK = 18, /**< Card transfers data blocks to host
-     until interrupted by a STOP_TRANSMISSION command */
-    CMD24_WRITE_BLOCK = 24,         /**< Write single block of data */
+    CMD_NOT_SUPPORTED = -1,             /**< Command not supported error */
+    CMD0_GO_IDLE_STATE = 0,             /**< Resets the SD Memory Card */
+    CMD1_SEND_OP_COND = 1,              /**< Sends host capacity support */
+    CMD6_SWITCH_FUNC = 6,               /**< Check and Switches card function */
+    CMD8_SEND_IF_COND = 8,              /**< Supply voltage info */
+    CMD9_SEND_CSD = 9,                  /**< Provides Card Specific data */
+    CMD10_SEND_CID = 10,                /**< Provides Card Identification */
+    CMD12_STOP_TRANSMISSION = 12,       /**< Forces the card to stop transmission */
+    CMD13_SEND_STATUS = 13,             /**< Card responds with status */
+    CMD16_SET_BLOCKLEN = 16,            /**< Length for SC card is set */
+    CMD17_READ_SINGLE_BLOCK = 17,       /**< Read single block of data */
+    CMD18_READ_MULTIPLE_BLOCK = 18,     /**< Card transfers data blocks to host
+         until interrupted by a STOP_TRANSMISSION command */
+    CMD24_WRITE_BLOCK = 24,             /**< Write single block of data */
     CMD25_WRITE_MULTIPLE_BLOCK = 25,    /**< Continuously writes blocks of data
         until    'Stop Tran' token is sent */
     CMD27_PROGRAM_CSD = 27,             /**< Programming bits of CSD */
@@ -266,11 +266,11 @@ typedef enum {
      block to be erased. */
     CMD33_ERASE_WR_BLK_END_ADDR = 33,   /**< Sets the address of the last write
        block of the continuous range to be erased.*/
-    CMD38_ERASE = 38,      /**< Erases all previously selected write blocks */
-    CMD55_APP_CMD = 55,    /**< Extend to Applications specific commands */
-    CMD56_GEN_CMD = 56,    /**< General Purpose Command */
-    CMD58_READ_OCR = 58,   /**< Read OCR register of card */
-    CMD59_CRC_ON_OFF = 59, /**< Turns the CRC option on or off*/
+    CMD38_ERASE = 38,                   /**< Erases all previously selected write blocks */
+    CMD55_APP_CMD = 55,                 /**< Extend to Applications specific commands */
+    CMD56_GEN_CMD = 56,                 /**< General Purpose Command */
+    CMD58_READ_OCR = 58,                /**< Read OCR register of card */
+    CMD59_CRC_ON_OFF = 59,              /**< Turns the CRC option on or off*/
     // App Commands
     ACMD6_SET_BUS_WIDTH = 6,
     ACMD13_SD_STATUS = 13,
@@ -672,7 +672,8 @@ static int sd_cmd8(sd_card_t *pSD) {
         // If check pattern is not matched, CMD8 communication is not valid
         if ((response & 0xFFF) != arg) {
             DBG_PRINTF("CMD8 Pattern mismatch 0x%" PRIx32 " : 0x%" PRIx32
-                       "\r\n", arg, response);
+                       "\r\n",
+                       arg, response);
             pSD->card_type = CARD_UNKNOWN;
             status = SD_BLOCK_DEVICE_ERROR_UNUSABLE;
         }
@@ -722,7 +723,7 @@ static uint64_t sd_sectors_nolock(sd_card_t *pSD) {
                                            // *maximum* read block length
             block_len = 1 << read_bl_len;  // BLOCK_LEN = 2^READ_BL_LEN
             mult = 1 << (c_size_mult +
-                         2);  // MULT = 2^C_SIZE_MULT+2 (C_SIZE_MULT < 8)
+                         2);                // MULT = 2^C_SIZE_MULT+2 (C_SIZE_MULT < 8)
             blocknr = (c_size + 1) * mult;  // BLOCKNR = (C_SIZE+1) * MULT
             capacity = (uint64_t)blocknr *
                        block_len;  // memory capacity = BLOCKNR * BLOCK_LEN
@@ -1126,8 +1127,53 @@ static int sd_init_medium(sd_card_t *pSD) {
 
     return status;
 }
+static int sd_init(sd_card_t *pSD);
 
-int sd_init(sd_card_t *pSD) {
+static void sd_ctor(sd_card_t *pSD) {
+    // State variables:
+    pSD->m_Status = STA_NOINIT;
+    pSD->init = sd_init;
+    pSD->write_blocks = sd_write_blocks;
+    pSD->read_blocks = sd_read_blocks;
+}
+static bool sd_init_driver() {
+    static bool initialized;
+    auto_init_mutex(sd_init_driver_mutex);
+    mutex_enter_blocking(&sd_init_driver_mutex);
+    if (!initialized) {
+        for (size_t i = 0; i < sd_get_num(); ++i) {
+            sd_card_t *pSD = sd_get_by_num(i);
+
+            sd_ctor(pSD);
+
+            if (pSD->use_card_detect) {
+                gpio_init(pSD->card_detect_gpio);
+                gpio_pull_up(pSD->card_detect_gpio);
+                gpio_set_dir(pSD->card_detect_gpio, GPIO_IN);
+            }
+            if (pSD->set_drive_strength) {
+                gpio_set_drive_strength(pSD->ss_gpio, pSD->ss_gpio_drive_strength);
+            }
+            // Chip select is active-low, so we'll initialise it to a
+            // driven-high state.
+            gpio_put(pSD->ss_gpio, 1);  // Avoid any glitches when enabling output
+            gpio_init(pSD->ss_gpio);
+            gpio_set_dir(pSD->ss_gpio, GPIO_OUT);
+            gpio_put(pSD->ss_gpio, 1);  // In case set_dir does anything
+        }
+        for (size_t i = 0; i < spi_get_num(); ++i) {
+            spi_t *pSPI = spi_get_by_num(i);
+            if (!my_spi_init(pSPI)) {
+                mutex_exit(&sd_init_driver_mutex);
+                return false;
+            }
+        }
+        initialized = true;
+    }
+    mutex_exit(&sd_init_driver_mutex);
+    return true;
+}
+static int sd_init(sd_card_t *pSD) {
     TRACE_PRINTF("> %s\r\n", __FUNCTION__);
     if (!sd_init_driver()) {
         pSD->m_Status |= STA_NOINIT;
@@ -1189,40 +1235,6 @@ int sd_init(sd_card_t *pSD) {
 
     // Return the disk status
     return pSD->m_Status;
-}
-bool sd_init_driver() {
-    static bool initialized;
-    auto_init_mutex(sd_init_driver_mutex);
-    mutex_enter_blocking(&sd_init_driver_mutex);
-    if (!initialized) {
-        for (size_t i = 0; i < sd_get_num(); ++i) {
-            sd_card_t *pSD = sd_get_by_num(i);
-            if (pSD->use_card_detect) {
-                gpio_init(pSD->card_detect_gpio);
-                gpio_pull_up(pSD->card_detect_gpio);
-                gpio_set_dir(pSD->card_detect_gpio, GPIO_IN);
-            }
-            if (pSD->set_drive_strength) {
-                gpio_set_drive_strength(pSD->ss_gpio, pSD->ss_gpio_drive_strength);
-            }
-            // Chip select is active-low, so we'll initialise it to a
-            // driven-high state.
-            gpio_put(pSD->ss_gpio, 1);  // Avoid any glitches when enabling output
-            gpio_init(pSD->ss_gpio);
-            gpio_set_dir(pSD->ss_gpio, GPIO_OUT);
-            gpio_put(pSD->ss_gpio, 1);  // In case set_dir does anything
-        }
-        for (size_t i = 0; i < spi_get_num(); ++i) {
-            spi_t *pSPI = spi_get_by_num(i);
-            if (!my_spi_init(pSPI)) {
-                mutex_exit(&sd_init_driver_mutex);
-                return false;
-            }
-        }
-        initialized = true;
-    }
-    mutex_exit(&sd_init_driver_mutex);
-    return true;
 }
 
 /* [] END OF FILE */
