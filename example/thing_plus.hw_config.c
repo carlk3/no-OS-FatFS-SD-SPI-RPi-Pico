@@ -66,11 +66,7 @@ static sd_card_t sd_cards[] = {  // One for each SD card
         .spi = &spis[0],          // Pointer to the SPI driving this card
         .ss_gpio = 9,             // The SPI slave select GPIO for this SD card
         .set_drive_strength = true,
-        .ss_gpio_drive_strength = GPIO_DRIVE_STRENGTH_2MA,
-        //.use_card_detect = false,        
-
-        // State variables:
-        .m_Status = STA_NOINIT
+        .ss_gpio_drive_strength = GPIO_DRIVE_STRENGTH_2MA
     }
 };
 

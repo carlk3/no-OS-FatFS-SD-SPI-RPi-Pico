@@ -43,7 +43,7 @@ void spi_dma_isr();
 static spi_t spis[] = {  // One for each SPI.
     {
         .hw_inst = spi1,  // SPI component
-        .miso_gpio = 12,  // GPIO number (not pin number)
+        .miso_gpio = 12,  // GPIO number (not Pico pin number)
         .mosi_gpio = 15,
         .sck_gpio = 14,
         .set_drive_strength = true,
@@ -62,15 +62,15 @@ static spi_t spis[] = {  // One for each SPI.
 // Hardware Configuration of the SD Card "objects"
 static sd_card_t sd_cards[] = {  // One for each SD card
     {
-        .pcName = "0:",           // Name used to mount device
-        .spi = &spis[0],          // Pointer to the SPI driving this card
-        .ss_gpio = 9,             // The SPI slave select GPIO for this SD card
+        .pcName = "0:",   // Name used to mount device
+        .spi = &spis[0],  // Pointer to the SPI driving this card
+        .ss_gpio = 9,     // The SPI slave select GPIO for this SD card
         .set_drive_strength = true,
         .ss_gpio_drive_strength = GPIO_DRIVE_STRENGTH_2MA,
-        //.use_card_detect = false,        
-
-        // State variables:
-        .m_Status = STA_NOINIT
+        .use_card_detect = true,
+        .card_detect_gpio = 13,   // Card detect
+        .card_detected_true = 1   // What the GPIO read returns when a card is
+                                  // present.
     }
 };
 
