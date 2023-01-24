@@ -9,6 +9,8 @@ target_sources(FatFs_SPI INTERFACE
     ${CMAKE_CURRENT_LIST_DIR}/sd_driver/spi.c
     ${CMAKE_CURRENT_LIST_DIR}/sd_driver/sd_card.c
     ${CMAKE_CURRENT_LIST_DIR}/sd_driver/crc.c
+    ${CMAKE_CURRENT_LIST_DIR}/sd_driver/SDIO/rp2040_sdio.c
+    ${CMAKE_CURRENT_LIST_DIR}/sd_driver/SDIO/sd_card_sdio.c
     ${CMAKE_CURRENT_LIST_DIR}/src/glue.c
     ${CMAKE_CURRENT_LIST_DIR}/src/f_util.c
     ${CMAKE_CURRENT_LIST_DIR}/src/ff_stdio.c
@@ -21,8 +23,10 @@ target_include_directories(FatFs_SPI INTERFACE
     include
 )
 target_link_libraries(FatFs_SPI INTERFACE
-        hardware_spi
-        hardware_dma
-        hardware_rtc
-        pico_stdlib
+    hardware_dma
+    hardware_pio
+    hardware_rtc
+    hardware_spi
+    pico_stdlib
+    cmsis_core
 )

@@ -887,7 +887,7 @@ static int in_sd_read_blocks(sd_card_t *pSD, uint8_t *buffer,
     return rd_status ? rd_status : status;
 }
 
-int sd_read_blocks(sd_card_t *pSD, uint8_t *buffer, uint64_t ulSectorNumber,
+static int sd_read_blocks(sd_card_t *pSD, uint8_t *buffer, uint64_t ulSectorNumber,
                    uint32_t ulSectorCount) {
     sd_acquire(pSD);
     TRACE_PRINTF("sd_read_blocks(0x%p, 0x%llx, 0x%lx)\r\n", buffer,
@@ -1013,7 +1013,7 @@ static int in_sd_write_blocks(sd_card_t *pSD, const uint8_t *buffer,
     return status;
 }
 
-int sd_write_blocks(sd_card_t *pSD, const uint8_t *buffer,
+static int sd_write_blocks(sd_card_t *pSD, const uint8_t *buffer,
                     uint64_t ulSectorNumber, uint32_t blockCnt) {
     sd_acquire(pSD);
     TRACE_PRINTF("sd_write_blocks(0x%p, 0x%llx, 0x%lx)\r\n", buffer,
@@ -1127,58 +1127,9 @@ static int sd_init_medium(sd_card_t *pSD) {
 
     return status;
 }
-static int sd_init(sd_card_t *pSD);
-
-static void sd_ctor(sd_card_t *pSD) {
-    // State variables:
-    pSD->m_Status = STA_NOINIT;
-    pSD->init = sd_init;
-    pSD->write_blocks = sd_write_blocks;
-    pSD->read_blocks = sd_read_blocks;
-}
-static bool sd_init_driver() {
-    static bool initialized;
-    auto_init_mutex(sd_init_driver_mutex);
-    mutex_enter_blocking(&sd_init_driver_mutex);
-    if (!initialized) {
-        for (size_t i = 0; i < sd_get_num(); ++i) {
-            sd_card_t *pSD = sd_get_by_num(i);
-
-            sd_ctor(pSD);
-
-            if (pSD->use_card_detect) {
-                gpio_init(pSD->card_detect_gpio);
-                gpio_pull_up(pSD->card_detect_gpio);
-                gpio_set_dir(pSD->card_detect_gpio, GPIO_IN);
-            }
-            if (pSD->set_drive_strength) {
-                gpio_set_drive_strength(pSD->ss_gpio, pSD->ss_gpio_drive_strength);
-            }
-            // Chip select is active-low, so we'll initialise it to a
-            // driven-high state.
-            gpio_put(pSD->ss_gpio, 1);  // Avoid any glitches when enabling output
-            gpio_init(pSD->ss_gpio);
-            gpio_set_dir(pSD->ss_gpio, GPIO_OUT);
-            gpio_put(pSD->ss_gpio, 1);  // In case set_dir does anything
-        }
-        for (size_t i = 0; i < spi_get_num(); ++i) {
-            spi_t *pSPI = spi_get_by_num(i);
-            if (!my_spi_init(pSPI)) {
-                mutex_exit(&sd_init_driver_mutex);
-                return false;
-            }
-        }
-        initialized = true;
-    }
-    mutex_exit(&sd_init_driver_mutex);
-    return true;
-}
-static int sd_init(sd_card_t *pSD) {
+static int sd_spi_init(sd_card_t *pSD) {
     TRACE_PRINTF("> %s\r\n", __FUNCTION__);
-    if (!sd_init_driver()) {
-        pSD->m_Status |= STA_NOINIT;
-        return pSD->m_Status;
-    }
+
     //	STA_NOINIT = 0x01, /* Drive not initialized */
     //	STA_NODISK = 0x02, /* No medium in the drive */
     //	STA_PROTECT = 0x04 /* Write protected */
@@ -1235,6 +1186,28 @@ static int sd_init(sd_card_t *pSD) {
 
     // Return the disk status
     return pSD->m_Status;
+}
+void sd_spi_ctor(sd_card_t *pSD) {
+    // State variables:
+    pSD->m_Status = STA_NOINIT;
+    pSD->write_blocks = sd_write_blocks;
+    pSD->read_blocks = sd_read_blocks;
+    pSD->init = sd_spi_init;
+
+    if (pSD->use_card_detect) {
+        gpio_init(pSD->card_detect_gpio);
+        gpio_pull_up(pSD->card_detect_gpio);
+        gpio_set_dir(pSD->card_detect_gpio, GPIO_IN);
+    }
+    if (pSD->spi_if.set_drive_strength) {
+        gpio_set_drive_strength(pSD->spi_if.ss_gpio, pSD->spi_if.ss_gpio_drive_strength);
+    }
+    // Chip select is active-low, so we'll initialise it to a
+    // driven-high state.
+    gpio_put(pSD->spi_if.ss_gpio, 1);  // Avoid any glitches when enabling output
+    gpio_init(pSD->spi_if.ss_gpio);
+    gpio_set_dir(pSD->spi_if.ss_gpio, GPIO_OUT);
+    gpio_put(pSD->spi_if.ss_gpio, 1);  // In case set_dir does anything
 }
 
 /* [] END OF FILE */

@@ -63,10 +63,25 @@ static spi_t spis[] = {  // One for each SPI.
 static sd_card_t sd_cards[] = {  // One for each SD card
     {
         .pcName = "0:",   // Name used to mount device
-        .spi = &spis[0],  // Pointer to the SPI driving this card
-        .ss_gpio = 9,     // The SPI slave select GPIO for this SD card
-        .set_drive_strength = true,
-        .ss_gpio_drive_strength = GPIO_DRIVE_STRENGTH_2MA,
+        .type = SD_IF_SDIO,
+        .sdio_if.m_options = DMA_SDIO,
+        .sdio_if.CLK_gpio = 17,
+        .sdio_if.CMD_gpio = 18,
+        .sdio_if.D0_gpio = 19,
+        .sdio_if.D1_gpio = 20,
+        .sdio_if.D2_gpio = 21,
+        .sdio_if.D3_gpio = 22,
+        .use_card_detect = true,    
+        .card_detect_gpio = 16,   // Card detect
+        .card_detected_true = 1   // What the GPIO read returns when a card is
+                                  // present.
+    }, {
+        .pcName = "1:",   // Name used to mount device
+        .type = SD_IF_SPI,
+        .spi_if.spi = &spis[0],  // Pointer to the SPI driving this card
+        .spi_if.ss_gpio = 9,     // The SPI slave select GPIO for this SD card
+        .spi_if.set_drive_strength = true,
+        .spi_if.ss_gpio_drive_strength = GPIO_DRIVE_STRENGTH_2MA,
         .use_card_detect = true,
         .card_detect_gpio = 13,   // Card detect
         .card_detected_true = 1   // What the GPIO read returns when a card is

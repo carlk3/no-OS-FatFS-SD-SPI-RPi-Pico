@@ -28,6 +28,8 @@ specific language governing permissions and limitations under the License.
 #include "hw_config.h"
 #include "my_debug.h"
 #include "sd_card.h"
+#include "SDIO/SdioCard.h"
+#include "SDIO/ZuluSCSI_platform.h"
 
 #define TRACE_PRINTF(fmt, args...)
 //#define TRACE_PRINTF printf  // task_printf
@@ -53,9 +55,36 @@ DSTATUS disk_initialize(
     BYTE pdrv /* Physical drive nmuber to identify the drive */
 ) {
     TRACE_PRINTF(">>> %s\n", __FUNCTION__);
+
+    static bool initialized;
+    auto_init_mutex(initialized_mutex);
+    mutex_enter_blocking(&initialized_mutex);
+    if (!initialized) {
+        for (size_t i = 0; i < sd_get_num(); ++i) {
+            sd_card_t *pSD = sd_get_by_num(i);
+            switch (pSD->type) {
+                case SD_IF_SPI:
+                    sd_spi_ctor(pSD);
+                    break;
+                case SD_IF_SDIO:
+                    sd_sdio_ctor(pSD);
+                    break;
+            }  // switch (pSD->type)
+        }      // for
+        for (size_t i = 0; i < spi_get_num(); ++i) {
+            spi_t *pSPI = spi_get_by_num(i);
+            if (!my_spi_init(pSPI)) {
+                mutex_exit(&initialized_mutex);
+                return false;
+            }
+        }
+    }
+    mutex_exit(&initialized_mutex);
+
     sd_card_t *p_sd = sd_get_by_num(pdrv);
     if (!p_sd) return RES_PARERR;
-    return p_sd->init(p_sd);  // See http://elm-chan.org/fsw/ff/doc/dstat.html
+    // See http://elm-chan.org/fsw/ff/doc/dstat.html
+    return p_sd->init(p_sd);  
 }
 
 static int sdrc2dresult(int sd_rc) {
@@ -78,8 +107,8 @@ static int sdrc2dresult(int sd_rc) {
         case SD_BLOCK_DEVICE_ERROR_WRITE:
         default:
             return RES_ERROR;
-    }
-}
+            }
+        }
 
 /*-----------------------------------------------------------------------*/
 /* Read Sector(s)                                                        */
