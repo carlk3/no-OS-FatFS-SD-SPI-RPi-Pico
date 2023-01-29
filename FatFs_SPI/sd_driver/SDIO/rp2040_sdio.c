@@ -13,14 +13,21 @@
 #include <hardware/pio.h>
 #include <hardware/dma.h>
 #include <hardware/gpio.h>
-#include "ZuluSCSI_platform.h"
+// #include "ZuluSCSI_platform.h"
 // #include "ZuluSCSI_log.h"
 #include "RP2040.h"
+#include <stdio.h>
 #include <string.h>
 #include "sd_card.h"
+#include "util.h"
 
-#define azdbg(Params...)
-#define azlog(Params...)
+// #define azdbg(Params...)
+// #define azlog(Params...)
+
+#define azdbg(arg1, ...) {\
+    printf("%s,%s:%d %s\n", __func__, __FILE__, __LINE__, arg1); \
+}
+#define azlog azdbg
 
 #define SDIO_PIO pio1
 #define SDIO_CMD_SM 0
@@ -197,6 +204,7 @@ sdio_status_t rp2040_sdio_command_R1(uint8_t command, uint32_t arg, uint32_t *re
                     "PIO PC: ", (int)pio_sm_get_pc(SDIO_PIO, SDIO_CMD_SM) - (int)g_sdio.pio_cmd_clk_offset,
                     " RXF: ", (int)pio_sm_get_rx_fifo_level(SDIO_PIO, SDIO_CMD_SM),
                     " TXF: ", (int)pio_sm_get_tx_fifo_level(SDIO_PIO, SDIO_CMD_SM));
+                printf("%s: Timeout waiting for response in rp2040_sdio_command_R1(0x%hx)\n", __func__, command);
             }
 
             // Reset the state machine program
@@ -231,7 +239,8 @@ sdio_status_t rp2040_sdio_command_R1(uint8_t command, uint32_t arg, uint32_t *re
         uint8_t response_cmd = ((resp0 >> 24) & 0xFF);
         if (response_cmd != command && command != 41)
         {
-            azdbg("rp2040_sdio_command_R1(", (int)command, "): received reply for ", (int)response_cmd);
+            // azdbg("rp2040_sdio_command_R1(", (int)command, "): received reply for ", (int)response_cmd);
+            printf("%d rp2040_sdio_command_R1(%d): received reply for %d\n", __LINE__, command, response_cmd);
             return SDIO_ERR_RESPONSE_CODE;
         }
 
@@ -323,7 +332,6 @@ sdio_status_t rp2040_sdio_command_R2(uint8_t command, uint32_t arg, uint8_t resp
 
     return SDIO_OK;
 }
-
 
 sdio_status_t rp2040_sdio_command_R3(uint8_t command, uint32_t arg, uint32_t *response)
 {
@@ -448,8 +456,11 @@ static void sdio_verify_rx_checksums(uint32_t maxcount)
             g_sdio.checksum_errors++;
             if (g_sdio.checksum_errors == 1)
             {
-                azlog("SDIO checksum error in reception: block ", blockidx,
-                      " calculated ", checksum, " expected ", expected);
+                // azlog("SDIO checksum error in reception: block ", blockidx,
+                //       " calculated ", checksum, " expected ", expected);
+                printf("%s,%d SDIO checksum error in reception: block %d calculated 0x%llx expected 0x%llx\n",
+                    __func__, __LINE__, blockidx, checksum, expected);
+                dump_bytes(SDIO_WORDS_PER_BLOCK, (uint8_t *)g_sdio.data_buf + blockidx * SDIO_WORDS_PER_BLOCK);
             }
         }
     }
@@ -827,6 +838,7 @@ void rp2040_sdio_init(sd_card_t *sd_card_p, int clock_divider)
 
     // Set up IRQ handler when DMA completes.
     static_sd_card_p = sd_card_p;
+    if (irq_has_shared_handler(DMA_IRQ_1)) panic("irq_has_shared_handler(DMA_IRQ_1)\n");
     irq_set_exclusive_handler(DMA_IRQ_1, rp2040_sdio_tx_irq);
     irq_set_enabled(DMA_IRQ_1, true);
 }

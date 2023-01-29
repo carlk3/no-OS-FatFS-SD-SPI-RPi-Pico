@@ -18,6 +18,7 @@
 #include "my_debug.h"
 #include "rtc.h"
 #include "sd_card.h"
+// #include "util.h" // for wiring test
 
 extern "C" {
     int lliot(size_t pnum);
@@ -520,6 +521,11 @@ int main() {
     printf("\033[2J\033[H");  // Clear Screen
     printf("\n> ");
     stdio_flush();
+
+    // Implicitly called by disk_initialize, 
+    // but called here to set up the GPIOs 
+    // before enabling the card detect interrupt:
+    sd_init_driver();
 
     for (size_t i = 0; i < sd_get_num(); ++i) {
         sd_card_t *pSD = sd_get_by_num(i);

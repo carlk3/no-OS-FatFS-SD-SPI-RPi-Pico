@@ -16,13 +16,16 @@ specific language governing permissions and limitations under the License.
 
 #include <stddef.h>    
 #include <stdint.h>
-
 #include "hardware/structs/scb.h"
+#include "RP2040.h"
 
 // works with negative index
 static inline int wrap_ix(int index, int n)
 {
     return ((index % n) + n) % n;
+}
+static inline int mod_floor(int a, int n) {
+    return ((a % n) + n) % n;
 }
 
 __attribute__((always_inline)) static inline uint32_t calculate_checksum(uint32_t const *p, size_t const size){
@@ -34,34 +37,31 @@ __attribute__((always_inline)) static inline uint32_t calculate_checksum(uint32_
 	return checksum;
 }
 
-
-// from Google Chromium's codebase:
-#ifndef COUNT_OF    
-#define COUNT_OF(x) ((sizeof(x)/sizeof(0[x])) / ((size_t)(!(sizeof(x) % sizeof(0[x])))))
-#endif
-
-__attribute__((always_inline)) static inline void __DSB(void) {
-    __asm volatile("dsb 0xF" ::: "memory");
+static inline void system_reset() {
+    __NVIC_SystemReset();
 }
 
-// Patterned after CMSIS NVIC_SystemReset
-__attribute__((__noreturn__)) static inline void system_reset() {
-    __DSB(); /* Ensure all outstanding memory accesses included
-         buffered write are completed before reset */
-    scb_hw->aircr = ((0x5FAUL << 16U) | (1UL << 2U));
-    __DSB(); /* Ensure completion of memory access */
-    for (;;) {
-        __asm volatile("nop");
+static inline void dump_bytes(size_t num, uint8_t bytes[num]) {
+    printf("     ");
+    for (size_t j = 0; j < 16; ++j) {
+        printf("%02hhx", j);
+        if (j < 15)
+            printf(" ");
+        else
+            printf("\n");
     }
-}
-
-/**
-  \brief   Disable IRQ Interrupts
-  \details Disables IRQ interrupts by setting the I-bit in the CPSR.
-           Can only be executed in Privileged modes.
- */
-__attribute__((always_inline)) static inline void __disable_irq(void) {
-    __asm volatile("cpsid i" : : : "memory");
+    for (size_t i = 0; i < num; i += 16) {
+        printf("%04x ", i);        
+        for (size_t j = 0; j < 16 && i + j < num; ++j) {
+            printf("%02hhx", bytes[i + j]);
+            if (j < 15)
+                printf(" ");
+            else
+                printf("\n");
+        }
+    }
+    printf("\n");
+    fflush(stdout);
 }
 
 #endif

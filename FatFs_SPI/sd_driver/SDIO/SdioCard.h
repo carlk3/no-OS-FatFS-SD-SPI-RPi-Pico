@@ -210,7 +210,7 @@ struct SdioCard /* : public SdCardInterface */ {
    * \return The number of 512 byte data sectors in the card
    *         or zero if an error occurs.
    */
-  uint32_t sd_sdio_sectorCount(sd_card_t *sd_card_p);
+  uint64_t sd_sdio_sectorCount(sd_card_t *sd_card_p);
   /**
    *  Send CMD12 to stop read or write.
    *

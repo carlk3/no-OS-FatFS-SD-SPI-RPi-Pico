@@ -88,7 +88,8 @@ struct sd_card_t {
     int (*write_blocks)(sd_card_t *pSD, const uint8_t *buffer,
                     uint64_t ulSectorNumber, uint32_t blockCnt);
     int (*read_blocks)(sd_card_t *pSD, uint8_t *buffer, uint64_t ulSectorNumber,
-                    uint32_t ulSectorCount);                    
+                    uint32_t ulSectorCount);    
+    uint64_t (*get_num_sectors)(sd_card_t *pSD);
 };
 
 #define SD_BLOCK_DEVICE_ERROR_NONE 0
@@ -112,9 +113,8 @@ struct sd_card_t {
 //    STA_PROTECT = 0x04 /* Write protected */
 //};
 
-void sd_spi_ctor(sd_card_t *pSD);
+bool sd_init_driver();
 bool sd_card_detect(sd_card_t *pSD);
-uint64_t sd_sectors(sd_card_t *pSD);
 
 #ifdef __cplusplus
 }

@@ -29,6 +29,8 @@ target_link_libraries(FatFS_SPI_example pico_stdlib)
 
 target_compile_options(FatFS_SPI_example PUBLIC -Wall -Wextra -Wno-unused-function -Wno-unused-parameter)
 
+set_property(TARGET FatFS_SPI_example APPEND_STRING PROPERTY LINK_FLAGS "-Wl,--print-memory-usage")
+
 pico_set_program_name(FatFS_SPI_example "FatFS_SPI_example")
 pico_set_program_version(FatFS_SPI_example "0.1")
 

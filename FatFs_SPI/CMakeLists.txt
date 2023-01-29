@@ -1,4 +1,5 @@
 add_library(FatFs_SPI INTERFACE)
+pico_generate_pio_header(FatFs_SPI ${CMAKE_CURRENT_LIST_DIR}/sd_driver/SDIO/rp2040_sdio.pio)
 target_sources(FatFs_SPI INTERFACE
     ${CMAKE_CURRENT_LIST_DIR}/ff15/source/ffsystem.c
     ${CMAKE_CURRENT_LIST_DIR}/ff15/source/ffunicode.c

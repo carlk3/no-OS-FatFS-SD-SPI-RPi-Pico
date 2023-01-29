@@ -168,6 +168,7 @@ specific language governing permissions and limitations under the License.
 #include "hw_config.h"  // Hardware Configuration of the SPI and SD Card "objects"
 #include "my_debug.h"
 #include "sd_spi.h"
+#include "SDIO/SdioCard.h"
 //
 #include "sd_card.h"
 //
@@ -1187,12 +1188,13 @@ static int sd_spi_init(sd_card_t *pSD) {
     // Return the disk status
     return pSD->m_Status;
 }
-void sd_spi_ctor(sd_card_t *pSD) {
+static void sd_spi_ctor(sd_card_t *pSD) {
     // State variables:
     pSD->m_Status = STA_NOINIT;
     pSD->write_blocks = sd_write_blocks;
     pSD->read_blocks = sd_read_blocks;
     pSD->init = sd_spi_init;
+    pSD->get_num_sectors = sd_sectors;
 
     if (pSD->use_card_detect) {
         gpio_init(pSD->card_detect_gpio);
@@ -1210,4 +1212,32 @@ void sd_spi_ctor(sd_card_t *pSD) {
     gpio_put(pSD->spi_if.ss_gpio, 1);  // In case set_dir does anything
 }
 
+bool sd_init_driver() {
+    static bool initialized;
+    auto_init_mutex(initialized_mutex);
+    mutex_enter_blocking(&initialized_mutex);
+    if (!initialized) {
+        for (size_t i = 0; i < sd_get_num(); ++i) {
+            sd_card_t *pSD = sd_get_by_num(i);
+            switch (pSD->type) {
+                case SD_IF_SPI:
+                    sd_spi_ctor(pSD);
+                    break;
+                case SD_IF_SDIO:
+                    sd_sdio_ctor(pSD);
+                    break;
+            }  // switch (pSD->type)
+        }      // for
+        for (size_t i = 0; i < spi_get_num(); ++i) {
+            spi_t *pSPI = spi_get_by_num(i);
+            if (!my_spi_init(pSPI)) {
+                mutex_exit(&initialized_mutex);
+                return false;
+            }
+        }
+        initialized = true;
+    }
+    mutex_exit(&initialized_mutex);
+    return true;
+}
 /* [] END OF FILE */
