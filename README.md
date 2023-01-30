@@ -1,5 +1,7 @@
 # no-OS-FatFS-SD-SPI-RPi-Pico
 
+**Note:** *This branch is SPI only. If you want to use SDIO (and/or SPI), please switch to the `sdio` branch.*
+
 ## Simple library for SD Cards on the Pico
 
 At the heart of this library is ChaN's [FatFs - Generic FAT Filesystem Module](http://elm-chan.org/fsw/ff/00index_e.html).
