@@ -48,7 +48,7 @@ static struct {
     pio_sm_config pio_cfg_data_tx;
 
     sdio_transfer_state_t transfer_state;
-    absolute_time_t transfer_start_time;
+    absolute_time_t transfer_timeout_time;
     uint32_t *data_buf;
     uint32_t blocks_done; // Number of blocks transferred so far
     uint32_t total_blocks; // Total number of blocks to transfer
@@ -376,8 +376,8 @@ sdio_status_t rp2040_sdio_rx_start(sd_card_t *sd_card_p, uint8_t *buffer, uint32
     assert(((uint32_t)buffer & 3) == 0 && num_blocks <= SDIO_MAX_BLOCKS);
 
     g_sdio.transfer_state = SDIO_RX;
-    // g_sdio.transfer_start_time = millis();
-    g_sdio.transfer_start_time = make_timeout_time_ms(1000);
+    // g_sdio.transfer_timeout_time = millis();
+    g_sdio.transfer_timeout_time = make_timeout_time_ms(1000);
     g_sdio.data_buf = (uint32_t*)buffer;
     g_sdio.blocks_done = 0;
     g_sdio.total_blocks = num_blocks;
@@ -508,7 +508,7 @@ sdio_status_t rp2040_sdio_rx_poll(sd_card_t *sd_card_p, uint32_t *bytes_complete
             return SDIO_ERR_DATA_CRC;
     }
     // else if ((uint32_t)(millis() - g_sdio.transfer_start_time) > 1000)
-    else if ((absolute_time_diff_us(get_absolute_time(), g_sdio.transfer_start_time) < 0))
+    else if ((absolute_time_diff_us(get_absolute_time(), g_sdio.transfer_timeout_time) < 0))
     {
         azdbg("rp2040_sdio_rx_poll() timeout, "
             "PIO PC: ", (int)pio_sm_get_pc(SDIO_PIO, SDIO_DATA_SM) - (int)g_sdio.pio_data_rx_offset,
@@ -591,7 +591,7 @@ sdio_status_t rp2040_sdio_tx_start(const uint8_t *buffer, uint32_t num_blocks)
 
     g_sdio.transfer_state = SDIO_TX;
     // g_sdio.transfer_start_time = millis();
-    g_sdio.transfer_start_time = make_timeout_time_ms(1000);
+    g_sdio.transfer_timeout_time = make_timeout_time_ms(2000); // CK3: doubled timeout
     g_sdio.data_buf = (uint32_t*)buffer;
     g_sdio.blocks_done = 0;
     g_sdio.total_blocks = num_blocks;
@@ -735,7 +735,7 @@ sdio_status_t rp2040_sdio_tx_poll(sd_card_t *sd_card_p, uint32_t *bytes_complete
         return g_sdio.wr_status;
     }
     // else if ((uint32_t)(millis() - g_sdio.transfer_start_time) > 1000)
-    else if ((absolute_time_diff_us(get_absolute_time(), g_sdio.transfer_start_time) <= 0))
+    else if ((absolute_time_diff_us(get_absolute_time(), g_sdio.transfer_timeout_time) <= 0))
     {
         azdbg("rp2040_sdio_tx_poll() timeout, "
             "PIO PC: ", (int)pio_sm_get_pc(SDIO_PIO, SDIO_DATA_SM) - (int)g_sdio.pio_data_tx_offset,
