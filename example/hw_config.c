@@ -37,15 +37,12 @@ socket, which SPI it is driven by, and how it is wired.
 //
 #include "rp2040_sdio.pio.h"
 
-#if SPI
 void spi_dma_isr();
-#endif
 
 // Hardware Configuration of SPI "objects"
 // Note: multiple SD cards can be driven by one SPI if they use different slave
 // selects.
 static spi_t spis[] = {  // One for each SPI.
-#if SPI
     {
         .hw_inst = spi1,  // SPI component
         .miso_gpio = 12,  // GPIO number (not Pico pin number)
@@ -62,7 +59,6 @@ static spi_t spis[] = {  // One for each SPI.
 
         .dma_isr = spi_dma_isr
     }
-#endif    
 };
 
 // Hardware Configuration of the SD Card "objects"
@@ -81,9 +77,7 @@ static sd_card_t sd_cards[] = {  // One for each SD card
         .card_detect_gpio = 16,   // Card detect
         .card_detected_true = 1   // What the GPIO read returns when a card is
                                   // present.
-    }
-#if SPI    
-    , {
+    }, {
         .pcName = "1:",   // Name used to mount device
         .type = SD_IF_SPI,
         .spi_if.spi = &spis[0],  // Pointer to the SPI driving this card
@@ -95,12 +89,9 @@ static sd_card_t sd_cards[] = {  // One for each SD card
         .card_detected_true = 1   // What the GPIO read returns when a card is
                                   // present.
     }
-#endif
 };
 
-#if SPI
 void spi_dma_isr() { spi_irq_handler(&spis[0]); }
-#endif
 
 /* ********************************************************************** */
 size_t sd_get_num() { return count_of(sd_cards); }
