@@ -215,11 +215,11 @@ struct sd_card_t {
 //...
 }
 ```
-* `pcName` FatFs [Logical Drive](http://elm-chan.org/fsw/ff/doc/filename.html) name (or "mumber")
+* `pcName` FatFs [Logical Drive](http://elm-chan.org/fsw/ff/doc/filename.html) name (or "number")
 * `type` Type of interface: either SD_IF_SPI or SD_IF_SDIO
 * `use_card_detect` Whether or not to use Card Detect
-* `card_detect_gpio` GPIO number of the Card Detect, connected to the SD card socket's Card Detect (sometimes marked DET)
-* `card_detected_true` What the GPIO read returns when a card is present (Some sockets are active high, some low)
+* `card_detect_gpio` GPIO number of the Card Detect, connected to the SD card socket's Card Detect switch (sometimes marked DET)
+* `card_detected_true` What the GPIO read returns when a card is present (Some sockets use active high, some low)
 
 An instance of `sd_spi_t`describes the configuration of one SPI to SD card interface.
 ```
@@ -251,7 +251,7 @@ typedef struct sd_sdio_t {
 // ...    
 } sd_sdio_t;
 ```
-* `CLK_gpio` RP2040 GPIO to use for Clock (CLK)
+* `CLK_gpio` RP2040 GPIO to use for Clock (CLK). This is a little quirky. It should be set to `SDIO_CLK_GPIO`, which is defined in `sd_driver/SDIO/rp2040_sdio.pio`, and that is where you should specify the GPIO number for the SDIO clock.
 * `CMD_gpio` RP2040 GPIO to use for Command/Response (CMD)
 * `D0_gpio` RP2040 GPIO to use for Data Line [Bit 0]
 * `D1_gpio` RP2040 GPIO to use for Data Line [Bit 1]
@@ -440,5 +440,7 @@ You can swap the commenting to enable tracing of what's happening in that file.
 
 [^1]: as of [Pull Request #12 Dynamic configuration](https://github.com/carlk3/no-OS-FatFS-SD-SPI-RPi-Pico/pull/12) (in response to [Issue #11 Configurable GPIO pins](https://github.com/carlk3/no-OS-FatFS-SD-SPI-RPi-Pico/issues/11)), Sep 11, 2021
 [^2]: as of [Pull Request #5 Bug in ff_getcwd when FF_VOLUMES < 2](https://github.com/carlk3/no-OS-FatFS-SD-SPI-RPi-Pico/pull/5), Aug 13, 2021
-[^3]: In my experience, the Card Detect switch on these doesn't work worth a damn. This might not be such a big deal, because according to [Physical Layer Simplified Specification](https://www.sdcard.org/downloads/pls/) the Chip Select (CS) line can be used for Card Detection: "At power up this line has a 50KOhm pull up enabled in the card... For Card detection, the host detects that the line is pulled high." However, the Adafruit card has it's own 47 kΩ pull up on CS, rendering it useless for Card Detection.
+
+[^3]: In my experience, the Card Detect switch on these doesn't work worth a damn. This might not be such a big deal, because according to [Physical Layer Simplified Specification](https://www.sdcard.org/downloads/pls/) the Chip Select (CS) line can be used for Card Detection: "At power up this line has a 50KOhm pull up enabled in the card... For Card detection, the host detects that the line is pulled high." 
+However, the Adafruit card has it's own 47 kΩ pull up on CS - Card Detect / Data Line [Bit 3], rendering it useless for Card Detection.
 [^4]: [Physical Layer Simplified Specification](https://www.sdcard.org/downloads/pls/)
