@@ -15,7 +15,7 @@ If you are migrating a project from an SPI-only branch, e.g., `master`, you will
 ![image](https://github.com/carlk3/FreeRTOS-FAT-CLI-for-RPi-Pico/blob/master/images/IMG_1473.JPG "Prototype")
 
 ## Features:
-* Supports multiple SD Cards
+* Supports multiple SD Cards, all in a common file system
 * Supports 4-bit wide SDIO by PIO, or SPI using built in SPI controllers, or both
 * Supports multiple SPIs
 * Supports multiple SD Cards per SPI
@@ -44,7 +44,7 @@ Memory region         Used Size  Region Size  %age Used
 ```
 
 ## Performance
-Writing and reading a file of 0x10000000 (268,435,456) psuedorandom bytes (1/4 GiB) on a two freshly-formatted SanDisk Class 4 16 GB cards, one on SPI and one on SDIO (using the command `big_file_test bf 0x10000000 7`):
+Writing and reading a file of 0x10000000 (268,435,456) psuedorandom bytes (1/4 GiB) on a two freshly-formatted SanDisk Class 4 16 GB cards, one on SPI and one on SDIO, release build (using the command `big_file_test bf 0x10000000 7`):
 * SPI:
   * Writing
     * Elapsed seconds 244
@@ -111,8 +111,8 @@ I don't know that there's much call for it.
 * Wires should be kept short and direct. SPI operates at HF radio frequencies.
 
 ### Pull Up Resistors and other electrical considerations
-* The SPI MISO (**DO** on SD card, **SPI**x **RX** on Pico) is open collector (or tristate). It should be pulled up. The Pico internal gpio_pull_up is weak: around 56uA or 60kΩ. It's best to add an external pull up resistor of around 5kΩ to 3.3v. (However, modern cards use strong push pull tristateable outputs. 
-On some, you can even configure the card's output drivers using the Driver Stage Register [DSR].[^4])
+* The SPI MISO (**DO** on SD card, **SPI**x **RX** on Pico) is open collector (or tristate). It should be pulled up. The Pico internal gpio_pull_up is weak: around 56uA or 60kΩ. It's best to add an external pull up resistor of around 5-50 kΩ to 3.3v. (However, modern cards use strong push pull tristateable outputs. 
+On some, you can even configure the card's output drivers using the Driver Stage Register (DSR).[^4]).
 * The SPI Slave Select (SS), or Chip Select (CS) line enables one SPI slave of possibly multiple slaves on the bus. This is what enables the tristate buffer for Data Out (DO), among other things. It's best to pull CS up so that it doesn't float before the Pico GPIO is initialized. It is imperative to pull it up for any devices on the bus that aren't initialized. For example, if you have two SD cards on one bus but the firmware is aware of only one card (see hw_config); you shouldn't let the CS float on the unused one. 
 * Driving the SD card directly with the GPIOs is not ideal. Take a look at the CM1624 (https://www.onsemi.com/pdf/datasheet/cm1624-d.pdf). Unfortunately, it's a tiny little surface mount part -- not so easy to work with, but the schematic in the data sheet is still instructive. Besides the pull up resistors, it's probably not a bad idea to have 40 - 100 Ω series terminating resistors at the SD card end of CS, SCK, MISO, MOSI. 
 * It can be helpful to add a decoupling capacitor or two (e.g., 10, 100 nF) between 3.3 V and GND on the SD card.
@@ -143,7 +143,7 @@ On some, you can even configure the card's output drivers using the Driver Stage
 ## Firmware:
 * Follow instructions in [Getting started with Raspberry Pi Pico](https://datasheets.raspberrypi.org/pico/getting-started-with-pico.pdf) to set up the development environment.
 * Install source code:
-  `git clone --recurse-submodules git@github.com:carlk3/no-OS-FatFS-SD-SPI-RPi-Pico.git no-OS-FatFS`
+  `git clone -b sdio --recurse-submodules git@github.com:carlk3/no-OS-FatFS-SD-SPI-RPi-Pico.git no-OS-FatFS`
 * Customize:
   * Configure the code to match the hardware: see section [Customizing for the Hardware Configuration](#customizing-for-the-hardware-configuration), below.
   * Customize `ff14a/source/ffconf.h` as desired
@@ -168,7 +168,7 @@ There can be one or more objects of both types.
 `sd_card_t` contains an instance of `sd_spi_t` or `sd_sdio_t` to specify the interface used to communicate to the card. 
 These objects specify which pins to use for what, SPI baud rate, features like Card Detect, etc.
 
-An instance of `spi_t` describes the configuration of one SPI controller.
+An instance of `spi_t` describes the configuration of one RP2040 SPI controller.
 ```
 typedef struct {
     // SPI HW
@@ -188,8 +188,6 @@ typedef struct {
     // State variables:
 // ...
 } spi_t;
-
-An instance of `sd_card_t`describes the configuration of one SD card socket.
 ```
 * `hw_inst` Identifier for the hardware SPI instance (for use in SPI functions). e.g. `spi0`, `spi1`
 * `miso_gpio` SPI Master In, Slave Out (MISO) GPIO number (not Pico pin number). This is connected to the card's Data In (DI).
@@ -199,6 +197,8 @@ An instance of `sd_card_t`describes the configuration of one SD card socket.
 * `set_drive_strength` Specifies whether or not to set the RP2040 GPIO drive strength
 * `mosi_gpio_drive_strength` SPI Master Out, Slave In (MOSI) drive strength
 * `sck_gpio_drive_strength` SPI Serial Clock (SCK) drive strength
+
+An instance of `sd_card_t`describes the configuration of one SD card socket.
 ```
 struct sd_card_t {
     const char *pcName;
@@ -257,8 +257,6 @@ typedef struct sd_sdio_t {
 * `D1_gpio` RP2040 GPIO to use for Data Line [Bit 1]
 * `D2_gpio` RP2040 GPIO to use for Data Line [Bit 2]
 * `D3_gpio` RP2040 GPIO to use for Card Detect/Data Line [Bit 3]
-
-Expands to:  
 
 You must provide a definition for the functions declared in `sd_driver/hw_config.h`:  
 `size_t spi_get_num()` Returns the number of SPIs to use  
@@ -443,4 +441,4 @@ You can swap the commenting to enable tracing of what's happening in that file.
 [^1]: as of [Pull Request #12 Dynamic configuration](https://github.com/carlk3/no-OS-FatFS-SD-SPI-RPi-Pico/pull/12) (in response to [Issue #11 Configurable GPIO pins](https://github.com/carlk3/no-OS-FatFS-SD-SPI-RPi-Pico/issues/11)), Sep 11, 2021
 [^2]: as of [Pull Request #5 Bug in ff_getcwd when FF_VOLUMES < 2](https://github.com/carlk3/no-OS-FatFS-SD-SPI-RPi-Pico/pull/5), Aug 13, 2021
 [^3]: In my experience, the Card Detect switch on these doesn't work worth a damn. This might not be such a big deal, because according to [Physical Layer Simplified Specification](https://www.sdcard.org/downloads/pls/) the Chip Select (CS) line can be used for Card Detection: "At power up this line has a 50KOhm pull up enabled in the card... For Card detection, the host detects that the line is pulled high." However, the Adafruit card has it's own 47 kΩ pull up on CS, rendering it useless for Card Detection.
-[^4] [Physical Layer Simplified Specification](https://www.sdcard.org/downloads/pls/)
+[^4]: [Physical Layer Simplified Specification](https://www.sdcard.org/downloads/pls/)
