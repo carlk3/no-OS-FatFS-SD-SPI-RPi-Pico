@@ -12,8 +12,6 @@ It is wrapped up in a complete runnable project, with a little command line inte
 ## Migration
 If you are migrating a project from an SPI-only branch, e.g., `master`, you will have to change the hardware configuration customization. The `sd_card_t` now contains a new object the specifies the configuration of either an SPI interface or an SDIO interface. See the [Customizing for the Hardware Configuration](#customizing-for-the-hardware-configuration) section below.
 
-![image](https://github.com/carlk3/FreeRTOS-FAT-CLI-for-RPi-Pico/blob/master/images/IMG_1473.JPG "Prototype")
-
 ## Features:
 * Supports multiple SD Cards, all in a common file system
 * Supports 4-bit wide SDIO by PIO, or SPI using built in SPI controllers, or both
