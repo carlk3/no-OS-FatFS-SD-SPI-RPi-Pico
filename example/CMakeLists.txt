@@ -23,6 +23,7 @@ add_executable(FatFS_SPI_example
     tests/big_file_test.c
     tests/CreateAndVerifyExampleFiles.c
     tests/ff_stdio_tests_with_cwd.c
+    ../FatFs_SPI/SdFat/bench.c
 )
 # Add the standard library to the build
 target_link_libraries(FatFS_SPI_example pico_stdlib)

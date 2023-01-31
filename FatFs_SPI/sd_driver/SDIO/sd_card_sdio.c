@@ -9,7 +9,7 @@
 #include <hardware/gpio.h>
 // #include <SdFat.h>
 #include "SdioCard.h"
-#include "SdCard/SdCardInfo.h"
+#include "../SdFat/SdCardInfo.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>

@@ -13,6 +13,7 @@ specific language governing permissions and limitations under the License.
 */
 
 /* Standard includes. */
+#include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -20,13 +21,15 @@ specific language governing permissions and limitations under the License.
 #include "hardware/gpio.h"
 //
 #include "my_debug.h"
-#include "sd_card.h"
-#include "sd_spi.h"
 #include "spi.h"
+//
+#include "sd_spi.h"
 
-//#define TRACE_PRINTF(fmt, args...)
-#define TRACE_PRINTF printf  // task_printf
+#define TRACE_PRINTF(fmt, args...)
+// #define TRACE_PRINTF printf
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
 void sd_spi_go_high_frequency(sd_card_t *pSD) {
     uint actual = spi_set_baudrate(pSD->spi_if.spi->hw_inst, pSD->spi_if.spi->baud_rate);
     TRACE_PRINTF("%s: Actual frequency: %lu\n", __FUNCTION__, (long)actual);
@@ -35,6 +38,7 @@ void sd_spi_go_low_frequency(sd_card_t *pSD) {
     uint actual = spi_set_baudrate(pSD->spi_if.spi->hw_inst, 400 * 1000); // Actual frequency: 398089
     TRACE_PRINTF("%s: Actual frequency: %lu\n", __FUNCTION__, (long)actual);
 }
+#pragma GCC diagnostic pop
 
 static void sd_spi_lock(sd_card_t *pSD) {
     spi_lock(pSD->spi_if.spi);
@@ -81,6 +85,8 @@ void sd_spi_release(sd_card_t *pSD) {
     sd_spi_unlock(pSD);
 }
 
+/* Transfer tx to SPI while receiving SPI to rx. 
+tx or rx can be NULL if not important. */
 bool sd_spi_transfer(sd_card_t *pSD, const uint8_t *tx, uint8_t *rx,
                      size_t length) {
     return spi_transfer(pSD->spi_if.spi, tx, rx, length);
@@ -99,6 +105,13 @@ uint8_t sd_spi_write(sd_card_t *pSD, const uint8_t value) {
     return received;
 }
 
+/* 
+After power up, the host starts the clock and sends the initializing sequence on the CMD line. 
+This sequence is a contiguous stream of logical ‘1’s. The sequence length is the maximum of 1msec, 
+74 clocks or the supply-ramp-uptime; the additional 10 clocks 
+(over the 64 clocks after what the card should be ready for communication) is
+provided to eliminate power-up synchronization problems. 
+*/
 void sd_spi_send_initializing_sequence(sd_card_t * pSD) {
     bool old_ss = gpio_get(pSD->spi_if.ss_gpio);
     // Set DI and CS high and apply 74 or more clock pulses to SCLK:
@@ -112,10 +125,6 @@ void sd_spi_send_initializing_sequence(sd_card_t * pSD) {
     gpio_put(pSD->spi_if.ss_gpio, old_ss);
 }
 
-void sd_spi_init_pl022(sd_card_t *pSD) {
-    // Let the PL022 SPI handle it.
-    // the CS line is brought high between each byte during transmission.
-    gpio_set_function(pSD->spi_if.ss_gpio, GPIO_FUNC_SPI);
-}
+
 
 /* [] END OF FILE */

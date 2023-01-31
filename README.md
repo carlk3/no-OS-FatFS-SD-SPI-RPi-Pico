@@ -60,6 +60,72 @@ Writing and reading a file of 0x10000000 (268,435,456) psuedorandom bytes (1/4 G
     * Elapsed seconds 43.5
     * Transfer rate 6023 KiB/s (6168 kB/s) (49340 kb/s)
 
+Results from a port of SdFat's `bench`:
+* SPI:
+```
+Type is FAT32
+Card size: 15.93 GB (GB = 1E9 bytes)
+
+Manufacturer ID: 0x3
+OEM ID: SD
+Product: SC16G
+Revision: 8.0
+Serial number: 0x9d09cea3
+Manufacturing date: 1/2021
+
+FILE_SIZE_MB = 5
+BUF_SIZE = 512
+Starting write test, please wait.
+
+write speed and latency
+speed,max,min,avg
+KB/Sec,usec,usec,usec
+345.3,92192,1136,1482
+349.9,92401,1100,1462
+
+Starting read test, please wait.
+
+read speed and latency
+speed,max,min,avg
+KB/Sec,usec,usec,usec
+922.2,1328,532,553
+922.5,1322,532,553
+
+Done
+```
+* SDIO:
+```
+Type is FAT32
+Card size: 15.93 GB (GB = 1E9 bytes)
+
+Manufacturer ID: 0x3
+OEM ID: SD
+Product: SC16G
+Revision: 8.0
+Serial number: 0x9d49ce1d
+Manufacturing date: 1/2021
+
+FILE_SIZE_MB = 5
+BUF_SIZE = 512
+Starting write test, please wait.
+
+write speed and latency
+speed,max,min,avg
+KB/Sec,usec,usec,usec
+489.4,116500,752,1045
+397.5,94215,784,1287
+
+Starting read test, please wait.
+
+read speed and latency
+speed,max,min,avg
+KB/Sec,usec,usec,usec
+2108.8,490,230,242
+2110.6,489,230,242
+
+Done
+```
+
 ## Choosing the Interface Type(s)
 The main reason to use SDIO is for the much greater speed that the 4-bit wide interface gets you. 
 However, you pay for that in pins. 
@@ -108,6 +174,7 @@ Even if it is provided by the hardware, if you have no requirement for it you ca
 * You can choose to use up to one PIO SDIO interface. This limitation could be removed, but since each 4-bit SDIO requires at least six GPIOs,
 I don't know that there's much call for it.
 * It's possible to put more than one card on an SDIO bus, but there is currently no support in this library for it.
+* For SDIO, data lines D0 - D3 must be on consecutive GPIOs, with D0 being the lowest numbered GPIO.
 * Wires should be kept short and direct. SPI operates at HF radio frequencies.
 
 ### Pull Up Resistors and other electrical considerations
@@ -121,7 +188,7 @@ On some, you can even configure the card's output drivers using the Driver Stage
 ### Notes about Card Detect
 * There is one case in which Card Detect can be important: when the user can hot swap the physical card while the file system is mounted. In this case, the file system might have no way of knowing that the card was swapped, and so it will continue to assume that its prior knowledge of the FATs and directories is still valid. File system corruption and data loss are the likely results.
 * If Card Detect is used, in order to detect a card swap there needs to be a way for the application to be made aware of a change in state when the card is removed. This could take the form of a GPIO interrupt (see [FatFS_SPI_example.cpp](https://github.com/carlk3/no-OS-FatFS-SD-SPI-RPi-Pico/blob/master/example/FatFS_SPI_example.cpp)), or polling.
-* Some workarounds:
+* Some workarounds for absence of Card Detect:
   * If you don't care much about performance or battery life, you could mount the card before each access and unmount it after. This might be a good strategy for a slow data logging application, for example.
   * Some form of polling: if the card is periodically accessed at rate faster than the user can swap cards, then the temporary absence of a card will be noticed, so a swap will be detected. For example, if a data logging application writes a log record to the card once per second, it is unlikely that the user could swap cards between accesses.
 
@@ -257,6 +324,7 @@ typedef struct sd_sdio_t {
 * `D1_gpio` RP2040 GPIO to use for Data Line [Bit 1]
 * `D2_gpio` RP2040 GPIO to use for Data Line [Bit 2]
 * `D3_gpio` RP2040 GPIO to use for Card Detect/Data Line [Bit 3]
+The PIO code requires D0 - D3 to be on consecutive GPIOs, with D0 being the lowest numbered GPIO.
 
 You must provide a definition for the functions declared in `sd_driver/hw_config.h`:  
 `size_t spi_get_num()` Returns the number of SPIs to use  
