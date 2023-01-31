@@ -52,10 +52,7 @@ static spi_t spis[] = {  // One for each SPI.
         .mosi_gpio_drive_strength = GPIO_DRIVE_STRENGTH_2MA,
         .sck_gpio_drive_strength = GPIO_DRIVE_STRENGTH_2MA,
 
-        // .baud_rate = 1000 * 1000,
-        //.baud_rate = 12500 * 1000,  // The limitation here is SPI slew rate.
-        .baud_rate = 25 * 1000 * 1000, // Actual frequency: 20833333. Has
-        // worked for me with SanDisk.        
+        .baud_rate = 25 * 1000 * 1000, // Actual frequency: 20833333. 
 
         .dma_isr = spi_dma_isr
     }
