@@ -63,67 +63,36 @@ Writing and reading a file of 0x10000000 (268,435,456) psuedorandom bytes (1/4 G
 Results from a port of SdFat's `bench`:
 * SPI:
 ```
-Type is FAT32
-Card size: 15.93 GB (GB = 1E9 bytes)
-
-Manufacturer ID: 0x3
-OEM ID: SD
-Product: SC16G
-Revision: 8.0
-Serial number: 0x9d09cea3
-Manufacturing date: 1/2021
-
+...
 FILE_SIZE_MB = 5
 BUF_SIZE = 512
-Starting write test, please wait.
-
+...
 write speed and latency
 speed,max,min,avg
 KB/Sec,usec,usec,usec
 345.3,92192,1136,1482
 349.9,92401,1100,1462
-
-Starting read test, please wait.
-
+...
 read speed and latency
 speed,max,min,avg
 KB/Sec,usec,usec,usec
 922.2,1328,532,553
 922.5,1322,532,553
-
-Done
 ```
 * SDIO:
 ```
-Type is FAT32
-Card size: 15.93 GB (GB = 1E9 bytes)
-
-Manufacturer ID: 0x3
-OEM ID: SD
-Product: SC16G
-Revision: 8.0
-Serial number: 0x9d49ce1d
-Manufacturing date: 1/2021
-
-FILE_SIZE_MB = 5
-BUF_SIZE = 512
-Starting write test, please wait.
-
+...
 write speed and latency
 speed,max,min,avg
 KB/Sec,usec,usec,usec
 489.4,116500,752,1045
 397.5,94215,784,1287
-
-Starting read test, please wait.
-
+...
 read speed and latency
 speed,max,min,avg
 KB/Sec,usec,usec,usec
 2108.8,490,230,242
 2110.6,489,230,242
-
-Done
 ```
 
 ## Choosing the Interface Type(s)
@@ -143,8 +112,6 @@ A similar strategy that I have used: SDIO for fast, interactive use, and SPI to 
 * Raspberry Pi Pico C/C++ SDK
 * (Optional) A couple of ~5-10kΩ resistors for pull-ups
 * (Optional) A couple of ~100 pF capacitors for decoupling
-
-![image](https://github.com/carlk3/FreeRTOS-FAT-CLI-for-RPi-Pico/blob/master/images/IMG_1478.JPG "Prototype")
 
 ![image](https://www.raspberrypi.com/documentation/microcontrollers/images/pico-pinout.svg "Pinout")
 
@@ -339,8 +306,6 @@ In either case, the application simply provides an implementation of the functio
 * See `dynamic_config_example/hw_config.cpp` for an example of dynamic configuration.
 * One advantage of static configuration is that the fantastic GNU Linker (ld) strips out anything that you don't use.
 
-![image](https://github.com/carlk3/FreeRTOS-FAT-CLI-for-RPi-Pico/blob/master/images/IMG_1481.JPG "Prototype")
-
 ## Using the Application Programming Interface
 After `stdio_init_all();`, `time_init();`, and whatever other Pico SDK initialization is required, you may call `sd_init_driver();` to initialize the SPI block device driver. `sd_init_driver()` is now[^2] called implicitly by `disk_initialize`, but you might want to call it sooner so that the GPIOs get configured, e.g., if you want to set up a Card Detect interrupt.
 * Now, you can start using the [FatFs Application Interface](http://elm-chan.org/fsw/ff/00index_e.html). Typically,
@@ -378,7 +343,6 @@ target_link_libraries(_my_app_ FatFs_SPI)
 and `#include "ff.h"`.
 
 Happy hacking!
-![image](https://github.com/carlk3/FreeRTOS-FAT-CLI-for-RPi-Pico/blob/master/images/IMG_20210322_201928116.jpg "Prototype")
 
 ## Appendix A: Adding Additional Cards
 When you're dealing with information storage, it's always nice to have redundancy. There are many possible combinations of SPIs and SD cards. One of these is putting multiple SD cards on the same SPI bus, at a cost of one (or two) additional Pico I/O pins (depending on whether or you care about Card Detect). I will illustrate that example here. 
