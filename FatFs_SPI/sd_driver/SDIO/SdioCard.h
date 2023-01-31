@@ -26,7 +26,7 @@
 #define sd_sdio_h
 // #include "../common/SysCall.h"
 // #include "SdCardInterface.h"
-#include "SdCard/SdCardInfo.h"
+#include "../SdFat/SdCardInfo.h"
 
 #include "sd_card.h"
 

@@ -24,6 +24,7 @@ extern "C" {
     int lliot(size_t pnum);
     void ls(const char *dir);
     void simple();
+    void bench(char const* logdrv);
     void big_file_test(const char *const pathname, size_t size,
                             uint32_t seed);
     void vCreateAndVerifyExampleFiles(const char *pcMountPath);
@@ -325,6 +326,11 @@ static void run_del_node() {
     }
     del_node(arg1);
 }
+static void run_bench() {
+    const char *arg1 = strtok(NULL, " ");
+    if (!arg1) arg1 = sd_get_by_num(0)->pcName;
+    bench(arg1);
+}
 static void run_cdef() {
     f_mkdir("/cdef");  // fake mountpoint
     vCreateAndVerifyExampleFiles("/cdef");
@@ -401,6 +407,7 @@ static cmd_def_t cmds[] = {
     {"ls", run_ls, "ls:\n  List directory"},
     {"cat", run_cat, "cat <filename>:\n  Type file contents"},
     {"simple", simple, "simple:\n  Run simple FS tests"},
+    {"bench", run_bench, "bench [<drive#:>]:\n  A simple binary write/read benchmark"},
     {"big_file_test", run_big_file_test,
      "big_file_test <pathname> <size in bytes> <seed>:\n"
      " Writes random data to file <pathname>.\n"

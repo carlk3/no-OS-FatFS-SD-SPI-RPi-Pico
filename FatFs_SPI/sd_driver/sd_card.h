@@ -25,7 +25,7 @@ specific language governing permissions and limitations under the License.
 //
 #include "ff.h"
 //
-#include "spi.h"
+#include "SPI/spi.h"
 
 #ifdef __cplusplus
 extern "C" {

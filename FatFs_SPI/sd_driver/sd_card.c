@@ -167,7 +167,7 @@ specific language governing permissions and limitations under the License.
 //
 #include "hw_config.h"  // Hardware Configuration of the SPI and SD Card "objects"
 #include "my_debug.h"
-#include "sd_spi.h"
+#include "SPI/sd_spi.h"
 #include "SDIO/SdioCard.h"
 //
 #include "sd_card.h"
@@ -181,7 +181,7 @@ specific language governing permissions and limitations under the License.
 #endif
 
 #if SD_CRC_ENABLED
-#include "crc.h"
+#include "SPI/crc.h"
 static bool crc_on = true;
 #endif
 
