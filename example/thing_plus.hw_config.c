@@ -50,10 +50,7 @@ static spi_t spis[] = {  // One for each SPI.
         .mosi_gpio_drive_strength = GPIO_DRIVE_STRENGTH_2MA,
         .sck_gpio_drive_strength = GPIO_DRIVE_STRENGTH_2MA,
 
-        // .baud_rate = 1000 * 1000,
-        //.baud_rate = 12500 * 1000,  // The limitation here is SPI slew rate.
-        .baud_rate = 25 * 1000 * 1000, // Actual frequency: 20833333. Has
-        // worked for me with SanDisk.        
+        .baud_rate = 25 * 1000 * 1000, // Actual frequency: 20833333. 
 
         .dma_isr = spi_dma_isr
     }
@@ -63,10 +60,10 @@ static spi_t spis[] = {  // One for each SPI.
 static sd_card_t sd_cards[] = {  // One for each SD card
     {
         .pcName = "0:",           // Name used to mount device
-        .spi = &spis[0],          // Pointer to the SPI driving this card
-        .ss_gpio = 9,             // The SPI slave select GPIO for this SD card
-        .set_drive_strength = true,
-        .ss_gpio_drive_strength = GPIO_DRIVE_STRENGTH_2MA
+        .spi_if.spi = &spis[0],          // Pointer to the SPI driving this card
+        .spi_if.ss_gpio = 9,             // The SPI slave select GPIO for this SD card
+        .spi_if.set_drive_strength = true,
+        .spi_if.ss_gpio_drive_strength = GPIO_DRIVE_STRENGTH_2MA
     }
 };
 
