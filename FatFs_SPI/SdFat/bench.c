@@ -65,7 +65,7 @@ static sd_card_t* sd_card_p;
 
 static void cidDmp() {
     cid_t cid;
-    if (!sd_sdio_readCID(sd_card_p, &cid)) {
+    if (!sd_readCID(sd_card_p, &cid)) {
         error("readCID failed");
     }
     printf("\nManufacturer ID: ");
@@ -136,8 +136,7 @@ void bench(char const* logdrv) {
 
     printf("Card size: ");
     // << sd.card()->sectorCount() * 512E-9;
-    // uint64_t sd_sdio_sectorCount(sd_card_t *sd_card_p)
-    printf("%.2f", sd_sdio_sectorCount(sd_card_p) * 512E-9);
+    printf("%.2f", sd_card_p->get_num_sectors(sd_card_p) * 512E-9);
     printf(" GB (GB = 1E9 bytes)\n");
 
     cidDmp();

@@ -60,6 +60,72 @@ Writing and reading a file of 0x10000000 (268,435,456) psuedorandom bytes (1/4 G
     * Elapsed seconds 43.5
     * Transfer rate 6023 KiB/s (6168 kB/s) (49340 kb/s)
 
+Results from a port of SdFat's `bench`:
+* SPI:
+```
+Type is FAT32
+Card size: 15.93 GB (GB = 1E9 bytes)
+
+Manufacturer ID: 0x3
+OEM ID: SD
+Product: SC16G
+Revision: 8.0
+Serial number: 0x9d09cea3
+Manufacturing date: 1/2021
+
+FILE_SIZE_MB = 5
+BUF_SIZE = 512
+Starting write test, please wait.
+
+write speed and latency
+speed,max,min,avg
+KB/Sec,usec,usec,usec
+345.3,92192,1136,1482
+349.9,92401,1100,1462
+
+Starting read test, please wait.
+
+read speed and latency
+speed,max,min,avg
+KB/Sec,usec,usec,usec
+922.2,1328,532,553
+922.5,1322,532,553
+
+Done
+```
+* SDIO:
+```
+Type is FAT32
+Card size: 15.93 GB (GB = 1E9 bytes)
+
+Manufacturer ID: 0x3
+OEM ID: SD
+Product: SC16G
+Revision: 8.0
+Serial number: 0x9d49ce1d
+Manufacturing date: 1/2021
+
+FILE_SIZE_MB = 5
+BUF_SIZE = 512
+Starting write test, please wait.
+
+write speed and latency
+speed,max,min,avg
+KB/Sec,usec,usec,usec
+489.4,116500,752,1045
+397.5,94215,784,1287
+
+Starting read test, please wait.
+
+read speed and latency
+speed,max,min,avg
+KB/Sec,usec,usec,usec
+2108.8,490,230,242
+2110.6,489,230,242
+
+Done
+```
+
 ## Choosing the Interface Type(s)
 The main reason to use SDIO is for the much greater speed that the 4-bit wide interface gets you. 
 However, you pay for that in pins. 

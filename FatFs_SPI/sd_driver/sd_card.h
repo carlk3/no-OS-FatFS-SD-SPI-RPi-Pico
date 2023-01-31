@@ -26,6 +26,8 @@ specific language governing permissions and limitations under the License.
 #include "ff.h"
 //
 #include "SPI/spi.h"
+//
+#include "../SdFat/SdCardInfo.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -165,6 +167,7 @@ typedef enum {
 //};
 
 bool sd_init_driver();
+bool sd_readCID(sd_card_t *sd_card_p, cid_t *cid);
 bool sd_card_detect(sd_card_t *pSD);
 
 #ifdef __cplusplus

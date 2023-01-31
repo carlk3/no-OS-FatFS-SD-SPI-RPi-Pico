@@ -288,6 +288,7 @@ typedef struct CID {
     /** CRC7 bits 1-7 checksum, bit 0 always 1 */
     uint8_t crc;
 } __attribute__((packed)) cid_t;
+
 // Extract big endian fields.
 /** \return major revision number. */
 static inline int CID_prvN(cid_t *cid_p) /* const */ {
