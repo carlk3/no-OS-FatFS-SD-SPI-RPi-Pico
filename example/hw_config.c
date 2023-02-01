@@ -63,7 +63,6 @@ static sd_card_t sd_cards[] = {  // One for each SD card
     {
         .pcName = "0:",   // Name used to mount device
         .type = SD_IF_SDIO,
-        .sdio_if.m_options = DMA_SDIO,
         .sdio_if.CLK_gpio = SDIO_CLK_GPIO, // From sd_driver/SDIO/rp2040_sdio.pio
         .sdio_if.CMD_gpio = 18,
         .sdio_if.D0_gpio = 19,

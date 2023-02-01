@@ -85,9 +85,7 @@ speed,max,min,avg
 KB/Sec,usec,usec,usec
 527.3,44832,741,970
 455.2,92339,776,1124
-
-Starting read test, please wait.
-
+...
 read speed and latency
 speed,max,min,avg
 KB/Sec,usec,usec,usec

@@ -60,7 +60,6 @@ typedef struct sd_sdio_t {
     uint D1_gpio;
     uint D2_gpio;
     uint D3_gpio;
-    uint8_t m_options;
     uint32_t m_curSector;
 } sd_sdio_t;
 
