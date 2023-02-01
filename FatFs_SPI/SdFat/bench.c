@@ -305,9 +305,4 @@ void bench(char const* logdrv) {
         return;
     }
     // sd.end();
-    fr = f_unmount(logdrv);
-    if (FR_OK != fr) {
-        printf("f_unmount error: %s (%d)\n", FRESULT_str(fr), fr);
-        return;
-    }
 }

@@ -52,11 +52,11 @@ Writing and reading a file of 0x10000000 (268,435,456) psuedorandom bytes (1/4 G
     * Transfer rate 1394 KiB/s (1427 kB/s)
 * SDIO:
   * Writing
-    * Elapsed seconds 103
-    * Transfer rate 2542 KiB/s (2603 kB/s)
+    * Elapsed seconds 101
+    * Transfer rate 2596 KiB/s (2658 kB/s) (21268 kb/s)
   * Reading
-    * Elapsed seconds 43.5
-    * Transfer rate 6023 KiB/s (6168 kB/s) (49340 kb/s)
+    * Elapsed seconds 39.6
+    * Transfer rate 6618 KiB/s (6776 kB/s) (54212 kb/s)
 
 Results from a port of SdFat's `bench`:
 * SPI:
@@ -83,14 +83,16 @@ KB/Sec,usec,usec,usec
 write speed and latency
 speed,max,min,avg
 KB/Sec,usec,usec,usec
-489.4,116500,752,1045
-397.5,94215,784,1287
-...
+527.3,44832,741,970
+455.2,92339,776,1124
+
+Starting read test, please wait.
+
 read speed and latency
 speed,max,min,avg
 KB/Sec,usec,usec,usec
-2108.8,490,230,242
-2110.6,489,230,242
+2179.6,586,221,234
+2182.5,580,222,234
 ```
 
 ## Choosing the Interface Type(s)
@@ -112,7 +114,7 @@ A similar strategy that I have used: SDIO for fast, interactive use, and SPI to 
 * (Optional) A couple of ~100 pF capacitors for decoupling
 
 ![image](https://www.raspberrypi.com/documentation/microcontrollers/images/pico-pinout.svg "Pinout")
-
+<!-->
 |       | SPI0  | GPIO  | Pin   | SPI       | MicroSD 0 | Description            | 
 | ----- | ----  | ----- | ---   | --------  | --------- | ---------------------- |
 | MISO  | RX    | 16    | 21    | DO        | DO        | Master In, Slave Out   |
@@ -122,7 +124,7 @@ A similar strategy that I have used: SDIO for fast, interactive use, and SPI to 
 | CD    |       | 22    | 29    |           | CD        | Card Detect            |
 | GND   |       |       | 18,23 |           | GND       | Ground                 |
 | 3v3   |       |       | 36    |           | 3v3       | 3.3 volt power         |
-
+</!-->
 Please see [here](https://docs.google.com/spreadsheets/d/1BrzLWTyifongf_VQCc2IpJqXWtsrjmG7KnIbSBy-CPU/edit?usp=sharing) for an example wiring table for an SPI attached card and an SDIO attached card on the same Pico. SDIO is pretty demanding electrically. 
 You need good, solid wiring, especially for grounds. A printed circuit board with a ground plane would be nice!
 
@@ -160,6 +162,7 @@ On some, you can even configure the card's output drivers using the Driver Stage
 ## Notes about prewired boards with SD card sockets:
 * I don't think the [Pimoroni Pico VGA Demo Base](https://shop.pimoroni.com/products/pimoroni-pico-vga-demo-base) can work with a built in RP2040 SPI controller. It looks like RP20040 SPI0 SCK needs to be on GPIO 2, 6, or 18 (pin 4, 9, or 24, respectively), but Pimoroni wired it to GPIO 5 (pin 7). SDIO? For sure it could work with one bit SDIO, but I don't know about 4-bit.
 * The [SparkFun RP2040 Thing Plus](https://learn.sparkfun.com/tutorials/rp2040-thing-plus-hookup-guide/hardware-overview) works well, on SPI1. For SDIO, the data lines are consecutive, but in the reverse order! I think that it could be made to work, but you might have to do some bit twiddling. A downside to this board is that it's difficult to access the signal lines if you want to look at them with, say, a logic analyzer or an oscilloscope.
+<!-->
   * For SparkFun RP2040 Thing Plus:
 
     |       | SPI0  | GPIO  | Description            | 
@@ -169,7 +172,7 @@ On some, you can even configure the card's output drivers using the Driver Stage
     | SCK   | SCK   | 14    | SPI clock              |
     | MOSI  | TX    | 15    | Master Out, Slave In   |
     | CD    |       |       | Card Detect            |
-  
+</!-->  
 * [Maker Pi Pico](https://www.cytron.io/p-maker-pi-pico) looks like it could work on SPI1. It has CS on GPIO 15, which is not a pin that the RP2040 built in SPI1 controller would drive as CS, but this driver controls CS explicitly with `gpio_put`, so it doesn't matter. Looks fine for 4-bit wide SDIO.
 
 ## Firmware:
@@ -326,11 +329,11 @@ Use this as a starting point for your own data logging application!
 
 * If you want to use FatFs_SPI as a library embedded in another project, use something like:
   ```
-  git submodule add git@github.com:carlk3/no-OS-FatFS-SD-SPI-RPi-Pico.git
+  git submodule add -b sdio git@github.com:carlk3/no-OS-FatFS-SD-SPI-RPi-Pico.git
   ```
   or
   ```
-  git submodule add https://github.com/carlk3/no-OS-FatFS-SD-SPI-RPi-Pico.git
+  git submodule add -b sdio https://github.com/carlk3/no-OS-FatFS-SD-SPI-RPi-Pico.git
   ```
   
 You will need to pick up the library in CMakeLists.txt:
