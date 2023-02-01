@@ -172,6 +172,8 @@ bool sd_sdio_begin(sd_card_t *sd_card_p)
     }
 
     // Increase to 25 MHz clock rate
+    // Actually, clk_sys / CLKDIV (from rp2040_sdio.pio),
+    // So, say, 125 MHz / 4 = 31.25 MHz
     rp2040_sdio_init(sd_card_p, 1);
 
     return true;
@@ -270,7 +272,7 @@ bool sd_sdio_stopTransmission(sd_card_t *sd_card_p, bool blocking)
     else
     {
         // uint32_t end = millis() + 100;
-        absolute_time_t timeout_time = make_timeout_time_ms(100);
+        absolute_time_t timeout_time = make_timeout_time_ms(200); // CK3: doubled
         // while (millis() < end && sd_sdio_isBusy(sd_card_p))
         while (0 < absolute_time_diff_us(get_absolute_time(), timeout_time) && sd_sdio_isBusy(sd_card_p))
         {

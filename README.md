@@ -42,24 +42,27 @@ Memory region         Used Size  Region Size  %age Used
 ```
 
 ## Performance
-Writing and reading a file of 0x10000000 (268,435,456) psuedorandom bytes (1/4 GiB) on a two freshly-formatted SanDisk Class 4 16 GB cards, one on SPI and one on SDIO, release build (using the command `big_file_test bf 0x10000000 7`):
+Writing and reading a file of 64 MiB (67,108,864 byes) of psuedorandom data on a two freshly-formatted 
+Silicon Power 3D NAND 32GB microSD cards, one on SPI and one on SDIO, release build (using the command `big_file_test bf 64 3`):
 * SPI:
   * Writing
-    * Elapsed seconds 244
-    * Transfer rate 1077 KiB/s (1103 kB/s)
+    * Elapsed seconds 58.5
+    * Transfer rate 1121 KiB/s (1148 kB/s) (9184 kb/s)
   * Reading
-    * Elapsed seconds 188
-    * Transfer rate 1394 KiB/s (1427 kB/s)
+    * Elapsed seconds 56.1
+    * Transfer rate 1168 KiB/s (1196 kB/s) (9565 kb/s)
 * SDIO:
   * Writing
-    * Elapsed seconds 101
-    * Transfer rate 2596 KiB/s (2658 kB/s) (21268 kb/s)
+    * Elapsed seconds 20.6
+    * Transfer rate 3186 KiB/s (3263 kB/s) (26103 kb/s)
   * Reading
-    * Elapsed seconds 39.6
-    * Transfer rate 6618 KiB/s (6776 kB/s) (54212 kb/s)
+    * Elapsed seconds 15.9
+    * Transfer rate 4114 KiB/s (4213 kB/s) (33704 kb/s)
 
-Results from a port of SdFat's `bench`:
-* SPI:
+Results from a port of SdFat's `bench` with a pair of 
+SanDisk Class 4 16 GB cards:
+
+SPI:
 ```
 ...
 FILE_SIZE_MB = 5
@@ -77,7 +80,8 @@ KB/Sec,usec,usec,usec
 922.2,1328,532,553
 922.5,1322,532,553
 ```
-* SDIO:
+
+SDIO:
 ```
 ...
 write speed and latency
@@ -91,6 +95,40 @@ speed,max,min,avg
 KB/Sec,usec,usec,usec
 2179.6,586,221,234
 2182.5,580,222,234
+```
+However, with a larger BUF_SIZE it goes faster: 
+
+SPI:
+```
+...
+BUF_SIZE = 20000
+...
+write speed and latency
+speed,max,min,avg
+KB/Sec,usec,usec,usec
+1207.4,22740,14951,16541
+1172.1,27632,14960,17047
+...
+read speed and latency
+speed,max,min,avg
+KB/Sec,usec,usec,usec
+1374.4,15424,14150,14554
+1374.4,15264,14153,14552
+```
+
+SDIO:
+```
+write speed and latency
+speed,max,min,avg
+KB/Sec,usec,usec,usec
+3690.0,21160,2595,5399
+3003.0,22169,3192,6644
+...
+read speed and latency
+speed,max,min,avg
+KB/Sec,usec,usec,usec
+9940.4,2788,1617,2012
+9940.4,2614,1617,2010
 ```
 
 ## Choosing the Interface Type(s)
@@ -112,7 +150,7 @@ A similar strategy that I have used: SDIO for fast, interactive use, and SPI to 
 * (Optional) A couple of ~100 pF capacitors for decoupling
 
 ![image](https://www.raspberrypi.com/documentation/microcontrollers/images/pico-pinout.svg "Pinout")
-<!-->
+<!--
 |       | SPI0  | GPIO  | Pin   | SPI       | MicroSD 0 | Description            | 
 | ----- | ----  | ----- | ---   | --------  | --------- | ---------------------- |
 | MISO  | RX    | 16    | 21    | DO        | DO        | Master In, Slave Out   |
@@ -122,7 +160,8 @@ A similar strategy that I have used: SDIO for fast, interactive use, and SPI to 
 | CD    |       | 22    | 29    |           | CD        | Card Detect            |
 | GND   |       |       | 18,23 |           | GND       | Ground                 |
 | 3v3   |       |       | 36    |           | 3v3       | 3.3 volt power         |
-</!-->
+-->
+
 Please see [here](https://docs.google.com/spreadsheets/d/1BrzLWTyifongf_VQCc2IpJqXWtsrjmG7KnIbSBy-CPU/edit?usp=sharing) for an example wiring table for an SPI attached card and an SDIO attached card on the same Pico. SDIO is pretty demanding electrically. 
 You need good, solid wiring, especially for grounds. A printed circuit board with a ground plane would be nice!
 
@@ -160,7 +199,7 @@ On some, you can even configure the card's output drivers using the Driver Stage
 ## Notes about prewired boards with SD card sockets:
 * I don't think the [Pimoroni Pico VGA Demo Base](https://shop.pimoroni.com/products/pimoroni-pico-vga-demo-base) can work with a built in RP2040 SPI controller. It looks like RP20040 SPI0 SCK needs to be on GPIO 2, 6, or 18 (pin 4, 9, or 24, respectively), but Pimoroni wired it to GPIO 5 (pin 7). SDIO? For sure it could work with one bit SDIO, but I don't know about 4-bit.
 * The [SparkFun RP2040 Thing Plus](https://learn.sparkfun.com/tutorials/rp2040-thing-plus-hookup-guide/hardware-overview) works well, on SPI1. For SDIO, the data lines are consecutive, but in the reverse order! I think that it could be made to work, but you might have to do some bit twiddling. A downside to this board is that it's difficult to access the signal lines if you want to look at them with, say, a logic analyzer or an oscilloscope.
-<!-->
+<!--
   * For SparkFun RP2040 Thing Plus:
 
     |       | SPI0  | GPIO  | Description            | 
@@ -170,7 +209,7 @@ On some, you can even configure the card's output drivers using the Driver Stage
     | SCK   | SCK   | 14    | SPI clock              |
     | MOSI  | TX    | 15    | Master Out, Slave In   |
     | CD    |       |       | Card Detect            |
-</!-->  
+-->  
 * [Maker Pi Pico](https://www.cytron.io/p-maker-pi-pico) looks like it could work on SPI1. It has CS on GPIO 15, which is not a pin that the RP2040 built in SPI1 controller would drive as CS, but this driver controls CS explicitly with `gpio_put`, so it doesn't matter. Looks fine for 4-bit wide SDIO.
 
 ## Firmware:
@@ -382,22 +421,22 @@ As you can see from the table above, the only new signals are CD1 and CS1. Other
 setrtc <DD> <MM> <YY> <hh> <mm> <ss>:
   Set Real Time Clock
   Parameters: new date (DD MM YY) new time in 24-hour format (hh mm ss)
-	e.g.:setrtc 16 3 21 0 4 0
+        e.g.:setrtc 16 3 21 0 4 0
 
 date:
  Print current date and time
 
 lliot <drive#>:
  !DESTRUCTIVE! Low Level I/O Driver Test
-	e.g.: lliot 1
+        e.g.: lliot 1
 
 format [<drive#:>]:
   Creates an FAT/exFAT volume on the logical drive.
-	e.g.: format 0:
+        e.g.: format 0:
 
 mount [<drive#:>]:
   Register the work area of the volume
-	e.g.: mount 0:
+        e.g.: mount 0:
 
 unmount <drive#:>:
   Unregister the work area of the volume
@@ -405,7 +444,7 @@ unmount <drive#:>:
 chdrive <drive#:>:
   Changes the current directory of the logical drive.
   <path> Specifies the directory to be set as current directory.
-	e.g.: chdrive 1:
+        e.g.: chdrive 1:
 
 getfree [<drive#:>]:
   Print the free space on drive
@@ -413,12 +452,17 @@ getfree [<drive#:>]:
 cd <path>:
   Changes the current directory of the logical drive.
   <path> Specifies the directory to be set as current directory.
-	e.g.: cd 1:/dir1
+        e.g.: cd /dir1
 
 mkdir <path>:
   Make a new directory.
   <path> Specifies the name of the directory to be created.
-	e.g.: mkdir /dir1
+        e.g.: mkdir /dir1
+
+del_node <path>:
+  Remove directory and all of its contents.
+  <path> Specifies the name of the directory to be deleted.
+        e.g.: del_node /dir1
 
 ls:
   List directory
@@ -429,21 +473,37 @@ cat <filename>:
 simple:
   Run simple FS tests
 
-big_file_test <pathname> <size in bytes> <seed>:
+bench [<drive#:>]:
+  A simple binary write/read benchmark
+
+big_file_test <pathname> <size in MiB> <seed>:
  Writes random data to file <pathname>.
- <size in bytes> must be multiple of 512.
-	e.g.: big_file_test bf 1048576 1
-	or: big_file_test big3G-3 0xC0000000 3
+ Specify <size in MiB> in units of mebibytes (2^20, or 1024*1024 bytes)
+        e.g.: big_file_test bf 1 1
+        or: big_file_test big3G-3 3072 3
 
 cdef:
   Create Disk and Example Files
   Expects card to be already formatted and mounted
+
+swcwdt:
+ Stdio With CWD Test
+Expects card to be already formatted and mounted.
+Note: run cdef first!
+
+loop_swcwdt:
+ Run Create Disk and Example Files and Stdio With CWD Test in a loop.
+Expects card to be already formatted and mounted.
+Note: Type any key to quit.
 
 start_logger:
   Start Data Log Demo
 
 stop_logger:
   Stop Data Log Demo
+
+help:
+  Shows this command help.
 
 ```
 
@@ -457,7 +517,7 @@ stop_logger:
 * Make sure the SD card(s) are getting enough power. Try an external supply. Try adding a decoupling capacitor between Vcc and GND. 
   * Hint: check voltage while formatting card. It must be 2.7 to 3.6 volts. 
   * Hint: If you are powering a Pico with a PicoProbe, try adding a USB cable to a wall charger to the Pico under test.
-* Try another brand of SD card. Some handle the SPI interface better than others. (Most consumer devices like cameras or PCs use the SDIO interface.) I have had good luck with SanDisk and PNY.
+* Try another brand of SD card. Some handle the SPI interface better than others. (Most consumer devices like cameras or PCs use the SDIO interface.) I have had good luck with SanDisk, PNY, and  Silicon Power.
 * Tracing: Most of the source files have a couple of lines near the top of the file like:
 ```
 #define TRACE_PRINTF(fmt, args...) // Disable tracing

@@ -409,11 +409,11 @@ static cmd_def_t cmds[] = {
     {"simple", simple, "simple:\n  Run simple FS tests"},
     {"bench", run_bench, "bench [<drive#:>]:\n  A simple binary write/read benchmark"},
     {"big_file_test", run_big_file_test,
-     "big_file_test <pathname> <size in bytes> <seed>:\n"
+     "big_file_test <pathname> <size in MiB> <seed>:\n"
      " Writes random data to file <pathname>.\n"
-     " <size in bytes> must be multiple of 512.\n"
-     "\te.g.: big_file_test bf 1048576 1\n"
-     "\tor: big_file_test big3G-3 0xC0000000 3"},
+     " Specify <size in MiB> in units of mebibytes (2^20, or 1024*1024 bytes)\n"
+     "\te.g.: big_file_test bf 1 1\n"
+     "\tor: big_file_test big3G-3 3072 3"},
     {"cdef", run_cdef,
      "cdef:\n  Create Disk and Example Files\n"
      "  Expects card to be already formatted and mounted"},
