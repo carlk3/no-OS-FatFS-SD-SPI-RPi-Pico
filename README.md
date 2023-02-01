@@ -390,6 +390,8 @@ You are welcome to contribute to this project! Just submit a Pull Request. Here 
 * Battery saving: at least stop the SDIO clock when it is not needed
 * Support 1-bit SDIO
 * Try multiple cards on a single SDIO bus
+* Multiple SDIO buses?
+* PlatformIO library
 * Port SDIO driver to [FreeRTOS-FAT-CLI-for-RPi-Pico](https://github.com/carlk3/FreeRTOS-FAT-CLI-for-RPi-Pico)
 
 ## Appendix A: Adding Additional Cards
