@@ -10,7 +10,7 @@ and a 4-bit Secure Digital Input Output (SDIO) driver derived from
 It is wrapped up in a complete runnable project, with a little command line interface, some self tests, and an example data logging application.
 
 ## Migration
-If you are migrating a project from an SPI-only branch, e.g., `master`, you will have to change the hardware configuration customization. The `sd_card_t` now contains a new object the specifies the configuration of either an SPI interface or an SDIO interface. See the [Customizing for the Hardware Configuration](#customizing-for-the-hardware-configuration) section below.
+If you are migrating a project from an SPI-only branch, e.g., `master`, you will have to change the hardware configuration customization. The `sd_card_t` now contains a new object that specifies the configuration of either an SPI interface or an SDIO interface. See the [Customizing for the Hardware Configuration](#customizing-for-the-hardware-configuration) section below.
 
 ## Features:
 * Supports multiple SD Cards, all in a common file system
@@ -240,7 +240,69 @@ There can be one or more objects of both types.
 `sd_card_t` contains an instance of `sd_spi_t` or `sd_sdio_t` to specify the interface used to communicate to the card. 
 These objects specify which pins to use for what, SPI baud rate, features like Card Detect, etc.
 
-An instance of `spi_t` describes the configuration of one RP2040 SPI controller.
+### An instance of `sd_card_t` describes the configuration of one SD card socket.
+```
+struct sd_card_t {
+    const char *pcName;
+    sd_if_t type;
+    union {
+        sd_spi_t spi_if;
+        sd_sdio_t sdio_if;
+    };
+    bool use_card_detect;
+    uint card_detect_gpio;    // Card detect; ignored if !use_card_detect
+    uint card_detected_true;  // Varies with card socket; ignored if !use_card_detect
+
+    // Following fields are used to keep track of the state of the card:
+//...
+}
+```
+* `pcName` FatFs [Logical Drive](http://elm-chan.org/fsw/ff/doc/filename.html) name (or "number")
+* `type` Type of interface: either `SD_IF_SPI` or `SD_IF_SDIO`
+* `use_card_detect` Whether or not to use Card Detect
+* `card_detect_gpio` GPIO number of the Card Detect, connected to the SD card socket's Card Detect switch (sometimes marked DET)
+* `card_detected_true` What the GPIO read returns when a card is present (Some sockets use active high, some low)
+
+### An instance of `sd_sdio_t` describes the configuration of one SDIO to SD card interface.
+```
+typedef struct sd_sdio_t {
+    uint CLK_gpio;
+    uint CMD_gpio;
+    uint D0_gpio;
+    uint D1_gpio;
+    uint D2_gpio;
+    uint D3_gpio;
+// ...    
+} sd_sdio_t;
+```
+* `CLK_gpio` RP2040 GPIO to use for Clock (CLK). This is a little quirky. It should be set to `SDIO_CLK_GPIO`, which is defined in `sd_driver/SDIO/rp2040_sdio.pio`, and that is where you should specify the GPIO number for the SDIO clock.
+* `CMD_gpio` RP2040 GPIO to use for Command/Response (CMD)
+* `D0_gpio` RP2040 GPIO to use for Data Line [Bit 0]
+* `D1_gpio` RP2040 GPIO to use for Data Line [Bit 1]
+* `D2_gpio` RP2040 GPIO to use for Data Line [Bit 2]
+* `D3_gpio` RP2040 GPIO to use for Card Detect/Data Line [Bit 3]
+
+The PIO code requires D0 - D3 to be on consecutive GPIOs, with D0 being the lowest numbered GPIO.
+
+### An instance of `sd_spi_t` describes the configuration of one SPI to SD card interface.
+```
+typedef struct sd_spi_t {
+    spi_t *spi;
+    // Slave select is here in sd_card_t because multiple SDs can share an SPI
+    uint ss_gpio;                   // Slave select for this SD card
+    // Drive strength levels for GPIO outputs.
+    // enum gpio_drive_strength { GPIO_DRIVE_STRENGTH_2MA = 0, GPIO_DRIVE_STRENGTH_4MA = 1, 
+    // GPIO_DRIVE_STRENGTH_8MA = 2, GPIO_DRIVE_STRENGTH_12MA = 3 }
+    bool set_drive_strength;
+    enum gpio_drive_strength ss_gpio_drive_strength;
+} sd_spi_t;
+```
+* `spi` Points to the instance of `spi_t` that is to be used as the SPI to drive the interface for this card
+* `ss_gpio` Slave Select (or Chip Select [CS]) for this SD card
+* `set_drive_strength` Whether or not to set the drive strength
+* `ss_gpio_drive_strength` Drive strength for the SS (or CS)
+
+### An instance of `spi_t` describes the configuration of one RP2040 SPI controller.
 ```
 typedef struct {
     // SPI HW
@@ -270,68 +332,6 @@ typedef struct {
 * `mosi_gpio_drive_strength` SPI Master Out, Slave In (MOSI) drive strength
 * `sck_gpio_drive_strength` SPI Serial Clock (SCK) drive strength
 
-An instance of `sd_card_t`describes the configuration of one SD card socket.
-```
-struct sd_card_t {
-    const char *pcName;
-    sd_if_t type;
-    union {
-        sd_spi_t spi_if;
-        sd_sdio_t sdio_if;
-    };
-    bool use_card_detect;
-    uint card_detect_gpio;    // Card detect; ignored if !use_card_detect
-    uint card_detected_true;  // Varies with card socket; ignored if !use_card_detect
-
-    // Following fields are used to keep track of the state of the card:
-//...
-}
-```
-* `pcName` FatFs [Logical Drive](http://elm-chan.org/fsw/ff/doc/filename.html) name (or "number")
-* `type` Type of interface: either SD_IF_SPI or SD_IF_SDIO
-* `use_card_detect` Whether or not to use Card Detect
-* `card_detect_gpio` GPIO number of the Card Detect, connected to the SD card socket's Card Detect switch (sometimes marked DET)
-* `card_detected_true` What the GPIO read returns when a card is present (Some sockets use active high, some low)
-
-An instance of `sd_spi_t`describes the configuration of one SPI to SD card interface.
-```
-typedef struct sd_spi_t {
-    spi_t *spi;
-    // Slave select is here in sd_card_t because multiple SDs can share an SPI
-    uint ss_gpio;                   // Slave select for this SD card
-    // Drive strength levels for GPIO outputs.
-    // enum gpio_drive_strength { GPIO_DRIVE_STRENGTH_2MA = 0, GPIO_DRIVE_STRENGTH_4MA = 1, GPIO_DRIVE_STRENGTH_8MA = 2,
-    // GPIO_DRIVE_STRENGTH_12MA = 3 }
-    bool set_drive_strength;
-    enum gpio_drive_strength ss_gpio_drive_strength;
-} sd_spi_t;
-```
-* `spi` Points to the instance of `spi_t` that is to be used as the SPI to drive the interface for this card
-* `ss_gpio` Slave Select (or Chip Select [CS]) for this SD card
-* `set_drive_strength` Whether or not to set the drive strength
-* `ss_gpio_drive_strength` Drive strength for the SS (or CS)
-
-An instance of `sd_sdio_t`describes the configuration of one SDIO to SD card interface.
-```
-typedef struct sd_sdio_t {
-    uint CLK_gpio;
-    uint CMD_gpio;
-    uint D0_gpio;
-    uint D1_gpio;
-    uint D2_gpio;
-    uint D3_gpio;
-// ...    
-} sd_sdio_t;
-```
-* `CLK_gpio` RP2040 GPIO to use for Clock (CLK). This is a little quirky. It should be set to `SDIO_CLK_GPIO`, which is defined in `sd_driver/SDIO/rp2040_sdio.pio`, and that is where you should specify the GPIO number for the SDIO clock.
-* `CMD_gpio` RP2040 GPIO to use for Command/Response (CMD)
-* `D0_gpio` RP2040 GPIO to use for Data Line [Bit 0]
-* `D1_gpio` RP2040 GPIO to use for Data Line [Bit 1]
-* `D2_gpio` RP2040 GPIO to use for Data Line [Bit 2]
-* `D3_gpio` RP2040 GPIO to use for Card Detect/Data Line [Bit 3]
-
-The PIO code requires D0 - D3 to be on consecutive GPIOs, with D0 being the lowest numbered GPIO.
-
 You must provide a definition for the functions declared in `sd_driver/hw_config.h`:  
 `size_t spi_get_num()` Returns the number of SPIs to use  
 `spi_t *spi_get_by_num(size_t num)` Returns a pointer to the SPI "object" at the given (zero origin) index  
@@ -346,7 +346,8 @@ In either case, the application simply provides an implementation of the functio
 * One advantage of static configuration is that the fantastic GNU Linker (ld) strips out anything that you don't use.
 
 ## Using the Application Programming Interface
-After `stdio_init_all();`, `time_init();`, and whatever other Pico SDK initialization is required, you may call `sd_init_driver();` to initialize the SPI block device driver. `sd_init_driver()` is now[^2] called implicitly by `disk_initialize`, but you might want to call it sooner so that the GPIOs get configured, e.g., if you want to set up a Card Detect interrupt.
+After `stdio_init_all()`, `time_init()`, and whatever other Pico SDK initialization is required, 
+you may call `sd_init_driver()` to initialize the block device driver. `sd_init_driver()` is now[^2] called implicitly by `disk_initialize`, but you might want to call it sooner so that the GPIOs get configured, e.g., if you want to set up a Card Detect interrupt.
 * Now, you can start using the [FatFs Application Interface](http://elm-chan.org/fsw/ff/00index_e.html). Typically,
   * f_mount - Register/Unregister the work area of the volume
   * f_open - Open/Create a file
