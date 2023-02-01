@@ -165,8 +165,8 @@ A similar strategy that I have used: SDIO for fast, interactive use, and SPI to 
 Please see [here](https://docs.google.com/spreadsheets/d/1BrzLWTyifongf_VQCc2IpJqXWtsrjmG7KnIbSBy-CPU/edit?usp=sharing) for an example wiring table for an SPI attached card and an SDIO attached card on the same Pico. SDIO is pretty demanding electrically. 
 You need good, solid wiring, especially for grounds. A printed circuit board with a ground plane would be nice!
 
-![image](https://github.com/carlk3/FreeRTOS-FAT-CLI-for-RPi-Pico/blob/master/images/PXL_20230124_160927459.jpg "Protoboard, top")
-![image](https://github.com/carlk3/FreeRTOS-FAT-CLI-for-RPi-Pico/blob/master/images/PXL_20230124_160941254.jpg "Protoboard, bottom")
+![image](https://github.com/carlk3/FreeRTOS-FAT-CLI-for-RPi-Pico/blob/master/images/PXL_20230201_232043568.jpg "Protoboard, top")
+![image](https://github.com/carlk3/FreeRTOS-FAT-CLI-for-RPi-Pico/blob/master/images/PXL_20230201_232026240_3.jpg "Protoboard, bottom")
 
 
 ## Construction:
@@ -329,6 +329,7 @@ typedef struct sd_sdio_t {
 * `D1_gpio` RP2040 GPIO to use for Data Line [Bit 1]
 * `D2_gpio` RP2040 GPIO to use for Data Line [Bit 2]
 * `D3_gpio` RP2040 GPIO to use for Card Detect/Data Line [Bit 3]
+
 The PIO code requires D0 - D3 to be on consecutive GPIOs, with D0 being the lowest numbered GPIO.
 
 You must provide a definition for the functions declared in `sd_driver/hw_config.h`:  
@@ -353,7 +354,7 @@ After `stdio_init_all();`, `time_init();`, and whatever other Pico SDK initializ
   * f_read - Read data from the file
   * f_close - Close an open file
   * f_unmount
-    * There is a simple example in the `simple_example` subdirectory.
+* There is a simple example in the `simple_example` subdirectory.
 * There is also POSIX-like API wrapper layer in `ff_stdio.h` and `ff_stdio.c`, written for compatibility with [FreeRTOS+FAT API](https://www.freertos.org/FreeRTOS-Plus/FreeRTOS_Plus_FAT/index.html) (mainly so that I could reuse some tests from that environment.)
 
 ## Next Steps
