@@ -289,7 +289,7 @@ The PIO code requires D0 - D3 to be on consecutive GPIOs, with D0 being the lowe
 ```
 typedef struct sd_spi_t {
     spi_t *spi;
-    // Slave select is here in sd_card_t because multiple SDs can share an SPI
+    // Slave select is here instead of in spi_t because multiple SDs can share an SPI.
     uint ss_gpio;                   // Slave select for this SD card
     // Drive strength levels for GPIO outputs.
     // enum gpio_drive_strength { GPIO_DRIVE_STRENGTH_2MA = 0, GPIO_DRIVE_STRENGTH_4MA = 1, 
@@ -384,6 +384,13 @@ target_link_libraries(_my_app_ FatFs_SPI)
 and `#include "ff.h"`.
 
 Happy hacking!
+
+## Future Directions
+You are welcome to contribute to this project! Just submit a Pull Request. Here are some ideas for future enhancements:
+* Battery saving: at least stop the SDIO clock when it is not needed
+* Support 1-bit SDIO
+* Try multiple cards on a single SDIO bus
+* Port SDIO driver to [FreeRTOS-FAT-CLI-for-RPi-Pico](https://github.com/carlk3/FreeRTOS-FAT-CLI-for-RPi-Pico)
 
 ## Appendix A: Adding Additional Cards
 When you're dealing with information storage, it's always nice to have redundancy. There are many possible combinations of SPIs and SD cards. One of these is putting multiple SD cards on the same SPI bus, at a cost of one (or two) additional Pico I/O pins (depending on whether or you care about Card Detect). I will illustrate that example here. 

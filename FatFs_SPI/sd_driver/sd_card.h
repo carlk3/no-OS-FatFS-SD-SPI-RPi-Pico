@@ -40,7 +40,7 @@ typedef enum {
 
 typedef struct sd_spi_t {
     spi_t *spi;
-    // Slave select is here in sd_card_t because multiple SDs can share an SPI
+    // Slave select is here instead of in spi_t because multiple SDs can share an SPI.
     uint ss_gpio;                   // Slave select for this SD card
     // Drive strength levels for GPIO outputs.
     // enum gpio_drive_strength { GPIO_DRIVE_STRENGTH_2MA = 0, GPIO_DRIVE_STRENGTH_4MA = 1, GPIO_DRIVE_STRENGTH_8MA = 2,
