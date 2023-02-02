@@ -10,6 +10,7 @@
 // #include <SdFat.h>
 #include "SdioCard.h"
 #include "../SdFat/SdCardInfo.h"
+#include <assert.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
@@ -92,8 +93,8 @@ bool sd_sdio_begin(sd_card_t *sd_card_p)
     {
         delayMicroseconds(1000);
         reply = 0;
-        rp2040_sdio_command_R1(CMD0, 0, NULL); // GO_IDLE_STATE
-        status = rp2040_sdio_command_R1(CMD8, 0x1AA, &reply); // SEND_IF_COND
+        rp2040_sdio_command_R1(sd_card_p, CMD0, 0, NULL); // GO_IDLE_STATE
+        status = rp2040_sdio_command_R1(sd_card_p, CMD8, 0x1AA, &reply); // SEND_IF_COND
 
         if (status == SDIO_OK && reply == 0x1AA)
         {
@@ -113,9 +114,9 @@ bool sd_sdio_begin(sd_card_t *sd_card_p)
     // uint32_t start = millis();
     absolute_time_t timeout_time = make_timeout_time_ms(1000);
     do {
-        if (!checkReturnOk(rp2040_sdio_command_R1(CMD55, 0, &reply)) || // APP_CMD
-            !checkReturnOk(rp2040_sdio_command_R3(ACMD41, 0xD0040000, &g_sdio_ocr))) // 3.0V voltage
-            // !checkReturnOk(rp2040_sdio_command_R1(ACMD41, 0xC0100000, &g_sdio_ocr)))
+        if (!checkReturnOk(rp2040_sdio_command_R1(sd_card_p, CMD55, 0, &reply)) || // APP_CMD
+            !checkReturnOk(rp2040_sdio_command_R3(sd_card_p, ACMD41, 0xD0040000, &g_sdio_ocr))) // 3.0V voltage
+            // !checkReturnOk(rp2040_sdio_command_R1(sd_card_p, ACMD41, 0xC0100000, &g_sdio_ocr)))
         {
             return false;
         }
@@ -129,21 +130,21 @@ bool sd_sdio_begin(sd_card_t *sd_card_p)
     } while (!(g_sdio_ocr & (1 << 31)));
 
     // Get CID
-    if (!checkReturnOk(rp2040_sdio_command_R2(CMD2, 0, (uint8_t*)&g_sdio_cid)))
+    if (!checkReturnOk(rp2040_sdio_command_R2(sd_card_p, CMD2, 0, (uint8_t*)&g_sdio_cid)))
     {
         azdbg("SDIO failed to read CID");
         return false;
     }
 
     // Get relative card address
-    if (!checkReturnOk(rp2040_sdio_command_R1(CMD3, 0, &g_sdio_rca)))
+    if (!checkReturnOk(rp2040_sdio_command_R1(sd_card_p, CMD3, 0, &g_sdio_rca)))
     {
         azdbg("SDIO failed to get RCA");
         return false;
     }
 
     // Get CSD
-    if (!checkReturnOk(rp2040_sdio_command_R2(CMD9, g_sdio_rca, (uint8_t*)&g_sdio_csd)))
+    if (!checkReturnOk(rp2040_sdio_command_R2(sd_card_p, CMD9, g_sdio_rca, (uint8_t*)&g_sdio_csd)))
     {
         azdbg("SDIO failed to read CSD");
         return false;
@@ -152,20 +153,20 @@ bool sd_sdio_begin(sd_card_t *sd_card_p)
     g_sdio_sector_count = sd_sdio_sectorCount(sd_card_p);
 
     // Select card
-    if (!checkReturnOk(rp2040_sdio_command_R1(CMD7, g_sdio_rca, &reply)))
+    if (!checkReturnOk(rp2040_sdio_command_R1(sd_card_p, CMD7, g_sdio_rca, &reply)))
     {
         azdbg("SDIO failed to select card");
         return false;
     }
 
     // Set 4-bit bus mode
-    if (!checkReturnOk(rp2040_sdio_command_R1(CMD55, g_sdio_rca, &reply)) ||
-        !checkReturnOk(rp2040_sdio_command_R1(ACMD6, 2, &reply)))
+    if (!checkReturnOk(rp2040_sdio_command_R1(sd_card_p, CMD55, g_sdio_rca, &reply)) ||
+        !checkReturnOk(rp2040_sdio_command_R1(sd_card_p, ACMD6, 2, &reply)))
     {
         azdbg("SDIO failed to set bus width");
         return false;
     }
-    if (!checkReturnOk(rp2040_sdio_command_R1(16, 512, &reply))) // SET_BLOCKLEN
+    if (!checkReturnOk(rp2040_sdio_command_R1(sd_card_p, 16, 512, &reply))) // SET_BLOCKLEN
     {
         printf("%s,%d SDIO failed to set BLOCKLEN\n", __func__, __LINE__);
         return false;
@@ -221,7 +222,7 @@ bool sd_sdio_readOCR(sd_card_t *sd_card_p, uint32_t* ocr)
 {
     // SDIO mode does not have CMD58, but main program uses this to
     // poll for card presence. Return status register instead.
-    return checkReturnOk(rp2040_sdio_command_R1(CMD13, g_sdio_rca, ocr));
+    return checkReturnOk(rp2040_sdio_command_R1(sd_card_p, CMD13, g_sdio_rca, ocr));
 }
 
 bool sd_sdio_readData(sd_card_t *sd_card_p, uint8_t* dst)
@@ -251,7 +252,7 @@ uint64_t sd_sdio_sectorCount(sd_card_t *sd_card_p)
 uint32_t sd_sdio_status(sd_card_t *sd_card_p)
 {
     uint32_t reply;
-    if (checkReturnOk(rp2040_sdio_command_R1(CMD13, g_sdio_rca, &reply)))
+    if (checkReturnOk(rp2040_sdio_command_R1(sd_card_p, CMD13, g_sdio_rca, &reply)))
         return reply;
     else
         return 0;
@@ -260,7 +261,7 @@ uint32_t sd_sdio_status(sd_card_t *sd_card_p)
 bool sd_sdio_stopTransmission(sd_card_t *sd_card_p, bool blocking)
 {
     uint32_t reply;
-    if (!checkReturnOk(rp2040_sdio_command_R1(CMD12, 0, &reply)))
+    if (!checkReturnOk(rp2040_sdio_command_R1(sd_card_p, CMD12, 0, &reply)))
     {
         return false;
     }
@@ -355,8 +356,8 @@ bool sd_sdio_writeSector(sd_card_t *sd_card_p, uint32_t sector, const uint8_t* s
     sd_callback_t callback = get_stream_callback(src, 512, "writeSector", sector);
 
     uint32_t reply;
-    if (/* !checkReturnOk(rp2040_sdio_command_R1(16, 512, &reply)) || // SET_BLOCKLEN */
-        !checkReturnOk(rp2040_sdio_command_R1(CMD24, sector, &reply)) || // WRITE_BLOCK
+    if (/* !checkReturnOk(rp2040_sdio_command_R1(sd_card_p, 16, 512, &reply)) || // SET_BLOCKLEN */
+        !checkReturnOk(rp2040_sdio_command_R1(sd_card_p, CMD24, sector, &reply)) || // WRITE_BLOCK
         !checkReturnOk(rp2040_sdio_tx_start(sd_card_p, src, 1))) // Start transmission
     {
         return false;
@@ -398,10 +399,10 @@ bool sd_sdio_writeSectors(sd_card_t *sd_card_p, uint32_t sector, const uint8_t* 
     sd_callback_t callback = get_stream_callback(src, n * 512, "writeSectors", sector);
 
     uint32_t reply;
-    if (/* !checkReturnOk(rp2040_sdio_command_R1(16, 512, &reply)) || // SET_BLOCKLEN */
-        !checkReturnOk(rp2040_sdio_command_R1(CMD55, g_sdio_rca, &reply)) || // APP_CMD
-        !checkReturnOk(rp2040_sdio_command_R1(ACMD23, n, &reply)) || // SET_WR_CLK_ERASE_COUNT
-        !checkReturnOk(rp2040_sdio_command_R1(CMD25, sector, &reply)) || // WRITE_MULTIPLE_BLOCK
+    if (/* !checkReturnOk(rp2040_sdio_command_R1(sd_card_p, 16, 512, &reply)) || // SET_BLOCKLEN */
+        !checkReturnOk(rp2040_sdio_command_R1(sd_card_p, CMD55, g_sdio_rca, &reply)) || // APP_CMD
+        !checkReturnOk(rp2040_sdio_command_R1(sd_card_p, ACMD23, n, &reply)) || // SET_WR_CLK_ERASE_COUNT
+        !checkReturnOk(rp2040_sdio_command_R1(sd_card_p, CMD25, sector, &reply)) || // WRITE_MULTIPLE_BLOCK
         !checkReturnOk(rp2040_sdio_tx_start(sd_card_p, src, n))) // Start transmission
     {
         return false;
@@ -441,9 +442,9 @@ bool sd_sdio_readSector(sd_card_t *sd_card_p, uint32_t sector, uint8_t* dst)
     sd_callback_t callback = get_stream_callback(dst, 512, "readSector", sector);
 
     uint32_t reply;
-    if (/* !checkReturnOk(rp2040_sdio_command_R1(16, 512, &reply)) || // SET_BLOCKLEN */
+    if (/* !checkReturnOk(rp2040_sdio_command_R1(sd_card_p, 16, 512, &reply)) || // SET_BLOCKLEN */
         !checkReturnOk(rp2040_sdio_rx_start(sd_card_p, dst, 1)) || // Prepare for reception
-        !checkReturnOk(rp2040_sdio_command_R1(CMD17, sector, &reply))) // READ_SINGLE_BLOCK
+        !checkReturnOk(rp2040_sdio_command_R1(sd_card_p, CMD17, sector, &reply))) // READ_SINGLE_BLOCK
     {
         return false;
     }
@@ -491,9 +492,9 @@ bool sd_sdio_readSectors(sd_card_t *sd_card_p, uint32_t sector, uint8_t* dst, si
     sd_callback_t callback = get_stream_callback(dst, n * 512, "readSectors", sector);
 
     uint32_t reply;
-    if (/* !checkReturnOk(rp2040_sdio_command_R1(16, 512, &reply)) || // SET_BLOCKLEN */
+    if (/* !checkReturnOk(rp2040_sdio_command_R1(sd_card_p, 16, 512, &reply)) || // SET_BLOCKLEN */
         !checkReturnOk(rp2040_sdio_rx_start(sd_card_p, dst, n)) || // Prepare for reception
-        !checkReturnOk(rp2040_sdio_command_R1(CMD18, sector, &reply))) // READ_MULTIPLE_BLOCK
+        !checkReturnOk(rp2040_sdio_command_R1(sd_card_p, CMD18, sector, &reply))) // READ_MULTIPLE_BLOCK
     {
         return false;
     }
@@ -520,14 +521,6 @@ bool sd_sdio_readSectors(sd_card_t *sd_card_p, uint32_t sector, uint8_t* dst, si
         return sd_sdio_stopTransmission(sd_card_p, true);
     }
 }
-
-// These functions are not used for SDIO mode but are needed to avoid build error.
-// void sdCsInit(SdCsPin_t pin) {}
-// void sdCsWrite(SdCsPin_t pin, bool level) {}
-
-// SDIO configuration for main program
-// SdioConfig g_sd_sdio_config(DMA_SDIO);
-// SdioConfig g_sd_sdio_config = {DMA_SDIO};
 
 static int sd_sdio_init(sd_card_t *sd_card_p) {
     // bool sd_sdio_begin(sd_card_t *sd_card_p);
@@ -580,12 +573,17 @@ static void gpio_conf(uint gpio, enum gpio_function fn, bool pullup, bool pulldo
 }
 
 void sd_sdio_ctor(sd_card_t *sd_card_p) {
+    assert(sd_card_p->sdio_if.D1_gpio == sd_card_p->sdio_if.D0_gpio + 1);
+    assert(sd_card_p->sdio_if.D2_gpio == sd_card_p->sdio_if.D1_gpio + 1);
+    assert(sd_card_p->sdio_if.D3_gpio == sd_card_p->sdio_if.D2_gpio + 1);
+
     sd_card_p->m_Status = STA_NOINIT;
 
     sd_card_p->init = sd_sdio_init;
     sd_card_p->write_blocks = sd_sdio_write_blocks;
     sd_card_p->read_blocks = sd_sdio_read_blocks;
     sd_card_p->get_num_sectors = sd_sdio_sectorCount;
+    sd_card_p->sd_readCID = sd_sdio_readCID;
 
     //        pin                          function        pup   pdown  out    state fast
     gpio_conf(sd_card_p->sdio_if.CLK_gpio, GPIO_FUNC_PIO1, true, false, true,  true, true);

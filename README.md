@@ -17,6 +17,7 @@ If you are migrating a project from an SPI-only branch, e.g., `master`, you will
 * Supports 4-bit wide SDIO by PIO, or SPI using built in SPI controllers, or both
 * Supports multiple SPIs
 * Supports multiple SD Cards per SPI
+* Designed to support multiple SDIO buses
 * Supports Real Time Clock for maintaining file and directory time stamps
 * Supports Cyclic Redundancy Check (CRC)
 * Plus all the neat features provided by [FatFS](http://elm-chan.org/fsw/ff/00index_e.html)
@@ -25,14 +26,16 @@ If you are migrating a project from an SPI-only branch, e.g., `master`, you will
 * SPI attached cards:
   * One or two Serial Peripheral Interface (SPI) controllers may be used.
   * For each SPI controller used, two DMA channels are claimed with `dma_claim_unused_channel`.
-  * DMA_IRQ_0 is hooked with `irq_add_shared_handler` and enabled.
+  * A configurable DMA IRQ is hooked with `irq_add_shared_handler` and enabled.
   * For each SPI controller used, one GPIO is needed for each of RX, TX, and SCK. Note: each SPI controller can only use a limited set of GPIOs for these functions.
   * For each SD card attached to an SPI controller, a GPIO is needed for CS, and, optionally, another for CD (Card Detect).
 * SDIO attached card:
   * A PIO block
-  * Two DMA channels
-  * A DMA interrupt
+  * Two DMA channels claimed with `dma_claim_unused_channel`
+  * A configurable DMA IRQ is hooked with `irq_add_shared_handler` and enabled.
   * Six GPIOs (four of which need to be consecutive: D0 - D3) for signal pins, and, optionally, another for CD (Card Detect).
+
+SPI and SDIO can share the same DMA IRQ.
 
 Complete `FatFS_SPI_example`, configured for one SPI attached card and one SDIO attached card, release build, as reported by link flag `-Wl,--print-memory-usage`:
 ```
@@ -43,7 +46,7 @@ Memory region         Used Size  Region Size  %age Used
 
 ## Performance
 Writing and reading a file of 64 MiB (67,108,864 byes) of psuedorandom data on a two freshly-formatted 
-Silicon Power 3D NAND 32GB microSD cards, one on SPI and one on SDIO, release build (using the command `big_file_test bf 64 3`):
+Silicon Power 3D NAND U1 32GB microSD cards, one on SPI and one on SDIO, release build (using the command `big_file_test bf 64 3`):
 * SPI:
   * Writing
     * Elapsed seconds 58.5
@@ -59,8 +62,22 @@ Silicon Power 3D NAND 32GB microSD cards, one on SPI and one on SDIO, release bu
     * Elapsed seconds 15.9
     * Transfer rate 4114 KiB/s (4213 kB/s) (33704 kb/s)
 
+Writing and reading a nearly 4 GiB file:
+```
+> big_file_test bf 4095 7
+Writing...
+Elapsed seconds 1360
+Transfer rate 3082 KiB/s (3156 kB/s) (25250 kb/s)
+Reading...
+Elapsed seconds 1047
+Transfer rate 4005 KiB/s (4101 kB/s) (32812 kb/s)
+> ls
+Directory Listing: 0:/
+bf [writable file] [size=4293918720]
+```
+
 Results from a port of SdFat's `bench` with a pair of 
-SanDisk Class 4 16 GB cards:
+SanDisk Class 10 A1 16 GB cards:
 
 SPI:
 ```
@@ -175,7 +192,7 @@ I just referred to the table above, wiring point-to-point from the Pin column on
 * Card Detect is optional. Some SD card sockets have no provision for it. 
 Even if it is provided by the hardware, if you have no requirement for it you can skip it and save a Pico I/O pin.
 * You can choose to use none, either or both of the Pico's SPIs.
-* You can choose to use up to one PIO SDIO interface. This limitation could be removed, but since each 4-bit SDIO requires at least six GPIOs,
+* You can choose to use zero or more PIO SDIO interfaces. [However, currently, the library has only been tested with zero or one.]
 I don't know that there's much call for it.
 * It's possible to put more than one card on an SDIO bus, but there is currently no support in this library for it.
 * For SDIO, data lines D0 - D3 must be on consecutive GPIOs, with D0 being the lowest numbered GPIO.
@@ -273,19 +290,28 @@ typedef struct sd_sdio_t {
     uint D1_gpio; // D0 must be the lowest numbered GPIO
     uint D2_gpio;
     uint D3_gpio;
+    PIO SDIO_PIO; // either pio0 or pio1
     uint DMA_IRQ_num; // DMA_IRQ_0 or DMA_IRQ_1
+    irq_handler_t dma_isr; // Unique DMA interrupt handler for this instance of sd_sdio_t
 //...
 } sd_sdio_t;
 ```
 * `CLK_gpio` RP2040 GPIO to use for Clock (CLK). This is a little quirky. It should be set to `SDIO_CLK_GPIO`, which is defined in `sd_driver/SDIO/rp2040_sdio.pio`, and that is where you should specify the GPIO number for the SDIO clock.
 * `CMD_gpio` RP2040 GPIO to use for Command/Response (CMD)
-* `D0_gpio` RP2040 GPIO to use for Data Line [Bit 0]
+* `D0_gpio` RP2040 GPIO to use for Data Line [Bit 0]. The PIO code requires D0 - D3 to be on consecutive GPIOs, with D0 being the lowest numbered GPIO.
 * `D1_gpio` RP2040 GPIO to use for Data Line [Bit 1]
 * `D2_gpio` RP2040 GPIO to use for Data Line [Bit 2]
 * `D3_gpio` RP2040 GPIO to use for Card Detect/Data Line [Bit 3]
-* `DMA_IRQ_num` Which IRQ to use for DMA. Defaults to DMA_IRQ_0. The handler is added with `irq_add_shared_handler`, so it's not exclusive.
-
-The PIO code requires D0 - D3 to be on consecutive GPIOs, with D0 being the lowest numbered GPIO.
+* `SDIO_PIO` Which PIO block to use. Defaults to `pio0`. Can be changed to avoid conflicts.
+* `DMA_IRQ_num` Which IRQ to use for DMA. Defaults to `DMA_IRQ_0`. The handler is added with `irq_add_shared_handler`, so it's not exclusive. Set this to avoid conflicts with any exclusive DMA IRQ handlers that might be elsewhere in the system.
+* `dma_isr` Function pointer to the unique DMA interrupt handler for this instance of sd_sdio_t. 
+  The handler takes the form of, for example:  
+```
+  void sdio0_dma_isr() { rp2040_sdio_tx_irq(&sd_cards[0]); }
+```  
+  where `rp2040_sdio_tx_irq` is the generic handler parameterized by a pointer to this instance.
+  In this case, you would set `.sdio_if.dma_isr = sdio0_dma_isr`.
+  (See `example/hw_config.c`.)
 
 ### An instance of `sd_spi_t` describes the configuration of one SPI to SD card interface.
 ```
@@ -315,6 +341,7 @@ typedef struct {
     uint sck_gpio;
     uint baud_rate;
     uint DMA_IRQ_num; // DMA_IRQ_0 or DMA_IRQ_1
+    irq_handler_t dma_isr;
 
     // Drive strength levels for GPIO outputs.
     // enum gpio_drive_strength { GPIO_DRIVE_STRENGTH_2MA = 0, GPIO_DRIVE_STRENGTH_4MA = 1, GPIO_DRIVE_STRENGTH_8MA = 2,
@@ -332,12 +359,22 @@ typedef struct {
 * `mosi_gpio` SPI Master Out, Slave In (MOSI) GPIO number. This is connected to the card's Data Out (DO).
 * `sck_gpio` SPI Serial Clock GPIO number. This is connected to the card's Serial Clock (SCK).
 * `baud_rate` Frequency of the SPI Serial Clock
-* `DMA_IRQ_num` Which IRQ to use for DMA. Defaults to DMA_IRQ_0. The handler is added with `irq_add_shared_handler`, so it's not exclusive.
 * `set_drive_strength` Specifies whether or not to set the RP2040 GPIO drive strength
 * `mosi_gpio_drive_strength` SPI Master Out, Slave In (MOSI) drive strength
 * `sck_gpio_drive_strength` SPI Serial Clock (SCK) drive strength
+* `DMA_IRQ_num` Which IRQ to use for DMA. Defaults to DMA_IRQ_0. The handler is added with `irq_add_shared_handler`, so it's not exclusive. Set this to avoid conflicts with any exclusive DMA IRQ handlers that might be elsewhere in the system.
+* `dma_isr` Each spi_t instance needs a unique DMA interrupt handler (or "Interrupt Service Routine [ISR]" or "Interrupt ReQuest handler [IRQ]"). The scheme here is to use a generic `spi_irq_handler` that is parameterized with a pointer to the specific `spi_t` instance. The specific handler takes the form of 
+```
+void spiX_dma_isr() { spi_irq_handler(spi_t *pSPI); }
+```
+where the `pSPI` points to the `spi_t` instance that this handler is for. For example, in `hw_config.c`
+```
+void spi0_dma_isr() { spi_irq_handler(&spis[0]); }
+```
+is the handler for the first `spi_t` instance in the `spi_t spis[]` array. 
+This handler is identified in the `dma_isr` field of `spi_t`. For example, `.dma_isr = spi0_dma_isr`.
 
-You must provide a definition for the functions declared in `sd_driver/hw_config.h`:  
+### You must provide a definition for the functions declared in `sd_driver/hw_config.h`:  
 `size_t spi_get_num()` Returns the number of SPIs to use  
 `spi_t *spi_get_by_num(size_t num)` Returns a pointer to the SPI "object" at the given (zero origin) index  
 `size_t sd_get_num()` Returns the number of SD cards  

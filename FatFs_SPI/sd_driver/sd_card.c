@@ -54,16 +54,6 @@ bool sd_card_detect(sd_card_t *sd_card_p) {
     }
 }
 
-bool sd_readCID(sd_card_t *sd_card_p, cid_t *cid) {
-    switch (sd_card_p->type) {
-        case SD_IF_SPI:
-            return sd_spi_readCID(sd_card_p, cid);
-        case SD_IF_SDIO:
-            return sd_sdio_readCID(sd_card_p, cid);
-    }  // switch (sd_card_p->type)
-    return false;
-}
-
 bool sd_init_driver() {
     static bool initialized;
     auto_init_mutex(initialized_mutex);

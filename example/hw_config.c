@@ -36,8 +36,10 @@ socket, which SPI it is driven by, and how it is wired.
 #include "diskio.h" /* Declarations of disk functions */
 //
 #include "rp2040_sdio.pio.h"
+#include "SDIO/rp2040_sdio.h"
 
-void spi_dma_isr();
+void spi0_dma_isr(); // Forward declaration of spis[0]'s DMA ISR
+void sdio0_dma_isr(); // Forward declaration of sd_cards[0].sdio_if's DMA ISR
 
 // Hardware Configuration of SPI "objects"
 // Note: multiple SD cards can be driven by one SPI if they use different slave
@@ -54,8 +56,8 @@ static spi_t spis[] = {  // One for each SPI.
 
         .baud_rate = 25 * 1000 * 1000, // Actual frequency: 20833333. 
 
-        .DMA_IRQ_num = DMA_IRQ_0,
-        .dma_isr = spi_dma_isr
+        .DMA_IRQ_num = DMA_IRQ_1,
+        .dma_isr = spi0_dma_isr
     }
 };
 
@@ -71,7 +73,9 @@ static sd_card_t sd_cards[] = {  // One for each SD card
         .sdio_if.D1_gpio = 20,
         .sdio_if.D2_gpio = 21,
         .sdio_if.D3_gpio = 22,
-        .sdio_if.DMA_IRQ_num = DMA_IRQ_0,
+        .sdio_if.SDIO_PIO = pio1,
+        .sdio_if.DMA_IRQ_num = DMA_IRQ_1,
+        .sdio_if.dma_isr = sdio0_dma_isr,
 
         .use_card_detect = true,    
         .card_detect_gpio = 16,   // Card detect
@@ -91,7 +95,8 @@ static sd_card_t sd_cards[] = {  // One for each SD card
     }
 };
 
-void spi_dma_isr() { spi_irq_handler(&spis[0]); }
+void spi0_dma_isr() { spi_irq_handler(&spis[0]); } // spis[0]'s DMA ISR
+void sdio0_dma_isr() { rp2040_sdio_tx_irq(&sd_cards[0]); } // sd_cards[0].sdio_if's DMA ISR
 
 /* ********************************************************************** */
 size_t sd_get_num() { return count_of(sd_cards); }

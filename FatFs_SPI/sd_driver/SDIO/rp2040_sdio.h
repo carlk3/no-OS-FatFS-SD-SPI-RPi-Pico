@@ -25,14 +25,14 @@ enum sdio_status_t {
 
 // Execute a command that has 48-bit reply (response types R1, R6, R7)
 // If response is NULL, does not wait for reply.
-sdio_status_t rp2040_sdio_command_R1(uint8_t command, uint32_t arg, uint32_t *response);
+sdio_status_t rp2040_sdio_command_R1(sd_card_t *sd_card_p, uint8_t command, uint32_t arg, uint32_t *response);
 
 // Execute a command that has 136-bit reply (response type R2)
 // Response buffer should have space for 16 bytes (the 128 bit payload)
-sdio_status_t rp2040_sdio_command_R2(uint8_t command, uint32_t arg, uint8_t *response);
+sdio_status_t rp2040_sdio_command_R2(sd_card_t *sd_card_p, uint8_t command, uint32_t arg, uint8_t *response);
 
 // Execute a command that has 48-bit reply but without CRC (response R3)
-sdio_status_t rp2040_sdio_command_R3(uint8_t command, uint32_t arg, uint32_t *response);
+sdio_status_t rp2040_sdio_command_R3(sd_card_t *sd_card_p, uint8_t command, uint32_t arg, uint32_t *response);
 
 // Start transferring data from SD card to memory buffer
 // Transfer block size is always 512 bytes.
@@ -53,3 +53,6 @@ sdio_status_t rp2040_sdio_stop();
 
 // (Re)initialize the SDIO interface
 void rp2040_sdio_init(sd_card_t *sd_card_p, int clock_divider /* = 1 */);
+
+// DMA interrupt request handler
+void rp2040_sdio_tx_irq(sd_card_t *sd_card_p);

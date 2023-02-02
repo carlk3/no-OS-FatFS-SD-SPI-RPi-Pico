@@ -18,8 +18,8 @@
 void add_spi(spi_t *const spi);
 void add_sd_card(sd_card_t *const sd_card);
 
-static spi_t *p_spi;
-void spi_dma_isr() { spi_irq_handler(p_spi); }
+static spi_t *p_spi; // This could be an array or vector or something
+void spi0_dma_isr() { spi_irq_handler(p_spi); } // Need a unique interrupt handler for each instance of spi_t
 
 void test(sd_card_t *pSD) {
     // See FatFs - Generic FAT Filesystem Module, "Application Interface",
@@ -60,7 +60,7 @@ int main() {
     p_spi->mosi_gpio = 15;
     p_spi->sck_gpio = 14;
     p_spi->baud_rate = 25 * 1000 * 1000, // Actual frequency: 20833333. 
-    p_spi->dma_isr = spi_dma_isr;
+    p_spi->dma_isr = spi0_dma_isr;
     p_spi->initialized = false;  // initialized flag
     add_spi(p_spi);
 
@@ -85,7 +85,6 @@ int main() {
     memset(p_sd_card, 0, sizeof(sd_card_t));
     p_sd_card->pcName = "1:";  // Name used to mount device
     p_sd_card->type = SD_IF_SDIO,
-    p_sd_card->sdio_if.m_options = DMA_SDIO,
     p_sd_card->sdio_if.CLK_gpio = SDIO_CLK_GPIO, // From sd_driver/SDIO/rp2040_sdio.pio
     p_sd_card->sdio_if.CMD_gpio = 18,
     p_sd_card->sdio_if.D0_gpio = 19,

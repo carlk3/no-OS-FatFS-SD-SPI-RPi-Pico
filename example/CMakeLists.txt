@@ -8,6 +8,8 @@ project(FatFS_SPI_example C CXX ASM)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 
+# add_compile_options(-Os) # Optimize for size (place before pico_sdk_init)
+
 # Initialise the Pico SDK
 pico_sdk_init()
 

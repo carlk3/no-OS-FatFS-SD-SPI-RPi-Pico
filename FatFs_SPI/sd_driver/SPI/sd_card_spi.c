@@ -588,7 +588,7 @@ static int sd_cmd8(sd_card_t *sd_card_p) {
 
 static int sd_read_bytes(sd_card_t *sd_card_p, uint8_t *buffer, uint32_t length);
 
-static uint64_t sd_sectors_nolock(sd_card_t *sd_card_p) {
+static uint64_t in_sd_spi_sectors(sd_card_t *sd_card_p) {
     uint32_t c_size, c_size_mult, read_bl_len;
     uint32_t block_len, mult, blocknr;
     uint32_t hc_c_size;
@@ -643,9 +643,9 @@ static uint64_t sd_sectors_nolock(sd_card_t *sd_card_p) {
     };
     return blocks;
 }
-uint64_t sd_sectors(sd_card_t *sd_card_p) {
+uint64_t sd_spi_sectors(sd_card_t *sd_card_p) {
     sd_acquire(sd_card_p);
-    uint64_t sectors = sd_sectors_nolock(sd_card_p);
+    uint64_t sectors = in_sd_spi_sectors(sd_card_p);
     sd_release(sd_card_p);
     return sectors;
 }
@@ -1097,7 +1097,7 @@ int sd_spi_init(sd_card_t *sd_card_p) {
         return sd_card_p->m_Status;
     }
     DBG_PRINTF("SD card initialized\r\n");
-    sd_card_p->sectors = sd_sectors_nolock(sd_card_p);
+    sd_card_p->sectors = in_sd_spi_sectors(sd_card_p);
     if (0 == sd_card_p->sectors) {
         // CMD9 failed
         sd_spi_release(sd_card_p);
@@ -1130,7 +1130,8 @@ void sd_spi_ctor(sd_card_t *sd_card_p) {
     sd_card_p->write_blocks = sd_write_blocks;
     sd_card_p->read_blocks = sd_read_blocks;
     sd_card_p->init = sd_spi_init;
-    sd_card_p->get_num_sectors = sd_sectors;
+    sd_card_p->get_num_sectors = sd_spi_sectors;
+    sd_card_p->sd_readCID = sd_spi_readCID;
 
     if (sd_card_p->use_card_detect) {
         gpio_init(sd_card_p->card_detect_gpio);

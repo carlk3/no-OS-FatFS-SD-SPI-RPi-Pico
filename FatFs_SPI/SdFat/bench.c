@@ -61,7 +61,7 @@ static sd_card_t* sd_card_p;
 
 static void cidDmp() {
     cid_t cid;
-    if (!sd_readCID(sd_card_p, &cid)) {
+    if (!sd_card_p->sd_readCID(sd_card_p, &cid)) {
         error("readCID failed");
     }
     printf("\nManufacturer ID: ");

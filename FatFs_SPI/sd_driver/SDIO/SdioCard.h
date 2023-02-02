@@ -229,6 +229,6 @@ bool sd_sdio_writeStart(sd_card_t *sd_card_p, uint32_t sector, uint32_t count);
  */
 bool sd_sdio_writeStop(sd_card_t *sd_card_p);
 
-void sd_sdio_ctor(sd_card_t *pSD);
+void sd_sdio_ctor(sd_card_t *sd_card_p);
 
 #endif  // sd_sdio_h

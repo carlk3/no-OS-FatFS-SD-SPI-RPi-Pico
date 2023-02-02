@@ -16,5 +16,5 @@ specific language governing permissions and limitations under the License.
 
 #include "../SdFat/SdCardInfo.h"
 
-void sd_spi_ctor(sd_card_t *pSD);  // Constructor for sd_card_t
+void sd_spi_ctor(sd_card_t *sd_card_p);  // Constructor for sd_card_t
 bool sd_spi_readCID(sd_card_t *sd_card_p, cid_t* cid);

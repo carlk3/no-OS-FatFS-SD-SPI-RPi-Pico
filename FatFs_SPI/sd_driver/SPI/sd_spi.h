@@ -20,11 +20,11 @@ specific language governing permissions and limitations under the License.
 
 /* Transfer tx to SPI while receiving SPI to rx. 
 tx or rx can be NULL if not important. */
-bool sd_spi_transfer(sd_card_t *pSD, const uint8_t *tx, uint8_t *rx, size_t length);
-uint8_t sd_spi_write(sd_card_t *pSD, const uint8_t value);
-void sd_spi_deselect_pulse(sd_card_t *pSD);
-void sd_spi_acquire(sd_card_t *pSD);
-void sd_spi_release(sd_card_t *pSD);
+bool sd_spi_transfer(sd_card_t *sd_card_p, const uint8_t *tx, uint8_t *rx, size_t length);
+uint8_t sd_spi_write(sd_card_t *sd_card_p, const uint8_t value);
+void sd_spi_deselect_pulse(sd_card_t *sd_card_p);
+void sd_spi_acquire(sd_card_t *sd_card_p);
+void sd_spi_release(sd_card_t *sd_card_p);
 void sd_spi_go_low_frequency(sd_card_t *this);
 void sd_spi_go_high_frequency(sd_card_t *this);
 
@@ -35,7 +35,7 @@ This sequence is a contiguous stream of logical ‘1’s. The sequence length is
 (over the 64 clocks after what the card should be ready for communication) is
 provided to eliminate power-up synchronization problems. 
 */
-void sd_spi_send_initializing_sequence(sd_card_t * pSD);
+void sd_spi_send_initializing_sequence(sd_card_t * sd_card_p);
 
 #endif
 

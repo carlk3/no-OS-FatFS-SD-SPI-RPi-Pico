@@ -101,14 +101,6 @@ static void run_setrtc() {
                     .sec = static_cast<int8_t>(sec)};
     rtc_set_datetime(&t);
 }
-static void run_lliot() {
-    size_t pnum = 0;
-    char *arg1 = strtok(NULL, " ");
-    if (arg1) {
-        pnum = strtoul(arg1, NULL, 0);
-    }
-    lliot(pnum);
-}
 static void run_date() {
     char buf[128] = {0};
     time_t epoch_secs = time(NULL);
@@ -121,9 +113,26 @@ static void run_date() {
                     // 001 to 366).
     printf("Day of year: %s\n", buf);
 }
+static void run_lliot() {
+    char *arg1 = strtok(NULL, " ");
+    if (!arg1 && 1 != sd_get_num()) {
+        printf("Missing argument: Specify physical drive number\n");
+        return;
+    }    
+    size_t pnum = 0;
+    if (arg1) {
+        pnum = strtoul(arg1, NULL, 0);
+    }
+    lliot(pnum);
+}
 static void run_format() {
     const char *arg1 = strtok(NULL, " ");
-    if (!arg1) arg1 = sd_get_by_num(0)->pcName;
+    if (!arg1 && 1 == sd_get_num()) 
+        arg1 = sd_get_by_num(0)->pcName;
+    else if (!arg1) {
+        printf("Missing argument: Specify logical drive\n");
+        return;
+    }    
     FATFS *p_fs = sd_get_fs_by_name(arg1);
     if (!p_fs) {
         printf("Unknown logical drive number: \"%s\"\n", arg1);
@@ -135,7 +144,12 @@ static void run_format() {
 }
 static void run_mount() {
     const char *arg1 = strtok(NULL, " ");
-    if (!arg1) arg1 = sd_get_by_num(0)->pcName;
+    if (!arg1 && 1 == sd_get_num()) 
+        arg1 = sd_get_by_num(0)->pcName;
+    else if (!arg1) {
+        printf("Missing argument: Specify logical drive\n");
+        return;
+    }    
     FATFS *p_fs = sd_get_fs_by_name(arg1);
     if (!p_fs) {
         printf("Unknown logical drive number: \"%s\"\n", arg1);
@@ -152,7 +166,12 @@ static void run_mount() {
 }
 static void run_unmount() {
     const char *arg1 = strtok(NULL, " ");
-    if (!arg1) arg1 = sd_get_by_num(0)->pcName;
+    if (!arg1 && 1 == sd_get_num()) 
+        arg1 = sd_get_by_num(0)->pcName;
+    else if (!arg1) {
+        printf("Missing argument: Specify logical drive\n");
+        return;
+    }    
     FATFS *p_fs = sd_get_fs_by_name(arg1);
     if (!p_fs) {
         printf("Unknown logical drive number: \"%s\"\n", arg1);
@@ -176,14 +195,19 @@ static void run_chdrive() {
 }
 static void run_getfree() {
     const char *arg1 = strtok(NULL, " ");
-    if (!arg1) arg1 = sd_get_by_num(0)->pcName;
-    DWORD fre_clust, fre_sect, tot_sect;
+    if (!arg1 && 1 == sd_get_num()) 
+        arg1 = sd_get_by_num(0)->pcName;
+    else if (!arg1) {
+        printf("Missing argument: Specify logical drive\n");
+        return;
+    }    
     /* Get volume information and free clusters of drive */
     FATFS *p_fs = sd_get_fs_by_name(arg1);
     if (!p_fs) {
         printf("Unknown logical drive number: \"%s\"\n", arg1);
         return;
     }
+    DWORD fre_clust, fre_sect, tot_sect;
     FRESULT fr = f_getfree(arg1, &fre_clust, &p_fs);
     if (FR_OK != fr) {
         printf("f_getfree error: %s (%d)\n", FRESULT_str(fr), fr);
@@ -328,10 +352,12 @@ static void run_del_node() {
 }
 static void run_bench() {
     const char *arg1 = strtok(NULL, " ");
-    if (!arg1) {
+    if (!arg1 && 1 == sd_get_num()) 
+        arg1 = sd_get_by_num(0)->pcName;
+    else if (!arg1) {
         printf("Missing argument: Specify logical drive\n");
         return;
-    }
+    }    
     bench(arg1);
 }
 static void run_cdef() {
