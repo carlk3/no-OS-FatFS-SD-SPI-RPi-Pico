@@ -54,6 +54,7 @@ static spi_t spis[] = {  // One for each SPI.
 
         .baud_rate = 25 * 1000 * 1000, // Actual frequency: 20833333. 
 
+        .DMA_IRQ_num = DMA_IRQ_0,
         .dma_isr = spi_dma_isr
     }
 };
@@ -62,6 +63,7 @@ static spi_t spis[] = {  // One for each SPI.
 static sd_card_t sd_cards[] = {  // One for each SD card
     {
         .pcName = "0:",   // Name used to mount device
+
         .type = SD_IF_SDIO,
         .sdio_if.CLK_gpio = SDIO_CLK_GPIO, // From sd_driver/SDIO/rp2040_sdio.pio
         .sdio_if.CMD_gpio = 18,
@@ -69,6 +71,8 @@ static sd_card_t sd_cards[] = {  // One for each SD card
         .sdio_if.D1_gpio = 20,
         .sdio_if.D2_gpio = 21,
         .sdio_if.D3_gpio = 22,
+        .sdio_if.DMA_IRQ_num = DMA_IRQ_0,
+
         .use_card_detect = true,    
         .card_detect_gpio = 16,   // Card detect
         .card_detected_true = 1   // What the GPIO read returns when a card is

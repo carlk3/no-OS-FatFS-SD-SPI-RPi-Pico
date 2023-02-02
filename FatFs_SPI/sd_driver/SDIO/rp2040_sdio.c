@@ -801,6 +801,15 @@ void rp2040_sdio_init(sd_card_t *sd_card_p, int clock_divider)
         pio_sm_claim(SDIO_PIO, SDIO_DATA_SM);
         dma_channel_claim(SDIO_DMA_CH);
         dma_channel_claim(SDIO_DMA_CHB);
+
+        // Set up IRQ handler when DMA completes.
+        if (!sd_card_p->sdio_if.DMA_IRQ_num)
+            sd_card_p->sdio_if.DMA_IRQ_num = DMA_IRQ_0;
+        static_sd_card_p = sd_card_p;
+        irq_add_shared_handler(
+            sd_card_p->sdio_if.DMA_IRQ_num, rp2040_sdio_tx_irq,
+            PICO_SHARED_IRQ_HANDLER_DEFAULT_ORDER_PRIORITY);
+
         resources_claimed = true;
     }
 
@@ -864,13 +873,5 @@ void rp2040_sdio_init(sd_card_t *sd_card_p, int clock_divider)
     gpio_set_function(sd_card_p->sdio_if.D2_gpio, GPIO_FUNC_PIO1);
     gpio_set_function(sd_card_p->sdio_if.D3_gpio, GPIO_FUNC_PIO1);
 
-    // Set up IRQ handler when DMA completes.
-    if (!sd_card_p->sdio_if.DMA_IRQ_num)
-        sd_card_p->sdio_if.DMA_IRQ_num = DMA_IRQ_0;
-    static_sd_card_p = sd_card_p;
-
-    irq_add_shared_handler(
-        sd_card_p->sdio_if.DMA_IRQ_num, rp2040_sdio_tx_irq,
-        PICO_SHARED_IRQ_HANDLER_DEFAULT_ORDER_PRIORITY);
     irq_set_enabled(sd_card_p->sdio_if.DMA_IRQ_num, true);
 }
