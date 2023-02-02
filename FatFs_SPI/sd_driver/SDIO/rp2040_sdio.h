@@ -43,7 +43,7 @@ sdio_status_t rp2040_sdio_rx_start(sd_card_t *sd_card_p, uint8_t *buffer, uint32
 sdio_status_t rp2040_sdio_rx_poll(sd_card_t *sd_card_p, uint32_t *bytes_complete /* = nullptr */);
 
 // Start transferring data from memory to SD card
-sdio_status_t rp2040_sdio_tx_start(const uint8_t *buffer, uint32_t num_blocks);
+sdio_status_t rp2040_sdio_tx_start(sd_card_t *sd_card_p, const uint8_t *buffer, uint32_t num_blocks);
 
 // Check if transmission is complete
 sdio_status_t rp2040_sdio_tx_poll(sd_card_t *sd_card_p, uint32_t *bytes_complete /* = nullptr */);

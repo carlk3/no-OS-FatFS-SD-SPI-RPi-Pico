@@ -56,10 +56,11 @@ typedef enum {
 typedef struct sd_sdio_t {
     uint CLK_gpio;
     uint CMD_gpio;
-    uint D0_gpio;
-    uint D1_gpio;
+    uint D0_gpio; // D0 - D3 must be on consecutive GPIOs
+    uint D1_gpio; // D0 must be the lowest numbered GPIO
     uint D2_gpio;
     uint D3_gpio;
+    uint DMA_IRQ_num; // DMA_IRQ_0 or DMA_IRQ_1
     uint32_t m_curSector;
 } sd_sdio_t;
 

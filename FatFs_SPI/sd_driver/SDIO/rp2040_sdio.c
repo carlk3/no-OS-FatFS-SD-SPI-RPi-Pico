@@ -32,7 +32,7 @@
 #define SDIO_PIO pio1
 #define SDIO_CMD_SM 0
 #define SDIO_DATA_SM 1
-#define SDIO_DMA_CH 4
+#define SDIO_DMA_CH 4  //FIXME
 #define SDIO_DMA_CHB 5
 
 // Maximum number of 512 byte blocks to transfer in one request
@@ -73,7 +73,7 @@ static struct {
     } received_checksums[SDIO_MAX_BLOCKS];
 } g_sdio;
 
-void rp2040_sdio_dma_irq();
+// void rp2040_sdio_dma_irq();
 
 /*******************************************************
  * Checksum algorithms
@@ -527,7 +527,7 @@ sdio_status_t rp2040_sdio_rx_poll(sd_card_t *sd_card_p, uint32_t *bytes_complete
  * Data transmission to SD card
  *******************************************************/
 
-static void sdio_start_next_block_tx()
+static void sdio_start_next_block_tx(sd_card_t *sd_card_p)
 {
     // Initialize PIO
     pio_sm_init(SDIO_PIO, SDIO_DATA_SM, g_sdio.pio_data_tx_offset, &g_sdio.pio_cfg_data_tx);
@@ -552,10 +552,20 @@ static void sdio_start_next_block_tx()
     channel_config_set_bswap(&dmacfg, false);
     dma_channel_configure(SDIO_DMA_CHB, &dmacfg,
         &SDIO_PIO->txf[SDIO_DATA_SM], g_sdio.end_token_buf, 3, false);
-    
+
     // Enable IRQ to trigger when block is done
-    dma_hw->ints1 = 1 << SDIO_DMA_CHB;
-    dma_set_irq1_channel_mask_enabled(1 << SDIO_DMA_CHB, 1);
+    switch (sd_card_p->sdio_if.DMA_IRQ_num) {
+        case DMA_IRQ_0:
+            dma_hw->ints0 = 1 << SDIO_DMA_CHB;
+            dma_set_irq0_channel_mask_enabled(1 << SDIO_DMA_CHB, 1);
+            break;
+        case DMA_IRQ_1:
+            dma_hw->ints1 = 1 << SDIO_DMA_CHB;
+            dma_set_irq1_channel_mask_enabled(1 << SDIO_DMA_CHB, 1);
+            break;
+        default:
+            assert(false);
+    }
 
     // Initialize register X with nibble count and register Y with response bit count
     pio_sm_put(SDIO_PIO, SDIO_DATA_SM, 1048);
@@ -584,7 +594,7 @@ static void sdio_compute_next_tx_checksum()
 }
 
 // Start transferring data from memory to SD card
-sdio_status_t rp2040_sdio_tx_start(const uint8_t *buffer, uint32_t num_blocks)
+sdio_status_t rp2040_sdio_tx_start(sd_card_t *sd_card_p, const uint8_t *buffer, uint32_t num_blocks)
 {
     // Buffer must be aligned
     assert(((uint32_t)buffer & 3) == 0 && num_blocks <= SDIO_MAX_BLOCKS);
@@ -602,7 +612,7 @@ sdio_status_t rp2040_sdio_tx_start(const uint8_t *buffer, uint32_t num_blocks)
     sdio_compute_next_tx_checksum();
 
     // Start first DMA transfer and PIO
-    sdio_start_next_block_tx();
+    sdio_start_next_block_tx(sd_card_p);
 
     if (g_sdio.blocks_checksumed < g_sdio.total_blocks)
     {
@@ -653,7 +663,25 @@ static sd_card_t *static_sd_card_p;  //FIXME
 // When a block finishes, this IRQ handler starts the next one
 static void rp2040_sdio_tx_irq()
 {
-    dma_hw->ints1 = 1 << SDIO_DMA_CHB;
+    bool ours = false;
+    switch (static_sd_card_p->sdio_if.DMA_IRQ_num) {
+        case DMA_IRQ_0:
+            if (dma_hw->ints0 & 1 << SDIO_DMA_CHB) {
+                dma_hw->ints0 = 1 << SDIO_DMA_CHB; // clear it
+                ours = true;
+            }
+            break;
+        case DMA_IRQ_1:
+            if (dma_hw->ints1 & 1 << SDIO_DMA_CHB) {
+                dma_hw->ints1 = 1 << SDIO_DMA_CHB; // clear it
+                ours = true;
+            }
+            break;
+        default:
+            assert(false);
+    }
+    if (!ours) // shared interrupt
+        return;
 
     if (g_sdio.transfer_state == SDIO_TX)
     {
@@ -696,7 +724,7 @@ static void rp2040_sdio_tx_irq()
             g_sdio.blocks_done++;
             if (g_sdio.blocks_done < g_sdio.total_blocks)
             {
-                sdio_start_next_block_tx();
+                sdio_start_next_block_tx(static_sd_card_p);
                 g_sdio.transfer_state = SDIO_TX;
 
                 if (g_sdio.blocks_checksumed < g_sdio.total_blocks)
@@ -721,7 +749,7 @@ sdio_status_t rp2040_sdio_tx_poll(sd_card_t *sd_card_p, uint32_t *bytes_complete
     {
         // Verify that IRQ handler gets called even if we are in hardfault handler
         static_sd_card_p = sd_card_p;
-        rp2040_sdio_tx_irq();
+        rp2040_sdio_tx_irq(sd_card_p);
     }
 
     if (bytes_complete)
@@ -837,8 +865,12 @@ void rp2040_sdio_init(sd_card_t *sd_card_p, int clock_divider)
     gpio_set_function(sd_card_p->sdio_if.D3_gpio, GPIO_FUNC_PIO1);
 
     // Set up IRQ handler when DMA completes.
+    if (!sd_card_p->sdio_if.DMA_IRQ_num)
+        sd_card_p->sdio_if.DMA_IRQ_num = DMA_IRQ_0;
     static_sd_card_p = sd_card_p;
-    if (irq_has_shared_handler(DMA_IRQ_1)) panic("irq_has_shared_handler(DMA_IRQ_1)\n");
-    irq_set_exclusive_handler(DMA_IRQ_1, rp2040_sdio_tx_irq);
-    irq_set_enabled(DMA_IRQ_1, true);
+
+    irq_add_shared_handler(
+        sd_card_p->sdio_if.DMA_IRQ_num, rp2040_sdio_tx_irq,
+        PICO_SHARED_IRQ_HANDLER_DEFAULT_ORDER_PRIORITY);
+    irq_set_enabled(sd_card_p->sdio_if.DMA_IRQ_num, true);
 }

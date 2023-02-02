@@ -328,7 +328,10 @@ static void run_del_node() {
 }
 static void run_bench() {
     const char *arg1 = strtok(NULL, " ");
-    if (!arg1) arg1 = sd_get_by_num(0)->pcName;
+    if (!arg1) {
+        printf("Missing argument: Specify logical drive\n");
+        return;
+    }
     bench(arg1);
 }
 static void run_cdef() {
@@ -407,7 +410,7 @@ static cmd_def_t cmds[] = {
     {"ls", run_ls, "ls:\n  List directory"},
     {"cat", run_cat, "cat <filename>:\n  Type file contents"},
     {"simple", simple, "simple:\n  Run simple FS tests"},
-    {"bench", run_bench, "bench [<drive#:>]:\n  A simple binary write/read benchmark"},
+    {"bench", run_bench, "bench <drive#:>:\n  A simple binary write/read benchmark"},
     {"big_file_test", run_big_file_test,
      "big_file_test <pathname> <size in MiB> <seed>:\n"
      " Writes random data to file <pathname>.\n"

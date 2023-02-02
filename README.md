@@ -269,11 +269,12 @@ struct sd_card_t {
 typedef struct sd_sdio_t {
     uint CLK_gpio;
     uint CMD_gpio;
-    uint D0_gpio;
-    uint D1_gpio;
+    uint D0_gpio; // D0 - D3 must be on consecutive GPIOs
+    uint D1_gpio; // D0 must be the lowest numbered GPIO
     uint D2_gpio;
     uint D3_gpio;
-// ...    
+    uint DMA_IRQ_num; // DMA_IRQ_0 or DMA_IRQ_1
+//...
 } sd_sdio_t;
 ```
 * `CLK_gpio` RP2040 GPIO to use for Clock (CLK). This is a little quirky. It should be set to `SDIO_CLK_GPIO`, which is defined in `sd_driver/SDIO/rp2040_sdio.pio`, and that is where you should specify the GPIO number for the SDIO clock.
@@ -282,6 +283,7 @@ typedef struct sd_sdio_t {
 * `D1_gpio` RP2040 GPIO to use for Data Line [Bit 1]
 * `D2_gpio` RP2040 GPIO to use for Data Line [Bit 2]
 * `D3_gpio` RP2040 GPIO to use for Card Detect/Data Line [Bit 3]
+* `DMA_IRQ_num` Which IRQ to use for DMA. Defaults to DMA_IRQ_0. The handler is added with `irq_add_shared_handler`, so it's not exclusive.
 
 The PIO code requires D0 - D3 to be on consecutive GPIOs, with D0 being the lowest numbered GPIO.
 
@@ -312,6 +314,7 @@ typedef struct {
     uint mosi_gpio;
     uint sck_gpio;
     uint baud_rate;
+    uint DMA_IRQ_num; // DMA_IRQ_0 or DMA_IRQ_1
 
     // Drive strength levels for GPIO outputs.
     // enum gpio_drive_strength { GPIO_DRIVE_STRENGTH_2MA = 0, GPIO_DRIVE_STRENGTH_4MA = 1, GPIO_DRIVE_STRENGTH_8MA = 2,
@@ -329,6 +332,7 @@ typedef struct {
 * `mosi_gpio` SPI Master Out, Slave In (MOSI) GPIO number. This is connected to the card's Data Out (DO).
 * `sck_gpio` SPI Serial Clock GPIO number. This is connected to the card's Serial Clock (SCK).
 * `baud_rate` Frequency of the SPI Serial Clock
+* `DMA_IRQ_num` Which IRQ to use for DMA. Defaults to DMA_IRQ_0. The handler is added with `irq_add_shared_handler`, so it's not exclusive.
 * `set_drive_strength` Specifies whether or not to set the RP2040 GPIO drive strength
 * `mosi_gpio_drive_strength` SPI Master Out, Slave In (MOSI) drive strength
 * `sck_gpio_drive_strength` SPI Serial Clock (SCK) drive strength

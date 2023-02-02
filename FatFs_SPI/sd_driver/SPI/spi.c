@@ -22,28 +22,25 @@ specific language governing permissions and limitations under the License.
 //
 #include "spi.h"
 
-static bool irqChannel1 = false;
-static bool irqShared = true;
-
 void spi_irq_handler(spi_t *pSPI) {
-    if (irqChannel1) {
-        if (dma_hw->ints1 & 1u << pSPI->rx_dma) {  // Ours?
-            dma_hw->ints1 = 1u << pSPI->rx_dma;    // clear it
-            myASSERT(!dma_channel_is_busy(pSPI->rx_dma));
-            sem_release(&pSPI->sem);
-        }
-    } else {
-        if (dma_hw->ints0 & 1u << pSPI->rx_dma) {  // Ours?
-            dma_hw->ints0 = 1u << pSPI->rx_dma;    // clear it
-            myASSERT(!dma_channel_is_busy(pSPI->rx_dma));
-            sem_release(&pSPI->sem);
-        }
+    switch (pSPI->DMA_IRQ_num) {
+        case DMA_IRQ_0:
+            if (dma_hw->ints0 & 1u << pSPI->rx_dma) {  // Ours?
+                dma_hw->ints0 = 1u << pSPI->rx_dma;    // clear it
+                myASSERT(!dma_channel_is_busy(pSPI->rx_dma));
+                sem_release(&pSPI->sem);
+            }
+            break;
+        case DMA_IRQ_1:
+            if (dma_hw->ints1 & 1u << pSPI->rx_dma) {  // Ours?
+                dma_hw->ints1 = 1u << pSPI->rx_dma;    // clear it
+                myASSERT(!dma_channel_is_busy(pSPI->rx_dma));
+                sem_release(&pSPI->sem);
+            }
+            break;
+        default:
+            myASSERT(false);
     }
-}
-
-void set_spi_dma_irq_channel(bool useChannel1, bool shared) {
-    irqChannel1 = useChannel1;
-    irqShared = shared;
 }
 
 // SPI Transfer: Read & Write (simultaneously) on SPI bus
@@ -194,22 +191,24 @@ bool my_spi_init(spi_t *pSPI) {
 
         // Configure the processor to run dma_handler() when DMA IRQ 0/1 is
         // asserted:
-        int irq = irqChannel1 ? DMA_IRQ_1 : DMA_IRQ_0;
-        if (irqShared) {
-            irq_add_shared_handler(
-                irq, pSPI->dma_isr,
-                PICO_SHARED_IRQ_HANDLER_DEFAULT_ORDER_PRIORITY);
-        } else {
-            irq_set_exclusive_handler(irq, pSPI->dma_isr);
-        }
+        if (!pSPI->DMA_IRQ_num) 
+            pSPI->DMA_IRQ_num = DMA_IRQ_0;
+        irq_add_shared_handler(
+            pSPI->DMA_IRQ_num, pSPI->dma_isr,
+            PICO_SHARED_IRQ_HANDLER_DEFAULT_ORDER_PRIORITY);
 
         // Tell the DMA to raise IRQ line 0/1 when the channel finishes a block
-        if (irqChannel1) {
-            dma_channel_set_irq1_enabled(pSPI->rx_dma, true);
-        } else {
+        switch (pSPI->DMA_IRQ_num) {
+        case DMA_IRQ_0:
             dma_channel_set_irq0_enabled(pSPI->rx_dma, true);
+        break;
+        case DMA_IRQ_1:
+            dma_channel_set_irq1_enabled(pSPI->rx_dma, true);
+        break;
+        default:
+            myASSERT(false);
         }
-        irq_set_enabled(irq, true);
+        irq_set_enabled(pSPI->DMA_IRQ_num, true);
         LED_INIT();
         pSPI->initialized = true;
         spi_unlock(pSPI);

@@ -357,7 +357,7 @@ bool sd_sdio_writeSector(sd_card_t *sd_card_p, uint32_t sector, const uint8_t* s
     uint32_t reply;
     if (/* !checkReturnOk(rp2040_sdio_command_R1(16, 512, &reply)) || // SET_BLOCKLEN */
         !checkReturnOk(rp2040_sdio_command_R1(CMD24, sector, &reply)) || // WRITE_BLOCK
-        !checkReturnOk(rp2040_sdio_tx_start(src, 1))) // Start transmission
+        !checkReturnOk(rp2040_sdio_tx_start(sd_card_p, src, 1))) // Start transmission
     {
         return false;
     }
@@ -402,7 +402,7 @@ bool sd_sdio_writeSectors(sd_card_t *sd_card_p, uint32_t sector, const uint8_t* 
         !checkReturnOk(rp2040_sdio_command_R1(CMD55, g_sdio_rca, &reply)) || // APP_CMD
         !checkReturnOk(rp2040_sdio_command_R1(ACMD23, n, &reply)) || // SET_WR_CLK_ERASE_COUNT
         !checkReturnOk(rp2040_sdio_command_R1(CMD25, sector, &reply)) || // WRITE_MULTIPLE_BLOCK
-        !checkReturnOk(rp2040_sdio_tx_start(src, n))) // Start transmission
+        !checkReturnOk(rp2040_sdio_tx_start(sd_card_p, src, n))) // Start transmission
     {
         return false;
     }
@@ -586,20 +586,7 @@ void sd_sdio_ctor(sd_card_t *sd_card_p) {
     sd_card_p->write_blocks = sd_sdio_write_blocks;
     sd_card_p->read_blocks = sd_sdio_read_blocks;
     sd_card_p->get_num_sectors = sd_sdio_sectorCount;
-#if 0
-    uint ds[] = {
-        sd_card_p->sdio_if.D1_gpio,
-        sd_card_p->sdio_if.D2_gpio,
-        sd_card_p->sdio_if.D3_gpio
-    };
-    for (size_t i = 0; i < count_of(ds); ++i) {
-        gpio_init(ds[i]);
-        // gpio_pull_down(ds[i]);
-        // gpio_set_dir(ds[i], GPIO_IN);
-        gpio_set_dir(ds[i], GPIO_OUT);
-        gpio_put(ds[i], false);
-    }
-#endif    
+
     //        pin                          function        pup   pdown  out    state fast
     gpio_conf(sd_card_p->sdio_if.CLK_gpio, GPIO_FUNC_PIO1, true, false, true,  true, true);
     gpio_conf(sd_card_p->sdio_if.CMD_gpio, GPIO_FUNC_PIO1, true, false, true,  true, true);
@@ -613,9 +600,6 @@ void sd_sdio_ctor(sd_card_t *sd_card_p) {
         gpio_pull_up(sd_card_p->card_detect_gpio);
         gpio_set_dir(sd_card_p->card_detect_gpio, GPIO_IN);
     }
-    // // Initialize at 1 MHz clock speed
-    // rp2040_sdio_init(sd_card_p, 25);    
-    // rp2040_sdio_stop(sd_card_p);
 }
 
 #endif
