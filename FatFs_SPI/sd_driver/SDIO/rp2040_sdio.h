@@ -7,6 +7,10 @@
 //
 #include "sd_card.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef
 enum sdio_status_t {
     SDIO_OK = 0,
@@ -56,3 +60,7 @@ void rp2040_sdio_init(sd_card_t *sd_card_p, int clock_divider /* = 1 */);
 
 // DMA interrupt request handler
 void rp2040_sdio_tx_irq(sd_card_t *sd_card_p);
+
+#ifdef __cplusplus
+}
+#endif

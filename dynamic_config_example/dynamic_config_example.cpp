@@ -1,8 +1,11 @@
 /* Instead of a statically linked hw_config.c,
    create configuration dynamically */
 
+#include <assert.h>
 #include <stdio.h>
 #include <string.h>
+
+#include <vector>
 //
 #include "f_util.h"
 #include "ff.h"
@@ -13,14 +16,42 @@
 //
 #include "diskio.h" /* Declarations of disk functions */
 //
+#include "SDIO/rp2040_sdio.h"
 #include "rp2040_sdio.pio.h"
 
-void add_spi(spi_t *const spi);
-void add_sd_card(sd_card_t *const sd_card);
+static std::vector<spi_t *> spis;
+static std::vector<sd_card_t *> sd_cards;
 
-static spi_t *p_spi; // This could be an array or vector or something
-void spi0_dma_isr() { spi_irq_handler(p_spi); } // Need a unique interrupt handler for each instance of spi_t
+size_t sd_get_num() { return sd_cards.size(); }
+sd_card_t *sd_get_by_num(size_t num) {
+    if (num <= sd_get_num()) {
+        return sd_cards[num];
+    } else {
+        return NULL;
+    }
+}
 
+size_t spi_get_num() { return spis.size(); }
+spi_t *spi_get_by_num(size_t num) {
+    if (num <= sd_get_num()) {
+        return spis[num];
+    } else {
+        return NULL;
+    }
+}
+void add_spi(spi_t *spi) { spis.push_back(spi); }
+void add_sd_card(sd_card_t *sd_card) { sd_cards.push_back(sd_card); }
+
+// Need a unique interrupt handler for each instance of spi_t
+void spi0_dma_isr() {
+    assert(spis.size());
+    spi_irq_handler(spis[0]);
+}
+// sd_cards[1].sdio_if's DMA ISR
+void sdio0_dma_isr() {
+    assert(0 < sd_cards.size());
+    rp2040_sdio_tx_irq(sd_cards[1]);
+}
 void test(sd_card_t *pSD) {
     // See FatFs - Generic FAT Filesystem Module, "Application Interface",
     // http://elm-chan.org/fsw/ff/00index_e.html
@@ -41,7 +72,7 @@ void test(sd_card_t *pSD) {
     if (FR_OK != fr) {
         printf("f_close error: %s (%d)\n", FRESULT_str(fr), fr);
     }
-    
+
     f_unmount(pSD->pcName);
 }
 
@@ -52,14 +83,14 @@ int main() {
     puts("Hello, world!");
 
     // Hardware Configuration of SPI "object"
-    p_spi = new spi_t;
+    spi_t *p_spi = new spi_t;
     memset(p_spi, 0, sizeof(spi_t));
     if (!p_spi) panic("Out of memory");
     p_spi->hw_inst = spi1;  // SPI component
     p_spi->miso_gpio = 12;  // GPIO number (not pin number)
     p_spi->mosi_gpio = 15;
     p_spi->sck_gpio = 14;
-    p_spi->baud_rate = 25 * 1000 * 1000, // Actual frequency: 20833333. 
+    p_spi->baud_rate = 25 * 1000 * 1000;  // Actual frequency: 20833333.
     p_spi->dma_isr = spi0_dma_isr;
     p_spi->initialized = false;  // initialized flag
     add_spi(p_spi);
@@ -70,8 +101,8 @@ int main() {
     memset(p_sd_card, 0, sizeof(sd_card_t));
     p_sd_card->pcName = "0:";  // Name used to mount device
     p_sd_card->type = SD_IF_SPI,
-    p_sd_card->spi_if.spi = p_spi;    // Pointer to the SPI driving this card
-    p_sd_card->spi_if.ss_gpio = 9;   // The SPI slave select GPIO for this SD card
+    p_sd_card->spi_if.spi = p_spi;  // Pointer to the SPI driving this card
+    p_sd_card->spi_if.ss_gpio = 9;  // The SPI slave select GPIO for this SD card
     p_sd_card->use_card_detect = true;
     p_sd_card->card_detect_gpio = 13;  // Card detect
     // What the GPIO read returns when a card is
@@ -84,22 +115,26 @@ int main() {
     if (!p_sd_card) panic("Out of memory");
     memset(p_sd_card, 0, sizeof(sd_card_t));
     p_sd_card->pcName = "1:";  // Name used to mount device
-    p_sd_card->type = SD_IF_SDIO,
-    p_sd_card->sdio_if.CLK_gpio = SDIO_CLK_GPIO, // From sd_driver/SDIO/rp2040_sdio.pio
-    p_sd_card->sdio_if.CMD_gpio = 18,
-    p_sd_card->sdio_if.D0_gpio = 19,
-    p_sd_card->sdio_if.D1_gpio = 20,
-    p_sd_card->sdio_if.D2_gpio = 21,
-    p_sd_card->sdio_if.D3_gpio = 22,
-    p_sd_card->use_card_detect = true,    
-    p_sd_card->card_detect_gpio = 16,   // Card detect
+    p_sd_card->type = SD_IF_SDIO;
+    p_sd_card->sdio_if.CLK_gpio = SDIO_CLK_GPIO;  // From sd_driver/SDIO/rp2040_sdio.pio
+    p_sd_card->sdio_if.CMD_gpio = 18;
+    p_sd_card->sdio_if.D0_gpio = 19;
+    p_sd_card->sdio_if.D1_gpio = 20;
+    p_sd_card->sdio_if.D2_gpio = 21;
+    p_sd_card->sdio_if.D3_gpio = 22;
+    p_sd_card->use_card_detect = true;
+    p_sd_card->card_detect_gpio = 16;   // Card detect
     p_sd_card->card_detected_true = 1;  // What the GPIO read returns when a card is present.
+    p_sd_card->sdio_if.SDIO_PIO = pio1;
+    p_sd_card->sdio_if.DMA_IRQ_num = DMA_IRQ_1;
+    p_sd_card->sdio_if.dma_isr = sdio0_dma_isr;
     add_sd_card(p_sd_card);
 
-    for (size_t i = 0; i < sd_get_num(); ++i) 
+    for (size_t i = 0; i < sd_get_num(); ++i)
         test(sd_get_by_num(i));
 
     puts("Goodbye, world!");
 
-    for (;;);
+    for (;;)
+        ;
 }

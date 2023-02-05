@@ -22,7 +22,6 @@ add_subdirectory(../FatFs_SPI build)
 # Add executable. Default name is the project name, version 0.1
 add_executable(dynamic_config_example 
     dynamic_config_example.cpp 
-    hw_config.cpp
 )
 
 pico_set_program_name(dynamic_config_example "dynamic_config_example")
