@@ -447,11 +447,11 @@ static cmd_def_t cmds[] = {
      "cdef:\n  Create Disk and Example Files\n"
      "  Expects card to be already formatted and mounted"},
     {"swcwdt", run_swcwdt,
-     "\nswcwdt:\n Stdio With CWD Test\n"
+     "swcwdt:\n Stdio With CWD Test\n"
      "Expects card to be already formatted and mounted.\n"
      "Note: run cdef first!"},
     {"loop_swcwdt", run_loop_swcwdt,
-     "\nloop_swcwdt:\n Run Create Disk and Example Files and Stdio With CWD "
+     "loop_swcwdt:\n Run Create Disk and Example Files and Stdio With CWD "
      "Test in a loop.\n"
      "Expects card to be already formatted and mounted.\n"
      "Note: Type any key to quit."},

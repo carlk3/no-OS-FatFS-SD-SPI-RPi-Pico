@@ -40,10 +40,10 @@ static const bool SKIP_FIRST_LATENCY = true;
 
 // Size of read/write.
 // static const size_t BUF_SIZE = 512;
-#define BUF_SIZE 20000
+#define BUF_SIZE (20 * 1024)
 
-// File size in MB where MB = 1,000,000 bytes.
-static const uint32_t FILE_SIZE_MB = 5;
+// File size in MiB where MiB = 1048576 bytes.
+static const uint32_t FILE_SIZE_MiB = 5;
 
 // Write pass count.
 static const uint8_t WRITE_COUNT = 2;
@@ -54,7 +54,8 @@ static const uint8_t READ_COUNT = 2;
 // End of configuration constants.
 //------------------------------------------------------------------------------
 // File size in bytes.
-static const uint32_t FILE_SIZE = 1000000UL * FILE_SIZE_MB;
+// static const uint32_t FILE_SIZE = 1000000UL * FILE_SIZE_MB;
+static const uint32_t FILE_SIZE = (1024 * 1024 * FILE_SIZE_MiB);
 
 static FIL file;
 static sd_card_t* sd_card_p;
@@ -100,7 +101,8 @@ void bench(char const* logdrv) {
     uint32_t totalLatency;
     bool skipLatency;    
 
-    static_assert(0 == FILE_SIZE % BUF_SIZE);
+    static_assert(0 == FILE_SIZE % BUF_SIZE, 
+            "For accurate results, FILE_SIZE must be a multiple of BUF_SIZE.");
 
     // Insure 4-byte alignment.
     uint32_t buf32[(BUF_SIZE + 3) / 4] __attribute__ ((aligned (4)));
@@ -162,7 +164,7 @@ void bench(char const* logdrv) {
     }
     buf[BUF_SIZE - 1] = '\n';
 
-    printf("FILE_SIZE_MB = %lu\n", FILE_SIZE_MB);     // << FILE_SIZE_MB << endl;
+    printf("FILE_SIZE_MB = %lu\n", FILE_SIZE_MiB);     // << FILE_SIZE_MB << endl;
     printf("BUF_SIZE = %zu\n", BUF_SIZE);             // << BUF_SIZE << F(" bytes\n");
     printf("Starting write test, please wait.\n\n");  // << endl
                                                       // << endl;

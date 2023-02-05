@@ -13,7 +13,7 @@ add_compile_options(-Os) # Optimize for size (place before pico_sdk_init)
 # Initialise the Pico SDK
 pico_sdk_init()
 
-add_subdirectory(../FatFs_SPI build)
+add_subdirectory(../../src build)
 
 # Add executable. Default name is the project name, version 0.1
 add_executable(FatFS_SPI_example 
@@ -25,7 +25,7 @@ add_executable(FatFS_SPI_example
     tests/big_file_test.c
     tests/CreateAndVerifyExampleFiles.c
     tests/ff_stdio_tests_with_cwd.c
-    ../FatFs_SPI/SdFat/bench.c
+    ../../src/SdFat/bench.c
 )
 # Add the standard library to the build
 target_link_libraries(FatFS_SPI_example pico_stdlib)
