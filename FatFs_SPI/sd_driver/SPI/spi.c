@@ -120,6 +120,8 @@ void spi_unlock(spi_t *pSPI) {
 }
 
 bool my_spi_init(spi_t *pSPI) {
+    myASSERT(pSPI->dma_isr);
+    
     auto_init_mutex(my_spi_init_mutex);
     mutex_enter_blocking(&my_spi_init_mutex);
     if (!pSPI->initialized) {

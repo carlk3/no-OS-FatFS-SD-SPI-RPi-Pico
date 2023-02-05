@@ -1125,6 +1125,7 @@ int sd_spi_init(sd_card_t *sd_card_p) {
 }
 
 void sd_spi_ctor(sd_card_t *sd_card_p) {
+
     // State variables:
     sd_card_p->m_Status = STA_NOINIT;
     sd_card_p->write_blocks = sd_write_blocks;
