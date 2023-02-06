@@ -1,6 +1,6 @@
 **/build
 *.html
 *.png
-*.json
 *.zip
 *.xlsx
+**/.vscode

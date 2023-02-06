@@ -1,0 +1,29 @@
+{
+    "name": "FatFsSd",
+    "version": "1.0.0",
+    "description": "Simple library for SD Cards on the RP2040",
+    "keywords": ["Data Storage", "FatFs", "SD card", "Secure Digital card", "SPI", "SDIO"],
+    "repository":
+    {
+      "type": "git",
+      "url": "https://github.com/carlk3/no-OS-FatFS-SD-SPI-RPi-Pico.git#dev_sdio"
+    },
+    "authors":
+    [
+      {
+        "name": "Carl Kugler",
+        "email": "carlk3@gmail.com"
+      }
+    ],
+    "license": "Apache-2.0 AND MIT-Modern-Variant",
+    "frameworks": "*",
+    "platforms": "raspberrypi",
+    "build": {
+      "srcFilter": [
+          "+<*.c>",
+          "+<*.cpp>",
+          "+<*.h>",
+          "-<ff15/documents/*>"
+      ]
+  }
+  }
