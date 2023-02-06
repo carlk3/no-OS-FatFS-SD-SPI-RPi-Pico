@@ -1,5 +1,31 @@
-/* app4-IO_module_function_checker.c
-Copyright 2021 Carl John Kugler III
+/*----------------------------------------------------------------------/
+/ Low level disk I/O module function checker                            /
+/-----------------------------------------------------------------------/
+/ WARNING: The data on the target drive will be lost!
+*/
+/* app4-IO_module_function_checker.c 
+Originally from [Compatibility Checker for Storage Device Control Module](http://elm-chan.org/fsw/ff/res/app4.c). 
+*/
+/*----------------------------------------------------------------------------/
+/  FatFs - Generic FAT Filesystem Module  Rx.xx                               /
+/-----------------------------------------------------------------------------/
+/
+/ Copyright (C) 20xx, ChaN, all right reserved.
+/
+/ FatFs module is an open source software. Redistribution and use of FatFs in
+/ source and binary forms, with or without modification, are permitted provided
+/ that the following condition is met:
+/
+/ 1. Redistributions of source code must retain the above copyright notice,
+/    this condition and the following disclaimer.
+/
+/ This software is provided by the copyright holder and contributors "AS IS"
+/ and any warranties related to this software are DISCLAIMED.
+/ The copyright owner or contributors be NOT LIABLE for any damages caused
+/ by use of this software.
+/----------------------------------------------------------------------------*/
+/* 
+Modifications: Copyright 2021 Carl John Kugler III
 
 Licensed under the Apache License, Version 2.0 (the License); you may not use 
 this file except in compliance with the License. You may obtain a copy of the 
@@ -10,11 +36,6 @@ Unless required by applicable law or agreed to in writing, software distributed
 under the License is distributed on an AS IS BASIS, WITHOUT WARRANTIES OR 
 CONDITIONS OF ANY KIND, either express or implied. See the License for the 
 specific language governing permissions and limitations under the License.
-*/
-/*----------------------------------------------------------------------/
-/ Low level disk I/O module function checker                            /
-/-----------------------------------------------------------------------/
-/ WARNING: The data on the target drive will be lost!
 */
 
 #include <stdio.h>
