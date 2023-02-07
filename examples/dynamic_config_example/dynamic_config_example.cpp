@@ -111,6 +111,7 @@ int main() {
     add_sd_card(p_sd_card);
 
     /* Add another SD card */
+//FIXME: This is broken because SDIO_CLK_GPIO is set statically in sd_driver/SDIO/rp2040_sdio.pio!
     p_sd_card = new sd_card_t;
     if (!p_sd_card) panic("Out of memory");
     memset(p_sd_card, 0, sizeof(sd_card_t));
