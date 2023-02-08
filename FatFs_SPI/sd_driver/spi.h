@@ -66,7 +66,6 @@ void spi_lock(spi_t *pSPI);
 void spi_unlock(spi_t *pSPI);
 bool my_spi_init(spi_t *pSPI);
 void set_spi_dma_irq_channel(bool useChannel1, bool shared);
-spi_t *spi_get_by_rx_dma(const uint rx_dma);
 
 #ifdef __cplusplus
 }

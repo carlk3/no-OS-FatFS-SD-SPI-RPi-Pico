@@ -1136,7 +1136,7 @@ static void sd_ctor(sd_card_t *pSD) {
     pSD->write_blocks = sd_write_blocks;
     pSD->read_blocks = sd_read_blocks;
 }
-static bool sd_init_driver() {
+bool sd_init_driver() {
     static bool initialized;
     auto_init_mutex(sd_init_driver_mutex);
     mutex_enter_blocking(&sd_init_driver_mutex);
@@ -1175,10 +1175,7 @@ static bool sd_init_driver() {
 }
 static int sd_init(sd_card_t *pSD) {
     TRACE_PRINTF("> %s\r\n", __FUNCTION__);
-    if (!sd_init_driver()) {
-        pSD->m_Status |= STA_NOINIT;
-        return pSD->m_Status;
-    }
+
     //	STA_NOINIT = 0x01, /* Drive not initialized */
     //	STA_NODISK = 0x02, /* No medium in the drive */
     //	STA_PROTECT = 0x04 /* Write protected */

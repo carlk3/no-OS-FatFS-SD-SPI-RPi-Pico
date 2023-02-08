@@ -127,8 +127,63 @@ Instead, the application must provide it.
 The configuration is defined in "objects" of type `spi_t` (see `sd_driver/spi.h`) and `sd_card_t` (see `sd_driver/sd_card.h`). 
 There can be one or more objects of both types.
 These objects specify which pins to use for what, SPI baud rate, features like Card Detect, etc.
-An instance of `spi_t` describes the configuration of one SPI controller.
-An instance of `sd_card_t`describes the configuration of one SD card socket.
+
+### An instance of `sd_card_t` describes the configuration of one SD card socket.
+```
+// "Class" representing SD Cards
+struct sd_card_t {
+    const char *pcName;
+    spi_t *spi;
+    // Slave select is here instead of in spi_t because multiple SDs can share an SPI.
+    uint ss_gpio;                   // Slave select for this SD card
+    bool use_card_detect;
+    uint card_detect_gpio;    // Card detect; ignored if !use_card_detect
+    uint card_detected_true;  // Varies with card socket; ignored if !use_card_detect
+    // Drive strength levels for GPIO outputs.
+    // enum gpio_drive_strength { GPIO_DRIVE_STRENGTH_2MA = 0, GPIO_DRIVE_STRENGTH_4MA = 1, GPIO_DRIVE_STRENGTH_8MA = 2,
+    // GPIO_DRIVE_STRENGTH_12MA = 3 }
+    bool set_drive_strength;
+    enum gpio_drive_strength ss_gpio_drive_strength;
+//...
+};
+```
+* `pcName` FatFs [Logical Drive](http://elm-chan.org/fsw/ff/doc/filename.html) name (or "number")
+* `ss_gpio` Slave Select (or Chip Select [CS]) for this SD card
+* `use_card_detect` Whether or not to use Card Detect
+* `card_detect_gpio` GPIO number of the Card Detect, connected to the SD card socket's Card Detect switch (sometimes marked DET)
+* `card_detected_true` What the GPIO read returns when a card is present (Some sockets use active high, some low)
+* `set_drive_strength` Whether or not to set the drive strength
+* `ss_gpio_drive_strength` Drive strength for the SS (or CS)
+
+### An instance of `spi_t` describes the configuration of one RP2040 SPI controller.
+```
+// "Class" representing SPIs
+typedef struct {
+    // SPI HW
+    spi_inst_t *hw_inst;
+    uint miso_gpio;  // SPI MISO GPIO number (not pin number)
+    uint mosi_gpio;
+    uint sck_gpio;
+    uint baud_rate;
+
+    // Drive strength levels for GPIO outputs.
+    // enum gpio_drive_strength { GPIO_DRIVE_STRENGTH_2MA = 0, GPIO_DRIVE_STRENGTH_4MA = 1, GPIO_DRIVE_STRENGTH_8MA = 2,
+    // GPIO_DRIVE_STRENGTH_12MA = 3 }
+    bool set_drive_strength;
+    enum gpio_drive_strength mosi_gpio_drive_strength;
+    enum gpio_drive_strength sck_gpio_drive_strength;
+//...
+} spi_t;
+
+```
+* `hw_inst` Identifier for the hardware SPI instance (for use in SPI functions). e.g. `spi0`, `spi1`
+* `miso_gpio` SPI Master In, Slave Out (MISO) GPIO number (not Pico pin number). This is connected to the card's Data In (DI).
+* `mosi_gpio` SPI Master Out, Slave In (MOSI) GPIO number. This is connected to the card's Data Out (DO).
+* `sck_gpio` SPI Serial Clock GPIO number. This is connected to the card's Serial Clock (SCK).
+* `baud_rate` Frequency of the SPI Serial Clock
+* `set_drive_strength` Specifies whether or not to set the RP2040 GPIO drive strength
+* `mosi_gpio_drive_strength` SPI Master Out, Slave In (MOSI) drive strength
+* `sck_gpio_drive_strength` SPI Serial Clock (SCK) drive strength
 
 You must provide a definition for the functions declared in `sd_driver/hw_config.h`:  
 `size_t spi_get_num()` Returns the number of SPIs to use  

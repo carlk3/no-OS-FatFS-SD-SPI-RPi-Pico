@@ -26,20 +26,34 @@ specific language governing permissions and limitations under the License.
 static bool irqChannel1 = false;
 static bool irqShared = true;
 
+static spi_t *spi_get_by_rx_dma(const uint rx_dma) {
+    for (size_t i = 0; i < spi_get_num(); ++i)
+        if (spi_get_by_num(i)->rx_dma == rx_dma) 
+            return spi_get_by_num(i);
+    return NULL;
+}
+
 void spi_irq_handler() {
-    io_rw_32 *int_status_reg_p;
     if (irqChannel1) {
-        int_status_reg_p = &dma_hw->ints1;
+        for (size_t ch = 0; ch < NUM_DMA_CHANNELS; ++ch) {
+            if (dma_hw->ints1 & (1 << ch)) {  // Is channel requesting interrupt?
+                spi_t *spi_p = spi_get_by_rx_dma(ch);
+                if (spi_p) {                    // Ours?
+                    dma_hw->ints1 = 1u << ch;  // Clear it.
+                    myASSERT(!dma_channel_is_busy(spi_p->rx_dma));
+                    sem_release(&spi_p->sem);
+                }
+            }
+        }
     } else {
-        int_status_reg_p = &dma_hw->ints0;
-    }
-    for (size_t ch = 0; ch < NUM_DMA_CHANNELS; ++ch) {
-        if (*int_status_reg_p & (1 << ch)) {  // Is channel requesting interrupt?
-            spi_t *spi_p = spi_get_by_rx_dma(ch);
-            if (spi_p) { // Ours?
-                *int_status_reg_p = 1u << ch;  // Clear it.
-                myASSERT(!dma_channel_is_busy(spi_p->rx_dma));
-                sem_release(&spi_p->sem);
+        for (size_t ch = 0; ch < NUM_DMA_CHANNELS; ++ch) {
+            if (dma_hw->ints0 & (1 << ch)) {  // Is channel requesting interrupt?
+                spi_t *spi_p = spi_get_by_rx_dma(ch);
+                if (spi_p) {                    // Ours?
+                    dma_hw->ints0 = 1u << ch;  // Clear it.
+                    myASSERT(!dma_channel_is_busy(spi_p->rx_dma));
+                    sem_release(&spi_p->sem);
+                }
             }
         }
     }
@@ -201,10 +215,10 @@ bool my_spi_init(spi_t *pSPI) {
         int irq = irqChannel1 ? DMA_IRQ_1 : DMA_IRQ_0;
         if (irqShared) {
             irq_add_shared_handler(
-                irq, pSPI->dma_isr,
+                irq, spi_irq_handler,
                 PICO_SHARED_IRQ_HANDLER_DEFAULT_ORDER_PRIORITY);
         } else {
-            irq_set_exclusive_handler(irq, pSPI->dma_isr);
+            irq_set_exclusive_handler(irq, spi_irq_handler);
         }
 
         // Tell the DMA to raise IRQ line 0/1 when the channel finishes a block
@@ -220,12 +234,6 @@ bool my_spi_init(spi_t *pSPI) {
     }
     mutex_exit(&my_spi_init_mutex);
     return true;
-}
-spi_t *spi_get_by_rx_dma(const uint rx_dma) {
-    for (size_t i = 0; i < spi_get_num(); ++i)
-        if (spi_get_by_num(i)->rx_dma == rx_dma) 
-            return spi_get_by_num(i);
-    return NULL;
 }
 
 /* [] END OF FILE */

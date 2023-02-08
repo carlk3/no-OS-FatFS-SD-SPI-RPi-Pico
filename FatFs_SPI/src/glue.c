@@ -53,9 +53,14 @@ DSTATUS disk_initialize(
     BYTE pdrv /* Physical drive nmuber to identify the drive */
 ) {
     TRACE_PRINTF(">>> %s\n", __FUNCTION__);
+
+    bool rc = sd_init_driver();
+    if (!rc) return RES_NOTRDY;
+
     sd_card_t *p_sd = sd_get_by_num(pdrv);
     if (!p_sd) return RES_PARERR;
-    return p_sd->init(p_sd);  // See http://elm-chan.org/fsw/ff/doc/dstat.html
+    // See http://elm-chan.org/fsw/ff/doc/dstat.html
+    return p_sd->init(p_sd);  
 }
 
 static int sdrc2dresult(int sd_rc) {

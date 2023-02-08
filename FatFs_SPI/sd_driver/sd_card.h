@@ -15,8 +15,7 @@ specific language governing permissions and limitations under the License.
 // Note: The model used here is one FatFS per SD card. 
 // Multiple partitions on a card are not supported.
 
-#ifndef _SD_CARD_H_
-#define _SD_CARD_H_
+#pragma once
 
 #include <stdint.h>
 //
@@ -37,7 +36,7 @@ typedef struct sd_card_t sd_card_t;
 struct sd_card_t {
     const char *pcName;
     spi_t *spi;
-    // Slave select is here in sd_card_t because multiple SDs can share an SPI
+    // Slave select is here instead of in spi_t because multiple SDs can share an SPI.
     uint ss_gpio;                   // Slave select for this SD card
     bool use_card_detect;
     uint card_detect_gpio;    // Card detect; ignored if !use_card_detect
@@ -56,10 +55,10 @@ struct sd_card_t {
     FATFS fatfs;
     bool mounted;
 
-    int (*init)(sd_card_t *pSD);
-    int (*write_blocks)(sd_card_t *pSD, const uint8_t *buffer,
+    int (*init)(sd_card_t *sd_card_p);
+    int (*write_blocks)(sd_card_t *sd_card_p, const uint8_t *buffer,
                     uint64_t ulSectorNumber, uint32_t blockCnt);
-    int (*read_blocks)(sd_card_t *pSD, uint8_t *buffer, uint64_t ulSectorNumber,
+    int (*read_blocks)(sd_card_t *sd_card_p, uint8_t *buffer, uint64_t ulSectorNumber,
                     uint32_t ulSectorCount);
 };
 
@@ -87,9 +86,11 @@ struct sd_card_t {
 bool sd_card_detect(sd_card_t *pSD);
 uint64_t sd_sectors(sd_card_t *pSD);
 
+bool sd_init_driver();
+bool sd_card_detect(sd_card_t *sd_card_p);
+
 #ifdef __cplusplus
 }
 #endif
 
-#endif
 /* [] END OF FILE */
