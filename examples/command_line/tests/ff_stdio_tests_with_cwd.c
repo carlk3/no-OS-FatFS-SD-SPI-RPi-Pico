@@ -156,7 +156,7 @@ static void prvAlignmentReadWriteTests( const char *pcMountPath );
  * A task that repeatedly creates, tests, then deletes files as an ad hoc test
  * of accessing the file system from more than one task simultaneously.
  */
-static void prvFileSystemAccessTask( void *pvParameters );
+// static void prvFileSystemAccessTask( void *pvParameters );
 
 /*-----------------------------------------------------------*/
 

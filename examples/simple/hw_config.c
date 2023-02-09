@@ -35,8 +35,6 @@ socket, which SPI it is driven by, and how it is wired.
 //
 #include "diskio.h" /* Declarations of disk functions */
 
-void spi0_dma_isr();
-
 // Hardware Configuration of SPI "objects"
 // Note: multiple SD cards can be driven by one SPI if they use different slave
 // selects.
@@ -51,7 +49,6 @@ static spi_t spis[] = {  // One for each SPI.
     .sck_gpio_drive_strength = GPIO_DRIVE_STRENGTH_2MA,
     .baud_rate = 25 * 1000 * 1000,  // Actual frequency: 20833333.
 
-    .dma_isr = spi0_dma_isr
     }
 };
 
@@ -68,8 +65,6 @@ static sd_card_t sd_cards[] = {  // One for each SD card
                                  // present.
     }
 };
-
-void spi0_dma_isr() { spi_irq_handler(&spis[0]); }
 
 /* ********************************************************************** */
 size_t sd_get_num() { return count_of(sd_cards); }

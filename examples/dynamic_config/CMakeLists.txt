@@ -21,7 +21,7 @@ add_subdirectory(../../src build)
 
 # Add executable. Default name is the project name, version 0.1
 add_executable(dynamic_config_example 
-    dynamic_config_example.cpp 
+    main.cpp 
 )
 
 pico_set_program_name(dynamic_config_example "dynamic_config_example")

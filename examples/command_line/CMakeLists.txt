@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.13)
 # Pull in Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
 
-project(FatFS_SPI_example C CXX ASM)
+project(command_line C CXX ASM)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
@@ -16,8 +16,8 @@ pico_sdk_init()
 add_subdirectory(../../src build)
 
 # Add executable. Default name is the project name, version 0.1
-add_executable(FatFS_SPI_example 
-    command_line.cpp 
+add_executable(command_line 
+    main.cpp 
     hw_config.c
     data_log_demo.c
     tests/simple.c
@@ -28,26 +28,26 @@ add_executable(FatFS_SPI_example
     ../../src/SdFat/bench.c
 )
 # Add the standard library to the build
-target_link_libraries(FatFS_SPI_example pico_stdlib)
+target_link_libraries(command_line pico_stdlib)
 
-# target_compile_options(FatFS_SPI_example PUBLIC -Wall -Wextra -Wno-unused-function -Wno-unused-parameter)
-target_compile_options(FatFS_SPI_example PUBLIC -Wall -Wextra -Wno-unused-parameter)
+# target_compile_options(command_line PUBLIC -Wall -Wextra -Wno-unused-function -Wno-unused-parameter)
+target_compile_options(command_line PUBLIC -Wall -Wextra -Wno-unused-parameter)
 
-set_property(TARGET FatFS_SPI_example APPEND_STRING PROPERTY LINK_FLAGS "-Wl,--print-memory-usage")
+set_property(TARGET command_line APPEND_STRING PROPERTY LINK_FLAGS "-Wl,--print-memory-usage")
 
-pico_set_program_name(FatFS_SPI_example "FatFS_SPI_example")
-pico_set_program_version(FatFS_SPI_example "0.1")
+pico_set_program_name(command_line "command_line")
+pico_set_program_version(command_line "0.1")
 
 # See 4.1. Serial input and output on Raspberry Pi Pico in Getting started with Raspberry Pi Pico (https://datasheets.raspberrypi.org/pico/getting-started-with-pico.pdf)
 # and 2.7.1. Standard Input/Output (stdio) Support in Raspberry Pi Pico C/C++ SDK (https://datasheets.raspberrypi.org/pico/raspberry-pi-pico-c-sdk.pdf):
-pico_enable_stdio_uart(FatFS_SPI_example 1)
-pico_enable_stdio_usb(FatFS_SPI_example 1)
+pico_enable_stdio_uart(command_line 1)
+pico_enable_stdio_usb(command_line 1)
 
-target_link_libraries(FatFS_SPI_example
+target_link_libraries(command_line
     FatFs_SPI
     hardware_clocks
     hardware_adc
 )
 
-pico_add_extra_outputs(FatFS_SPI_example)
+pico_add_extra_outputs(command_line)
 
