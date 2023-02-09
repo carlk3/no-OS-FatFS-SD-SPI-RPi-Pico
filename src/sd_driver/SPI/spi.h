@@ -36,7 +36,6 @@ typedef struct {
     uint sck_gpio;
     uint baud_rate;
     uint DMA_IRQ_num; // DMA_IRQ_0 or DMA_IRQ_1
-    irq_handler_t dma_isr; // Unique DMA interrupt handler for this instance of spi_t
 
     // Drive strength levels for GPIO outputs.
     // enum gpio_drive_strength { GPIO_DRIVE_STRENGTH_2MA = 0, GPIO_DRIVE_STRENGTH_4MA = 1, GPIO_DRIVE_STRENGTH_8MA = 2,
@@ -59,8 +58,8 @@ typedef struct {
 extern "C" {
 #endif
 
-// SPI DMA interrupts
-void __not_in_flash_func(spi_irq_handler)(spi_t *pSPI);
+// // SPI DMA interrupts
+// void __not_in_flash_func(spi_irq_handler)();
   
 bool __not_in_flash_func(spi_transfer)(spi_t *pSPI, const uint8_t *tx, uint8_t *rx, size_t length);  
 void spi_lock(spi_t *pSPI);

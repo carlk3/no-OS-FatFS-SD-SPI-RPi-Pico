@@ -19,28 +19,34 @@ specific language governing permissions and limitations under the License.
 #include "pico/sem.h"
 //
 #include "my_debug.h"
+#include "hw_config.h"
 //
 #include "spi.h"
 
-void spi_irq_handler(spi_t *pSPI) {
-    switch (pSPI->DMA_IRQ_num) {
-        case DMA_IRQ_0:
-            if (dma_hw->ints0 & 1u << pSPI->rx_dma) {  // Ours?
-                dma_hw->ints0 = 1u << pSPI->rx_dma;    // clear it
-                myASSERT(!dma_channel_is_busy(pSPI->rx_dma));
-                sem_release(&pSPI->sem);
+static spi_t *spi_get_by_rx_dma(const uint DMA_IRQ_num, const uint rx_dma) {
+    for (size_t i = 0; i < spi_get_num(); ++i)
+        if (DMA_IRQ_num == spi_get_by_num(i)->DMA_IRQ_num 
+                && spi_get_by_num(i)->rx_dma == rx_dma)
+            return spi_get_by_num(i);
+    return NULL;
+}
+static void in_spi_irq_handler(const uint DMA_IRQ_num, io_rw_32 *dma_hw_ints_p) {
+    for (size_t ch = 0; ch < NUM_DMA_CHANNELS; ++ch) {
+        if (*dma_hw_ints_p & (1 << ch)) {  // Is channel requesting interrupt?
+            spi_t *spi_p = spi_get_by_rx_dma(DMA_IRQ_num, ch);
+            if (spi_p) {                   // Ours?
+                *dma_hw_ints_p = 1u << ch;  // Clear it.
+                myASSERT(!dma_channel_is_busy(spi_p->rx_dma));
+                sem_release(&spi_p->sem);
             }
-            break;
-        case DMA_IRQ_1:
-            if (dma_hw->ints1 & 1u << pSPI->rx_dma) {  // Ours?
-                dma_hw->ints1 = 1u << pSPI->rx_dma;    // clear it
-                myASSERT(!dma_channel_is_busy(pSPI->rx_dma));
-                sem_release(&pSPI->sem);
-            }
-            break;
-        default:
-            myASSERT(false);
+        }
     }
+}
+static void spi_irq_handler() {
+    // Check DMA_IRQ_0:
+    in_spi_irq_handler(DMA_IRQ_0, &dma_hw->ints0);
+    // Check DMA_IRQ_1:
+    in_spi_irq_handler(DMA_IRQ_1, &dma_hw->ints1);
 }
 
 // SPI Transfer: Read & Write (simultaneously) on SPI bus
@@ -119,9 +125,7 @@ void spi_unlock(spi_t *pSPI) {
     mutex_exit(&pSPI->mutex);
 }
 
-bool my_spi_init(spi_t *pSPI) {
-    myASSERT(pSPI->dma_isr);
-    
+bool my_spi_init(spi_t *pSPI) {   
     auto_init_mutex(my_spi_init_mutex);
     mutex_enter_blocking(&my_spi_init_mutex);
     if (!pSPI->initialized) {
@@ -196,7 +200,7 @@ bool my_spi_init(spi_t *pSPI) {
         if (!pSPI->DMA_IRQ_num) 
             pSPI->DMA_IRQ_num = DMA_IRQ_0;
         irq_add_shared_handler(
-            pSPI->DMA_IRQ_num, pSPI->dma_isr,
+            pSPI->DMA_IRQ_num, spi_irq_handler,
             PICO_SHARED_IRQ_HANDLER_DEFAULT_ORDER_PRIORITY);
 
         // Tell the DMA to raise IRQ line 0/1 when the channel finishes a block

@@ -576,7 +576,6 @@ void sd_sdio_ctor(sd_card_t *sd_card_p) {
     assert(sd_card_p->sdio_if.D1_gpio == sd_card_p->sdio_if.D0_gpio + 1);
     assert(sd_card_p->sdio_if.D2_gpio == sd_card_p->sdio_if.D1_gpio + 1);
     assert(sd_card_p->sdio_if.D3_gpio == sd_card_p->sdio_if.D2_gpio + 1);
-    assert(sd_card_p->sdio_if.dma_isr);
 
     sd_card_p->m_Status = STA_NOINIT;
 

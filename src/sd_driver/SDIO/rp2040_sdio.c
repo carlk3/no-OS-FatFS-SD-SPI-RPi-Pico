@@ -20,6 +20,7 @@
 #include <string.h>
 #include "sd_card.h"
 #include "util.h"
+#include "hw_config.h"
 
 // #define azdbg(Params...)DMA_CH
 // #define azlog(Params...)
@@ -664,29 +665,31 @@ sdio_status_t check_sdio_write_response(uint32_t card_response)
     }
 }
 
-// When a block finishes, this IRQ handler starts the next one
-void rp2040_sdio_tx_irq(sd_card_t *sd_card_p)
-{
-    bool ours = false;
-    switch (sd_card_p->sdio_if.DMA_IRQ_num) {
-        case DMA_IRQ_0:
-            if (dma_hw->ints0 & 1 << SDIO_DMA_CHB) {
-                dma_hw->ints0 = 1 << SDIO_DMA_CHB; // clear it
-                ours = true;
-            }
-            break;
-        case DMA_IRQ_1:
-            if (dma_hw->ints1 & 1 << SDIO_DMA_CHB) {
-                dma_hw->ints1 = 1 << SDIO_DMA_CHB; // clear it
-                ours = true;
-            }
-            break;
-        default:
-            assert(false);
+static sd_card_t *sd_get_by_dma_ch(const uint DMA_IRQ_num, const int dma_ch) {
+    for (size_t i = 0; i < sd_get_num(); ++i) {
+        sd_card_t *sd_card_p = sd_get_by_num(i);
+        if (SD_IF_SDIO == sd_card_p->type
+                && DMA_IRQ_num == sd_card_p->sdio_if.DMA_IRQ_num 
+                && SDIO_DMA_CHB == dma_ch)
+            return sd_card_p;
     }
-    if (!ours) // shared interrupt
-        return;
-
+    return NULL;
+}
+static sd_card_t *match_and_clear_irq(const uint DMA_IRQ_num) {
+    io_rw_32 *dma_hw_ints_p = 
+            DMA_IRQ_0 == DMA_IRQ_num ? &dma_hw->ints0 : &dma_hw->ints1;
+    for (size_t ch = 0; ch < NUM_DMA_CHANNELS; ++ch) {
+        if (*dma_hw_ints_p & (1 << ch)) {  // Is channel requesting interrupt?
+            sd_card_t *sd_card_p = sd_get_by_dma_ch(DMA_IRQ_num, ch);
+            if (sd_card_p) {                // Ours?
+                *dma_hw_ints_p = 1u << ch;  // Clear it.
+                return sd_card_p;
+            }
+        }
+    }
+    return 0;
+}
+static void sub_rp2040_sdio_tx_irq(sd_card_t *sd_card_p) {
     if (g_sdio.transfer_state == SDIO_TX)
     {
         if (!dma_channel_is_busy(SDIO_DMA_CH) && !dma_channel_is_busy(SDIO_DMA_CHB))
@@ -746,13 +749,23 @@ void rp2040_sdio_tx_irq(sd_card_t *sd_card_p)
     }
 }
 
+// When a block finishes, this IRQ handler starts the next one
+static void rp2040_sdio_tx_irq() {
+    sd_card_t *sd_card_p = match_and_clear_irq(DMA_IRQ_0);
+    if (!sd_card_p)
+        sd_card_p = match_and_clear_irq(DMA_IRQ_1); 
+    if (!sd_card_p) // shared interrupt
+        return;
+    sub_rp2040_sdio_tx_irq(sd_card_p);
+}
+
 // Check if transmission is complete
 sdio_status_t rp2040_sdio_tx_poll(sd_card_t *sd_card_p, uint32_t *bytes_complete)
 {
     if (SCB->ICSR & SCB_ICSR_VECTACTIVE_Msk)
     {
         // Verify that IRQ handler gets called even if we are in hardfault handler
-        rp2040_sdio_tx_irq(sd_card_p);
+        sub_rp2040_sdio_tx_irq(sd_card_p);
     }
 
     if (bytes_complete)
@@ -815,7 +828,7 @@ void rp2040_sdio_init(sd_card_t *sd_card_p, int clock_divider)
             sd_card_p->sdio_if.DMA_IRQ_num = DMA_IRQ_0;
         sd_card_p = sd_card_p;
         irq_add_shared_handler(
-            sd_card_p->sdio_if.DMA_IRQ_num, sd_card_p->sdio_if.dma_isr,
+            sd_card_p->sdio_if.DMA_IRQ_num, rp2040_sdio_tx_irq,
             PICO_SHARED_IRQ_HANDLER_DEFAULT_ORDER_PRIORITY);
 
         resources_claimed = true;

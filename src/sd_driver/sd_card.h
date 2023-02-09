@@ -59,7 +59,6 @@ typedef struct sd_sdio_t {
     uint D3_gpio;
     PIO SDIO_PIO; // either pio0 or pio1
     uint DMA_IRQ_num; // DMA_IRQ_0 or DMA_IRQ_1
-    irq_handler_t dma_isr; // Unique DMA interrupt handler for this instance of sd_sdio_t
 
     /* The following fields are not part of the configuration. They are dynamically assigned. */
     int SDIO_DMA_CH;

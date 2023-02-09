@@ -58,9 +58,6 @@ sdio_status_t rp2040_sdio_stop();
 // (Re)initialize the SDIO interface
 void rp2040_sdio_init(sd_card_t *sd_card_p, int clock_divider /* = 1 */);
 
-// DMA interrupt request handler
-void rp2040_sdio_tx_irq(sd_card_t *sd_card_p);
-
 #ifdef __cplusplus
 }
 #endif

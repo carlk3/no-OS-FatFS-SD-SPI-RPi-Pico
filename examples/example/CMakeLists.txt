@@ -30,7 +30,8 @@ add_executable(FatFS_SPI_example
 # Add the standard library to the build
 target_link_libraries(FatFS_SPI_example pico_stdlib)
 
-target_compile_options(FatFS_SPI_example PUBLIC -Wall -Wextra -Wno-unused-function -Wno-unused-parameter)
+# target_compile_options(FatFS_SPI_example PUBLIC -Wall -Wextra -Wno-unused-function -Wno-unused-parameter)
+target_compile_options(FatFS_SPI_example PUBLIC -Wall -Wextra -Wno-unused-parameter)
 
 set_property(TARGET FatFS_SPI_example APPEND_STRING PROPERTY LINK_FLAGS "-Wl,--print-memory-usage")
 
