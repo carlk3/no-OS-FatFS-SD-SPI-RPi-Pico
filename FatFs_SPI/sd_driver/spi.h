@@ -57,9 +57,6 @@ typedef struct {
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-// SPI DMA interrupts
-void __not_in_flash_func(spi_irq_handler)();
   
 bool __not_in_flash_func(spi_transfer)(spi_t *pSPI, const uint8_t *tx, uint8_t *rx, size_t length);  
 void spi_lock(spi_t *pSPI);

@@ -33,27 +33,19 @@ static spi_t *spi_get_by_rx_dma(const uint rx_dma) {
     return NULL;
 }
 
-void spi_irq_handler() {
-    if (irqChannel1) {
-        for (size_t ch = 0; ch < NUM_DMA_CHANNELS; ++ch) {
-            if (dma_hw->ints1 & (1 << ch)) {  // Is channel requesting interrupt?
-                spi_t *spi_p = spi_get_by_rx_dma(ch);
-                if (spi_p) {                    // Ours?
-                    dma_hw->ints1 = 1u << ch;  // Clear it.
-                    myASSERT(!dma_channel_is_busy(spi_p->rx_dma));
-                    sem_release(&spi_p->sem);
-                }
-            }
-        }
-    } else {
-        for (size_t ch = 0; ch < NUM_DMA_CHANNELS; ++ch) {
-            if (dma_hw->ints0 & (1 << ch)) {  // Is channel requesting interrupt?
-                spi_t *spi_p = spi_get_by_rx_dma(ch);
-                if (spi_p) {                    // Ours?
-                    dma_hw->ints0 = 1u << ch;  // Clear it.
-                    myASSERT(!dma_channel_is_busy(spi_p->rx_dma));
-                    sem_release(&spi_p->sem);
-                }
+static void __not_in_flash_func(spi_irq_handler)() {
+    io_rw_32 *dma_hw_ints_p;
+    if (irqChannel1)
+        dma_hw_ints_p = &dma_hw->ints1;
+    else
+        dma_hw_ints_p = &dma_hw->ints0;
+    for (size_t ch = 0; ch < NUM_DMA_CHANNELS; ++ch) {
+        if (*dma_hw_ints_p & (1 << ch)) {  // Is channel requesting interrupt?
+            spi_t *spi_p = spi_get_by_rx_dma(ch);
+            if (spi_p) {                    // Ours?
+                *dma_hw_ints_p = 1u << ch;  // Clear it.
+                myASSERT(!dma_channel_is_busy(spi_p->rx_dma));
+                sem_release(&spi_p->sem);
             }
         }
     }
