@@ -294,7 +294,6 @@ typedef struct sd_sdio_t {
     uint D3_gpio;
     PIO SDIO_PIO; // either pio0 or pio1
     uint DMA_IRQ_num; // DMA_IRQ_0 or DMA_IRQ_1
-    irq_handler_t dma_isr; // Unique DMA interrupt handler for this instance of sd_sdio_t
 //...
 } sd_sdio_t;
 ```
@@ -306,14 +305,6 @@ typedef struct sd_sdio_t {
 * `D3_gpio` RP2040 GPIO to use for Card Detect/Data Line [Bit 3]
 * `SDIO_PIO` Which PIO block to use. Defaults to `pio0`. Can be changed to avoid conflicts.
 * `DMA_IRQ_num` Which IRQ to use for DMA. Defaults to `DMA_IRQ_0`. The handler is added with `irq_add_shared_handler`, so it's not exclusive. Set this to avoid conflicts with any exclusive DMA IRQ handlers that might be elsewhere in the system.
-* `dma_isr` Function pointer to the unique DMA interrupt handler for this instance of sd_sdio_t. 
-  The handler takes the form of, for example:  
-```
-  void sdio0_dma_isr() { rp2040_sdio_tx_irq(&sd_cards[0]); }
-```  
-  where `rp2040_sdio_tx_irq` is the generic handler parameterized by a pointer to this instance.
-  In this case, you would set `.sdio_if.dma_isr = sdio0_dma_isr`.
-  (See `example/hw_config.c`.)
 
 ### An instance of `sd_spi_t` describes the configuration of one SPI to SD card interface.
 ```
@@ -343,7 +334,6 @@ typedef struct {
     uint sck_gpio;
     uint baud_rate;
     uint DMA_IRQ_num; // DMA_IRQ_0 or DMA_IRQ_1
-    irq_handler_t dma_isr;
 
     // Drive strength levels for GPIO outputs.
     // enum gpio_drive_strength { GPIO_DRIVE_STRENGTH_2MA = 0, GPIO_DRIVE_STRENGTH_4MA = 1, GPIO_DRIVE_STRENGTH_8MA = 2,
@@ -365,16 +355,6 @@ typedef struct {
 * `mosi_gpio_drive_strength` SPI Master Out, Slave In (MOSI) drive strength
 * `sck_gpio_drive_strength` SPI Serial Clock (SCK) drive strength
 * `DMA_IRQ_num` Which IRQ to use for DMA. Defaults to DMA_IRQ_0. The handler is added with `irq_add_shared_handler`, so it's not exclusive. Set this to avoid conflicts with any exclusive DMA IRQ handlers that might be elsewhere in the system.
-* `dma_isr` Each spi_t instance needs a unique DMA interrupt handler (or "Interrupt Service Routine [ISR]" or "Interrupt ReQuest handler [IRQ]"). The scheme here is to use a generic `spi_irq_handler` that is parameterized with a pointer to the specific `spi_t` instance. The specific handler takes the form of 
-```
-void spiX_dma_isr() { spi_irq_handler(spi_t *pSPI); }
-```
-where the `pSPI` points to the `spi_t` instance that this handler is for. For example, in `hw_config.c`
-```
-void spi0_dma_isr() { spi_irq_handler(&spis[0]); }
-```
-is the handler for the first `spi_t` instance in the `spi_t spis[]` array. 
-This handler is identified in the `dma_isr` field of `spi_t`. For example, `.dma_isr = spi0_dma_isr`.
 
 ### You must provide a definition for the functions declared in `sd_driver/hw_config.h`:  
 `size_t spi_get_num()` Returns the number of SPIs to use  
