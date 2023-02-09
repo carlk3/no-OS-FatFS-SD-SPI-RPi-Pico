@@ -6,7 +6,7 @@ At the heart of this library is ChaN's [FatFs - Generic FAT Filesystem Module](h
 It also contains a Serial Peripheral Interface (SPI) SD Card block driver for the [Raspberry Pi Pico](https://www.raspberrypi.org/products/raspberry-pi-pico/)
 derived from [SDBlockDevice from Mbed OS 5](https://os.mbed.com/docs/mbed-os/v5.15/apis/sdblockdevice.html),
 and a 4-bit Secure Digital Input Output (SDIO) driver derived from 
-[ZuluSCSI-firmware](https://github.com/ZuluSCSI/ZuluSCSI-firmware) . 
+[ZuluSCSI-firmware](https://github.com/ZuluSCSI/ZuluSCSI-firmware). 
 It is wrapped up in a complete runnable project, with a little command line interface, some self tests, and an example data logging application.
 
 ## Migration
@@ -33,7 +33,11 @@ If you are migrating a project from an SPI-only branch, e.g., `master`, you will
   * A PIO block
   * Two DMA channels claimed with `dma_claim_unused_channel`
   * A configurable DMA IRQ is hooked with `irq_add_shared_handler` and enabled.
-  * Six GPIOs (four of which need to be consecutive: D0 - D3) for signal pins, and, optionally, another for CD (Card Detect).
+  * Six GPIOs for signal pins, and, optionally, another for CD (Card Detect). Four pins must be at fixed offsets from D0 (which itself can be anywhere):
+    * CLK_gpio = D0_gpio - 2.
+    * D1_gpio = D0_gpio + 1;
+    * D2_gpio = D0_gpio + 2;
+    * D3_gpio = D0_gpio + 3;
 
 SPI and SDIO can share the same DMA IRQ.
 
@@ -286,34 +290,40 @@ struct sd_card_t {
 ### An instance of `sd_sdio_t` describes the configuration of one SDIO to SD card interface.
 ```
 typedef struct sd_sdio_t {
-    uint CLK_gpio;
+    // See sd_driver\SDIO\rp2040_sdio.pio for SDIO_CLK_PIN_D0_OFFSET
+    uint CLK_gpio;  // Must be (D0_gpio + SDIO_CLK_PIN_D0_OFFSET) % 32
     uint CMD_gpio;
-    uint D0_gpio; // D0 - D3 must be on consecutive GPIOs
-    uint D1_gpio; // D0 must be the lowest numbered GPIO
-    uint D2_gpio;
-    uint D3_gpio;
-    PIO SDIO_PIO; // either pio0 or pio1
-    uint DMA_IRQ_num; // DMA_IRQ_0 or DMA_IRQ_1
-    irq_handler_t dma_isr; // Unique DMA interrupt handler for this instance of sd_sdio_t
+    uint D0_gpio;      // D0
+    uint D1_gpio;      // Must be D0 + 1
+    uint D2_gpio;      // Must be D0 + 2
+    uint D3_gpio;      // Must be D0 + 3
+    PIO SDIO_PIO;      // either pio0 or pio1
+    uint DMA_IRQ_num;  // DMA_IRQ_0 or DMA_IRQ_1
 //...
 } sd_sdio_t;
 ```
-* `CLK_gpio` RP2040 GPIO to use for Clock (CLK). This is a little quirky. It should be set to `SDIO_CLK_GPIO`, which is defined in `sd_driver/SDIO/rp2040_sdio.pio`, and that is where you should specify the GPIO number for the SDIO clock.
+Pins `CLK_gpio`, `D1_gpio`, `D2_gpio`, and `D3_gpio` are at offsets from pin `D0_gpio`.
+The offsets are determined by `sd_driver\SDIO\rp2040_sdio.pio`.
+  As of this writing, `SDIO_CLK_PIN_D0_OFFSET` is 30,
+    which is -2 in mod32 arithmetic, so:
+    
+  * CLK_gpio = D0_gpio - 2
+  * D1_gpio = D0_gpio + 1
+  * D2_gpio = D0_gpio + 2
+  * D3_gpio = D0_gpio + 3 
+
+These pin assignments are set implicitly and must not be set explicitly.
+* `CLK_gpio` RP2040 GPIO to use for Clock (CLK).
+Implicitly set to `(D0_gpio + SDIO_CLK_PIN_D0_OFFSET) % 32` where `SDIO_CLK_PIN_D0_OFFSET` is defined in `sd_driver/SDIO/rp2040_sdio.pio`.
+As of this writing, `SDIO_CLK_PIN_D0_OFFSET` is 30, which is -2 in mod32 arithmetic, so:
+  * CLK_gpio = D0_gpio - 2
 * `CMD_gpio` RP2040 GPIO to use for Command/Response (CMD)
 * `D0_gpio` RP2040 GPIO to use for Data Line [Bit 0]. The PIO code requires D0 - D3 to be on consecutive GPIOs, with D0 being the lowest numbered GPIO.
-* `D1_gpio` RP2040 GPIO to use for Data Line [Bit 1]
-* `D2_gpio` RP2040 GPIO to use for Data Line [Bit 2]
-* `D3_gpio` RP2040 GPIO to use for Card Detect/Data Line [Bit 3]
+* `D1_gpio` RP2040 GPIO to use for Data Line [Bit 1]. Implicitly set to D0_gpio + 1.
+* `D2_gpio` RP2040 GPIO to use for Data Line [Bit 2]. Implicitly set to D0_gpio + 2.
+* `D3_gpio` RP2040 GPIO to use for Card Detect/Data Line [Bit 3]. Implicitly set to D0_gpio + 3.
 * `SDIO_PIO` Which PIO block to use. Defaults to `pio0`. Can be changed to avoid conflicts.
 * `DMA_IRQ_num` Which IRQ to use for DMA. Defaults to `DMA_IRQ_0`. The handler is added with `irq_add_shared_handler`, so it's not exclusive. Set this to avoid conflicts with any exclusive DMA IRQ handlers that might be elsewhere in the system.
-* `dma_isr` Function pointer to the unique DMA interrupt handler for this instance of sd_sdio_t. 
-  The handler takes the form of, for example:  
-```
-  void sdio0_dma_isr() { rp2040_sdio_tx_irq(&sd_cards[0]); }
-```  
-  where `rp2040_sdio_tx_irq` is the generic handler parameterized by a pointer to this instance.
-  In this case, you would set `.sdio_if.dma_isr = sdio0_dma_isr`.
-  (See `example/hw_config.c`.)
 
 ### An instance of `sd_spi_t` describes the configuration of one SPI to SD card interface.
 ```
@@ -343,7 +353,6 @@ typedef struct {
     uint sck_gpio;
     uint baud_rate;
     uint DMA_IRQ_num; // DMA_IRQ_0 or DMA_IRQ_1
-    irq_handler_t dma_isr;
 
     // Drive strength levels for GPIO outputs.
     // enum gpio_drive_strength { GPIO_DRIVE_STRENGTH_2MA = 0, GPIO_DRIVE_STRENGTH_4MA = 1, GPIO_DRIVE_STRENGTH_8MA = 2,
@@ -365,16 +374,6 @@ typedef struct {
 * `mosi_gpio_drive_strength` SPI Master Out, Slave In (MOSI) drive strength
 * `sck_gpio_drive_strength` SPI Serial Clock (SCK) drive strength
 * `DMA_IRQ_num` Which IRQ to use for DMA. Defaults to DMA_IRQ_0. The handler is added with `irq_add_shared_handler`, so it's not exclusive. Set this to avoid conflicts with any exclusive DMA IRQ handlers that might be elsewhere in the system.
-* `dma_isr` Each spi_t instance needs a unique DMA interrupt handler (or "Interrupt Service Routine [ISR]" or "Interrupt ReQuest handler [IRQ]"). The scheme here is to use a generic `spi_irq_handler` that is parameterized with a pointer to the specific `spi_t` instance. The specific handler takes the form of 
-```
-void spiX_dma_isr() { spi_irq_handler(spi_t *pSPI); }
-```
-where the `pSPI` points to the `spi_t` instance that this handler is for. For example, in `hw_config.c`
-```
-void spi0_dma_isr() { spi_irq_handler(&spis[0]); }
-```
-is the handler for the first `spi_t` instance in the `spi_t spis[]` array. 
-This handler is identified in the `dma_isr` field of `spi_t`. For example, `.dma_isr = spi0_dma_isr`.
 
 ### You must provide a definition for the functions declared in `sd_driver/hw_config.h`:  
 `size_t spi_get_num()` Returns the number of SPIs to use  
