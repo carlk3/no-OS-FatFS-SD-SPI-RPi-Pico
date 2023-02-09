@@ -17,7 +17,7 @@ add_subdirectory(../../src build)
 
 # Add executable. Default name is the project name, version 0.1
 add_executable(FatFS_SPI_example 
-    FatFS_SPI_example.cpp 
+    command_line.cpp 
     hw_config.c
     data_log_demo.c
     tests/simple.c

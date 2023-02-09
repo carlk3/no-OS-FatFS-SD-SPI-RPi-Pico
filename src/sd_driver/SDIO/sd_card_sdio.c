@@ -16,6 +16,8 @@
 #include <stdint.h>
 
 #include "diskio.h"
+#include "util.h"
+#include "rp2040_sdio.pio.h"
 
 // #define azlog(...)
 // #define azdbg(...)
@@ -573,9 +575,15 @@ static void gpio_conf(uint gpio, enum gpio_function fn, bool pullup, bool pulldo
 }
 
 void sd_sdio_ctor(sd_card_t *sd_card_p) {
-    assert(sd_card_p->sdio_if.D1_gpio == sd_card_p->sdio_if.D0_gpio + 1);
-    assert(sd_card_p->sdio_if.D2_gpio == sd_card_p->sdio_if.D1_gpio + 1);
-    assert(sd_card_p->sdio_if.D3_gpio == sd_card_p->sdio_if.D2_gpio + 1);
+    assert(!sd_card_p->sdio_if.CLK_gpio);
+    assert(!sd_card_p->sdio_if.D1_gpio);
+    assert(!sd_card_p->sdio_if.D2_gpio);
+    assert(!sd_card_p->sdio_if.D3_gpio);
+
+    sd_card_p->sdio_if.CLK_gpio = (sd_card_p->sdio_if.D0_gpio + SDIO_CLK_PIN_D0_OFFSET) % 32;
+    sd_card_p->sdio_if.D1_gpio = sd_card_p->sdio_if.D0_gpio + 1;
+    sd_card_p->sdio_if.D2_gpio = sd_card_p->sdio_if.D0_gpio + 2;
+    sd_card_p->sdio_if.D3_gpio = sd_card_p->sdio_if.D0_gpio + 3;
 
     sd_card_p->m_Status = STA_NOINIT;
 

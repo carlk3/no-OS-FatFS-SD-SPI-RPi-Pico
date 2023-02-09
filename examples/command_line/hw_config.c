@@ -34,9 +34,6 @@ socket, which SPI it is driven by, and how it is wired.
 #include "ff.h" /* Obtains integer types */
 //
 #include "diskio.h" /* Declarations of disk functions */
-//
-#include "rp2040_sdio.pio.h"
-#include "SDIO/rp2040_sdio.h"
 
 // Hardware Configuration of SPI "objects"
 // Note: multiple SD cards can be driven by one SPI if they use different slave
@@ -60,15 +57,22 @@ static spi_t spis[] = {  // One for each SPI.
 // Hardware Configuration of the SD Card "objects"
 static sd_card_t sd_cards[] = {  // One for each SD card
     {
-        .pcName = "0:",   // Name used to mount device
-
+        .pcName = "0:",   // Name used to mount device            
         .type = SD_IF_SDIO,
-        .sdio_if.CLK_gpio = SDIO_CLK_GPIO, // From sd_driver/SDIO/rp2040_sdio.pio
+        /* 
+        Pins CLK_gpio, D1_gpio, D2_gpio, and D3_gpio are at offsets from pin D0_gpio.
+        The offsets are determined by sd_driver\SDIO\rp2040_sdio.pio.
+            CLK_gpio = (D0_gpio + SDIO_CLK_PIN_D0_OFFSET) % 32;
+            As of this writing, SDIO_CLK_PIN_D0_OFFSET is 30, 
+              which is -2 in mod32 arithmetic, so:
+            CLK_gpio = D0_gpio -2.
+            D1_gpio = D0_gpio + 1;
+            D2_gpio = D0_gpio + 2;
+            D3_gpio = D0_gpio + 3;
+        */
         .sdio_if.CMD_gpio = 18,
         .sdio_if.D0_gpio = 19,
-        .sdio_if.D1_gpio = 20,
-        .sdio_if.D2_gpio = 21,
-        .sdio_if.D3_gpio = 22,
+
         .sdio_if.SDIO_PIO = pio1,
         .sdio_if.DMA_IRQ_num = DMA_IRQ_1,
 

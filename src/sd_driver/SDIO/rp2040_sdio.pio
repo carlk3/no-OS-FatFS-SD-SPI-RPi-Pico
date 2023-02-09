@@ -29,7 +29,14 @@
 .define D1 1
 .define CLKDIV D0 + 1 + D1 + 1
 
-.define PUBLIC SDIO_CLK_GPIO 17
+; .define PUBLIC SDIO_CLK_GPIO 17
+
+; This is relative to D0 GPIO number.
+; The pin is selected by adding Index to the
+;   PINCTRL_IN_BASE configuration, modulo 32.
+; This is used as a WAIT index, and must be between 4 and 31.
+; (Offsets 0-3 are D0, D1, D2, and D3.)
+.define PUBLIC SDIO_CLK_PIN_D0_OFFSET 30    ; (-2 in mod32 arithmetic)
 
 ; State machine 0 is used to:
 ; - generate continuous clock on SDIO_CLK
@@ -107,7 +114,7 @@ resp_done:
 wait_start:
     mov X, Y                               ; Reinitialize number of nibbles to receive
     wait 0 pin 0                           ; Wait for zero state on D0
-    wait 1 gpio SDIO_CLK_GPIO  [CLKDIV-1]  ; Wait for rising edge and then whole clock cycle
+    wait 1 pin SDIO_CLK_PIN_D0_OFFSET  [CLKDIV-1]  ; Wait for rising edge and then whole clock cycle
 
 rx_data:
     in PINS, 4                 [CLKDIV-2]  ; Read nibble
@@ -130,8 +137,8 @@ rx_data:
 ; contains the D0 line response from card.
 
 .program sdio_data_tx
-    wait 0 gpio SDIO_CLK_GPIO  
-    wait 1 gpio SDIO_CLK_GPIO  [CLKDIV + D1 - 1]; Synchronize so that write occurs on falling edge
+    wait 0 pin SDIO_CLK_PIN_D0_OFFSET  
+    wait 1 pin SDIO_CLK_PIN_D0_OFFSET  [CLKDIV + D1 - 1]; Synchronize so that write occurs on falling edge
 
 tx_loop:
     out PINS, 4                [D0]    ; Write nibble and wait for whole clock cycle

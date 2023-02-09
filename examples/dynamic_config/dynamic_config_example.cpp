@@ -15,9 +15,6 @@
 #include "hw_config.h"
 //
 #include "diskio.h" /* Declarations of disk functions */
-//
-#include "SDIO/rp2040_sdio.h"
-#include "rp2040_sdio.pio.h"
 
 static std::vector<spi_t *> spis;
 static std::vector<sd_card_t *> sd_cards;
@@ -42,16 +39,6 @@ spi_t *spi_get_by_num(size_t num) {
 void add_spi(spi_t *spi) { spis.push_back(spi); }
 void add_sd_card(sd_card_t *sd_card) { sd_cards.push_back(sd_card); }
 
-// Need a unique interrupt handler for each instance of spi_t
-void spi0_dma_isr() {
-    assert(spis.size());
-    spi_irq_handler(spis[0]);
-}
-// sd_cards[1].sdio_if's DMA ISR
-void sdio0_dma_isr() {
-    assert(0 < sd_cards.size());
-    rp2040_sdio_tx_irq(sd_cards[1]);
-}
 void test(sd_card_t *pSD) {
     // See FatFs - Generic FAT Filesystem Module, "Application Interface",
     // http://elm-chan.org/fsw/ff/00index_e.html
@@ -91,8 +78,6 @@ int main() {
     p_spi->mosi_gpio = 15;
     p_spi->sck_gpio = 14;
     p_spi->baud_rate = 25 * 1000 * 1000;  // Actual frequency: 20833333.
-    p_spi->dma_isr = spi0_dma_isr;
-    p_spi->initialized = false;  // initialized flag
     add_spi(p_spi);
 
     // Hardware Configuration of the SD Card "object"
@@ -105,30 +90,34 @@ int main() {
     p_sd_card->spi_if.ss_gpio = 9;  // The SPI slave select GPIO for this SD card
     p_sd_card->use_card_detect = true;
     p_sd_card->card_detect_gpio = 13;  // Card detect
-    // What the GPIO read returns when a card is
-    // present. Use -1 if there is no card detect.
+    // What the GPIO read returns when a card is present:
     p_sd_card->card_detected_true = 1;
     add_sd_card(p_sd_card);
 
     /* Add another SD card */
-//FIXME: This is broken because SDIO_CLK_GPIO is set statically in sd_driver/SDIO/rp2040_sdio.pio!
     p_sd_card = new sd_card_t;
     if (!p_sd_card) panic("Out of memory");
     memset(p_sd_card, 0, sizeof(sd_card_t));
     p_sd_card->pcName = "1:";  // Name used to mount device
     p_sd_card->type = SD_IF_SDIO;
-    p_sd_card->sdio_if.CLK_gpio = SDIO_CLK_GPIO;  // From sd_driver/SDIO/rp2040_sdio.pio
+    /*
+    Pins CLK_gpio, D1_gpio, D2_gpio, and D3_gpio are at offsets from pin D0_gpio.
+    The offsets are determined by sd_driver\SDIO\rp2040_sdio.pio.
+        CLK_gpio = (D0_gpio + SDIO_CLK_PIN_D0_OFFSET) % 32;
+        As of this writing, SDIO_CLK_PIN_D0_OFFSET is 30,
+          which is -2 in mod32 arithmetic, so:
+        CLK_gpio = D0_gpio - 2
+        D1_gpio = D0_gpio + 1
+        D2_gpio = D0_gpio + 2
+        D3_gpio = D0_gpio + 3
+    */
     p_sd_card->sdio_if.CMD_gpio = 18;
     p_sd_card->sdio_if.D0_gpio = 19;
-    p_sd_card->sdio_if.D1_gpio = 20;
-    p_sd_card->sdio_if.D2_gpio = 21;
-    p_sd_card->sdio_if.D3_gpio = 22;
     p_sd_card->use_card_detect = true;
     p_sd_card->card_detect_gpio = 16;   // Card detect
     p_sd_card->card_detected_true = 1;  // What the GPIO read returns when a card is present.
     p_sd_card->sdio_if.SDIO_PIO = pio1;
     p_sd_card->sdio_if.DMA_IRQ_num = DMA_IRQ_1;
-    p_sd_card->sdio_if.dma_isr = sdio0_dma_isr;
     add_sd_card(p_sd_card);
 
     for (size_t i = 0; i < sd_get_num(); ++i)
