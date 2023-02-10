@@ -19,13 +19,13 @@ add_subdirectory(../../src build)
 add_executable(command_line 
     main.cpp 
     hw_config.c
+    bench.c
     data_log_demo.c
     tests/simple.c
     tests/app4-IO_module_function_checker.c
     tests/big_file_test.c
     tests/CreateAndVerifyExampleFiles.c
     tests/ff_stdio_tests_with_cwd.c
-    ../../src/SdFat/bench.c
 )
 # Add the standard library to the build
 target_link_libraries(command_line pico_stdlib)

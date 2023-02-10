@@ -4,12 +4,9 @@
 
 #ifdef SD_USE_SDIO
 
-// #include "ZuluSCSI_log.h"
 #include "rp2040_sdio.h"
 #include <hardware/gpio.h>
-// #include <SdFat.h>
 #include "SdioCard.h"
-#include "../SdFat/SdCardInfo.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

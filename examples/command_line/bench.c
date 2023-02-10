@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "../SdFat/SdCardInfo.h"
+#include "SdCardInfo.h"
 #include "SDIO/SdioCard.h"
 #include "f_util.h"
 #include "ff.h"

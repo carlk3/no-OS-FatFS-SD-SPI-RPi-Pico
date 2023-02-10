@@ -28,7 +28,7 @@ specific language governing permissions and limitations under the License.
 #include "SPI/spi.h"
 #include "SPI/sd_card_constants.h"
 //
-#include "../SdFat/SdCardInfo.h"
+#include "SdCardInfo.h"
 
 #ifdef __cplusplus
 extern "C" {

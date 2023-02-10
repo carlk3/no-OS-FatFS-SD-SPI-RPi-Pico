@@ -1,5 +1,5 @@
 {
-    "name": "no-OS-FatFS-SD-SPI-RPi-Pico",
+    "name": "no-OS-FatFS-SD-SPI-RPi-Pico.dev_sdio",
     "version": "1.0.0",
     "description": "Simple library for SD Cards on the RP2040",
     "keywords": ["Data Storage", "FatFs", "SD card", "Secure Digital card", "SPI", "SDIO"],
@@ -17,13 +17,17 @@
     ],
     "license": "Apache-2.0 AND MIT-Modern-Variant",
     "frameworks": "*",
-    "platforms": "raspberrypi",
+    "platforms": "wizio-pico",
     "build": {
       "srcFilter": [
-          "+<*.c>",
-          "+<*.cpp>",
-          "+<*.h>",
-          "-<ff15/documents/*>"
+          "+<*> -<.git/> -<.svn/>",
+          "-<ff15/documents/*>",
+          "-<ff15/source/diskio.c"
+      ],
+      "flags": [
+        "-I src/sd_driver",
+        "-I src/include",
+        "-I src/SdFat"
       ]
-  }
+    }
   }
