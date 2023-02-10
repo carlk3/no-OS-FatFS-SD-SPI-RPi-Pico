@@ -19,8 +19,8 @@ add_subdirectory(../../src build)
 add_executable(command_line 
     main.cpp 
     hw_config.c
-    bench.c
     data_log_demo.c
+    tests/bench.c
     tests/simple.c
     tests/app4-IO_module_function_checker.c
     tests/big_file_test.c

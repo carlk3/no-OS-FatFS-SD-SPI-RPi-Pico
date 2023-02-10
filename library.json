@@ -20,14 +20,29 @@
     "platforms": "wizio-pico",
     "build": {
       "srcFilter": [
-          "+<*> -<.git/> -<.svn/>",
-          "-<ff15/documents/*>",
-          "-<ff15/source/diskio.c"
+          "-<.git/> -<.svn/>",
+          "+<ff15/source/ff.c>",
+          "+<ff15/source/ffsystem.c>",
+          "+<ff15/source/ffunicode.c>",
+          "+<rtc.c>",
+          "+<f_util.c>",
+          "+<glue.c>",
+          "+<my_debug.c>",
+          "+<rtc.c>",
+          "+<sd_driver/SDIO/rp2040_sdio.c>",
+          "+<sd_driver/SDIO/sd_card_sdio.c>",
+          "+<sd_driver/sd_card.c>",
+          "+<sd_driver/SPI/crc.c>",
+          "+<sd_driver/SPI/sd_card_spi.c>",
+          "+<sd_driver/SPI/sd_spi.c>",
+          "+<sd_driver/SPI/spi.c>" 
       ],
       "flags": [
+        "-D _GNU_SOURCE",
+        "-D __GNU_VISIBLE",
         "-I src/sd_driver",
         "-I src/include",
-        "-I src/SdFat"
+        "-I src/ff15/source"
       ]
     }
   }
