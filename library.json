@@ -6,7 +6,7 @@
     "repository":
     {
       "type": "git",
-      "url": "https://github.com/carlk3/no-OS-FatFS-SD-SPI-RPi-Pico.git#dev_sdio"
+      "url": "https://github.com/carlk3/no-OS-FatFS-SD-SPI-RPi-Pico.git#sdio"
     },
     "authors":
     [
@@ -17,10 +17,10 @@
     ],
     "license": "Apache-2.0 AND MIT-Modern-Variant",
     "frameworks": "arduino",
-    "platforms": "https://github.com/maxgerhardt/platform-raspberrypi.git",
+    "platforms": "raspberrypi",
     "examples": [
       {
-          "name": "One SDIO-attached SD card",
+          "name": "one_SDIO",
           "base": "examples/PlatformIO/one_SDIO",
           "files": [
               "platformio.ini",
@@ -28,7 +28,7 @@
           ]
       },
       {
-        "name": "One SPI-attached SD card",
+        "name": "one_SPI",
         "base": "examples/PlatformIO/one_SPI",
         "files": [
             "platformio.ini",
@@ -36,7 +36,7 @@
         ]
       },
       {
-        "name": "One SD card in SDIO mode & one in SPI mode",
+        "name": "one_SPI_one_SDIO",
         "base": "examples/PlatformIO/one_SPI_one_SDIO",
         "files": [
             "platformio.ini",
@@ -44,7 +44,7 @@
         ]
       },
       {
-        "name": "Data Logger",
+        "name": "data_logger",
         "base": "examples/PlatformIO/data_logger",
         "files": [
             "platformio.ini",
