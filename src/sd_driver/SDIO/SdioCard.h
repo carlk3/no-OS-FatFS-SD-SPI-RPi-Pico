@@ -24,9 +24,6 @@
  */
 #ifndef sd_sdio_h
 #define sd_sdio_h
-// #include "../common/SysCall.h"
-// #include "SdCardInterface.h"
-#include "../SdFat/SdCardInfo.h"
 #include "sd_card.h"
 
 /** Initialize the SD card.

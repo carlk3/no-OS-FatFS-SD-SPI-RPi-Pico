@@ -13,19 +13,19 @@ specific language governing permissions and limitations under the License.
 */
 #pragma once
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+// #ifdef __cplusplus
+// extern "C" {
+// #endif
 
-#include "../src/include/f_util.h"
 #include "../src/ff15/source/ff.h"
-#include "../src/include/rtc.h"
 //
 #include "../src/ff15/source/diskio.h" /* Declarations of disk functions */
-//
+#include "../src/include/f_util.h"
+#include "../src/include/rtc.h"
+#include "../src/sd_driver/sd_card.h"
 #include "../src/sd_driver/SDIO/rp2040_sdio.h"
-// #include "rp2040_sdio.pio.h"
+#include "../src/sd_driver/SPI/spi.h"
 
-#ifdef __cplusplus
-}
-#endif
+// #ifdef __cplusplus
+// }
+// #endif

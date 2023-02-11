@@ -11,15 +11,16 @@ target_sources(FatFs_SPI INTERFACE
     ${CMAKE_CURRENT_LIST_DIR}/sd_driver/SPI/sd_spi.c
     ${CMAKE_CURRENT_LIST_DIR}/sd_driver/SPI/sd_card_spi.c
     ${CMAKE_CURRENT_LIST_DIR}/sd_driver/SPI/spi.c
-    ${CMAKE_CURRENT_LIST_DIR}/src/f_util.c
-    ${CMAKE_CURRENT_LIST_DIR}/src/ff_stdio.c
-    ${CMAKE_CURRENT_LIST_DIR}/src/glue.c
-    ${CMAKE_CURRENT_LIST_DIR}/src/my_debug.c
-    ${CMAKE_CURRENT_LIST_DIR}/src/rtc.c
+    ${CMAKE_CURRENT_LIST_DIR}/f_util.c
+    ${CMAKE_CURRENT_LIST_DIR}/ff_stdio.c
+    ${CMAKE_CURRENT_LIST_DIR}/glue.c
+    ${CMAKE_CURRENT_LIST_DIR}/my_debug.c
+    ${CMAKE_CURRENT_LIST_DIR}/rtc.c
 )
 target_include_directories(FatFs_SPI INTERFACE
     ff15/source
     sd_driver
+    SdFat
     include
 )
 target_link_libraries(FatFs_SPI INTERFACE

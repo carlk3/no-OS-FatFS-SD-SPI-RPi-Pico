@@ -16,14 +16,67 @@
       }
     ],
     "license": "Apache-2.0 AND MIT-Modern-Variant",
-    "frameworks": "*",
-    "platforms": "raspberrypi",
+    "frameworks": "arduino",
+    "platforms": "https://github.com/maxgerhardt/platform-raspberrypi.git",
+    "examples": [
+      {
+          "name": "One SDIO-attached SD card",
+          "base": "examples/PlatformIO/one_SDIO",
+          "files": [
+              "platformio.ini",
+              "src/main.cpp"
+          ]
+      },
+      {
+        "name": "One SPI-attached SD card",
+        "base": "examples/PlatformIO/one_SPI",
+        "files": [
+            "platformio.ini",
+            "src/main.cpp"
+        ]
+      },
+      {
+        "name": "One SD card in SDIO mode & one in SPI mode",
+        "base": "examples/PlatformIO/one_SPI_one_SDIO",
+        "files": [
+            "platformio.ini",
+            "src/main.cpp"
+        ]
+      },
+      {
+        "name": "Data Logger",
+        "base": "examples/PlatformIO/data_logger",
+        "files": [
+            "platformio.ini",
+            "src/main.cpp"
+        ]
+      }
+    ],
     "build": {
       "srcFilter": [
-          "+<*.c>",
-          "+<*.cpp>",
-          "+<*.h>",
-          "-<ff15/documents/*>"
+          "-<.git/> -<.svn/>",
+          "+<ff15/source/ff.c>",
+          "+<ff15/source/ffsystem.c>",
+          "+<ff15/source/ffunicode.c>",
+          "+<rtc.c>",
+          "+<f_util.c>",
+          "+<glue.c>",
+          "+<my_debug.c>",
+          "+<rtc.c>",
+          "+<sd_driver/SDIO/rp2040_sdio.c>",
+          "+<sd_driver/SDIO/sd_card_sdio.c>",
+          "+<sd_driver/sd_card.c>",
+          "+<sd_driver/SPI/crc.c>",
+          "+<sd_driver/SPI/sd_card_spi.c>",
+          "+<sd_driver/SPI/sd_spi.c>",
+          "+<sd_driver/SPI/spi.c>" 
+      ],
+      "flags": [
+        "-D _GNU_SOURCE",
+        "-D __GNU_VISIBLE",
+        "-I src/sd_driver",
+        "-I src/include",
+        "-I src/ff15/source"
       ]
-  }
+    }
   }

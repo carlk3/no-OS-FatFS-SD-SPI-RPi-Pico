@@ -153,8 +153,6 @@
 //
 #include "ff.h"
 #include "diskio.h" /* Declarations of disk functions */  // Needed for STA_NOINIT, ...
-//
-#include "../SdFat/SdCardInfo.h"
 
 #ifndef TRACE
 #  define TRACE 0
