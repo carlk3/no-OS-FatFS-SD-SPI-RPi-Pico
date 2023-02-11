@@ -1,23 +1,27 @@
-// #include "Arduino.h"
-//
-// #define _GNU_SOURCE 1
-// #include "features.h"
-// #include <stdio.h>
-//
+/* 
+Copyright 2023 Carl John Kugler III
+
+Licensed under the Apache License, Version 2.0 (the License); you may not use 
+this file except in compliance with the License. You may obtain a copy of the 
+License at
+
+   http://www.apache.org/licenses/LICENSE-2.0 
+Unless required by applicable law or agreed to in writing, software distributed 
+under the License is distributed on an AS IS BASIS, WITHOUT WARRANTIES OR 
+CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+specific language governing permissions and limitations under the License.
+*/
 
 #include <vector>
-//
-// #include "pico/stdlib.h"
 #include "FatFsSd.h"
-//
 #include "SerialUART.h"
 
 static const uint led_pin = PICO_DEFAULT_LED_PIN;
 
-
 static std::vector<spi_t *> spis;
 static std::vector<sd_card_t *> sd_cards;
 
+/* Infrastructure*/
 extern "C" {
     int printf(const char *__restrict format, ...) {
         char buf[256] = {0};
@@ -30,23 +34,25 @@ extern "C" {
     int	puts (const char *s) {
         return Serial1.println(s);
     }
+}
 
-    size_t sd_get_num() { return sd_cards.size(); }
-    sd_card_t *sd_get_by_num(size_t num) {
+/* ********************************************************************** */
+
+extern "C" size_t sd_get_num() { return sd_cards.size(); }
+extern "C" sd_card_t *sd_get_by_num(size_t num) {
         if (num <= sd_get_num()) {
             return sd_cards[num];
         } else {
             return NULL;
         }
-    }
-    size_t spi_get_num() { return spis.size(); }
-    spi_t *spi_get_by_num(size_t num) {
+}
+extern "C" size_t spi_get_num() { return spis.size(); }
+extern "C" spi_t *spi_get_by_num(size_t num) {
         if (num <= sd_get_num()) {
             return spis[num];
         } else {
             return NULL;
         }
-    }
 }
 void add_spi(spi_t *spi) { spis.push_back(spi); }
 void add_sd_card(sd_card_t *sd_card) { sd_cards.push_back(sd_card); }
@@ -74,6 +80,8 @@ void test(sd_card_t *pSD) {
 
     f_unmount(pSD->pcName);
 }
+
+/* ********************************************************************** */
 
 void setup() {
     Serial1.begin(115200);  // set up Serial library at 9600 bps

@@ -1,7 +1,35 @@
+/* 
+Copyright 2023 Carl John Kugler III
+
+Licensed under the Apache License, Version 2.0 (the License); you may not use 
+this file except in compliance with the License. You may obtain a copy of the 
+License at
+
+   http://www.apache.org/licenses/LICENSE-2.0 
+Unless required by applicable law or agreed to in writing, software distributed 
+under the License is distributed on an AS IS BASIS, WITHOUT WARRANTIES OR 
+CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+specific language governing permissions and limitations under the License.
+*/
 
 #include "FatFsSd.h"
 //
 #include "SerialUART.h"
+
+/* Infrastructure*/
+extern "C" int printf(const char *__restrict format, ...) {
+    char buf[256] = {0};
+    va_list xArgs;
+    va_start(xArgs, format);
+    vsnprintf(buf, sizeof buf, format, xArgs);
+    va_end(xArgs);
+    return Serial1.printf("%s", buf);
+}
+extern "C" int puts(const char *s) {
+    return Serial1.println(s);
+}
+
+/* ********************************************************************** */
 
 // Hardware Configuration of SPI "objects"
 // Note: multiple SD cards can be driven by one SPI if they use different slave
@@ -46,19 +74,6 @@ extern "C" spi_t *spi_get_by_num(size_t num) {
     } else {
         return NULL;
     }
-}
-
-/* Infrastructure*/
-extern "C" int printf(const char *__restrict format, ...) {
-    char buf[256] = {0};
-    va_list xArgs;
-    va_start(xArgs, format);
-    vsnprintf(buf, sizeof buf, format, xArgs);
-    va_end(xArgs);
-    return Serial1.printf("%s", buf);
-}
-extern "C" int puts(const char *s) {
-    return Serial1.println(s);
 }
 
 /* ********************************************************************** */
