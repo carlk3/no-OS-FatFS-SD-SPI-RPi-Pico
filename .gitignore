@@ -3,4 +3,5 @@
 *.png
 *.zip
 *.xlsx
+*.bak
 **/.vscode

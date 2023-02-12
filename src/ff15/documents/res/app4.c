@@ -4,8 +4,8 @@
 / WARNING: The data on the target drive will be lost!
 */
 
-#include <stdio.h>
 #include <string.h>
+#include "my_debug.h"
 #include "ff.h"         /* Declarations of sector size */
 #include "diskio.h"     /* Declarations of disk functions */
 

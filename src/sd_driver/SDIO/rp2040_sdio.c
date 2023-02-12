@@ -8,19 +8,19 @@
 // https://www.sdcard.org/downloads/pls/
 // "SDIO Physical Layer Simplified Specification Version 8.00"
 
-#include "rp2040_sdio.h"
-#include "rp2040_sdio.pio.h"
-#include <hardware/pio.h>
+#include <string.h>
+//
 #include <hardware/dma.h>
 #include <hardware/gpio.h>
-// #include "ZuluSCSI_platform.h"
-// #include "ZuluSCSI_log.h"
+#include <hardware/pio.h>
+//
+#include "hw_config.h"
+#include "my_debug.h"
+#include "rp2040_sdio.h"
+#include "rp2040_sdio.pio.h"
 #include "RP2040.h"
-#include <stdio.h>
-#include <string.h>
 #include "sd_card.h"
 #include "util.h"
-#include "hw_config.h"
 
 // #define azdbg(Params...)DMA_CH
 // #define azlog(Params...)

@@ -24,6 +24,10 @@ add_executable(dynamic_config_example
     main.cpp 
 )
 
+# Can leave these off for silent mode:
+#add_compile_definitions(USE_PRINTF USE_DBG_PRINTF)
+#add_compile_definitions(USE_PRINTF)
+
 pico_set_program_name(dynamic_config_example "dynamic_config_example")
 pico_set_program_version(dynamic_config_example "0.1")
 

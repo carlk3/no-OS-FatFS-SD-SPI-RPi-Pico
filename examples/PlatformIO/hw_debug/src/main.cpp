@@ -12,14 +12,30 @@ CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 */
 
-/* Write "Hello, world!\n" to SD Card */
+/* 
+This example runs a low level I/O test than can be helpful for debugging hardware. 
+It will destroy the format of the SD card!
+*/
 #include "FatFsSd.h"
+#include "tests/tests.h"
 //
 #include "SerialUART.h"
 
-#define printf Serial1.printf
-#define puts Serial1.println
-/*
+/* Infrastructure*/
+extern "C" int printf(const char *__restrict format, ...) {
+    char buf[256] = {0};
+    va_list xArgs;
+    va_start(xArgs, format);
+    vsnprintf(buf, sizeof buf, format, xArgs);
+    va_end(xArgs);
+    return Serial1.printf("%s", buf);
+}
+extern "C" int puts(const char *s) {
+    return Serial1.println(s);
+}
+
+/* ********************************************************************** */
+/* 
 This example assumes the following wiring:
 
     | GPIO  | Pico Pin | microSD | Function    | 
@@ -31,6 +47,7 @@ This example assumes the following wiring:
     |  20   |    26    | DAT1    | SDIO_D1     |
     |  21   |    27    | DAT2    | SDIO_D2     |
     |  22   |    29    | DAT3    | SDIO_D3     |
+
 */
 // Hardware Configuration of the SD Card "objects"
 static sd_card_t sd_cards[] = {  // One for each SD card
@@ -82,34 +99,6 @@ void setup() {
     Serial1.begin(115200);  // set up Serial library at 9600 bps
     while (!Serial1)
         ;  // Serial is via USB; wait for enumeration
-    puts("Hello, world!");
-
-    // See FatFs - Generic FAT Filesystem Module, "Application Interface",
-    // http://elm-chan.org/fsw/ff/00index_e.html
-    sd_card_t *pSD = sd_get_by_num(0);
-    FRESULT fr = f_mount(&pSD->fatfs, pSD->pcName, 1);
-    if (FR_OK != fr) {
-        printf("f_mount error: %s (%d)\n", FRESULT_str(fr), fr);
-        for (;;) __BKPT(1);
-    }
-    FIL fil;
-    const char* const filename = "filename.txt";
-    fr = f_open(&fil, filename, FA_OPEN_APPEND | FA_WRITE);
-    if (FR_OK != fr && FR_EXIST != fr) {
-        printf("f_open(%s) error: %s (%d)\n", filename, FRESULT_str(fr), fr);
-        for (;;) __BKPT(2);
-    }
-    if (f_printf(&fil, "Hello, world!\n") < 0) {
-        printf("f_printf failed\n");
-        for (;;) __BKPT(3);
-    }
-    fr = f_close(&fil);
-    if (FR_OK != fr) {
-        printf("f_close error: %s (%d)\n", FRESULT_str(fr), fr);
-        for (;;) __BKPT(4);
-    }
-    f_unmount(pSD->pcName);
-
-    puts("Goodbye, world!");
+    lliot(0);
 }
 void loop() {}

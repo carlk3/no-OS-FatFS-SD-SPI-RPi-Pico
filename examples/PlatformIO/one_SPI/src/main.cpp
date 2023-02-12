@@ -16,20 +16,20 @@ specific language governing permissions and limitations under the License.
 //
 #include "SerialUART.h"
 
-/* Infrastructure*/
-extern "C" int printf(const char *__restrict format, ...) {
-    char buf[256] = {0};
-    va_list xArgs;
-    va_start(xArgs, format);
-    vsnprintf(buf, sizeof buf, format, xArgs);
-    va_end(xArgs);
-    return Serial1.printf("%s", buf);
-}
-extern "C" int puts(const char *s) {
-    return Serial1.println(s);
-}
+#define printf Serial1.printf
+#define puts Serial1.println
 
 /* ********************************************************************** */
+
+/* This example assumes the following wiring:
+    | signal | SPI1 | GPIO | card | Description            | 
+    | ------ | ---- | ---- | ---- | ---------------------- |
+    | MISO   | RX   | 12   |  DO  | Master In, Slave Out   |
+    | CS0    | CSn  | 09   |  CS  | Slave (or Chip) Select |
+    | SCK    | SCK  | 14   | SCLK | SPI clock              |
+    | MOSI   | TX   | 15   |  DI  | Master Out, Slave In   |
+    | CD     |      | 13   |  DET | Card Detect            |
+*/
 
 // Hardware Configuration of SPI "objects"
 // Note: multiple SD cards can be driven by one SPI if they use different slave
@@ -90,18 +90,25 @@ void setup() {
     // http://elm-chan.org/fsw/ff/00index_e.html
     sd_card_t *pSD = sd_get_by_num(0);
     FRESULT fr = f_mount(&pSD->fatfs, pSD->pcName, 1);
-    if (FR_OK != fr) panic("f_mount error: %s (%d)\n", FRESULT_str(fr), fr);
+    if (FR_OK != fr) {
+        printf("f_mount error: %s (%d)\n", FRESULT_str(fr), fr);
+        for (;;) __BKPT(1);
+    }
     FIL fil;
     const char* const filename = "filename.txt";
     fr = f_open(&fil, filename, FA_OPEN_APPEND | FA_WRITE);
-    if (FR_OK != fr && FR_EXIST != fr)
-        panic("f_open(%s) error: %s (%d)\n", filename, FRESULT_str(fr), fr);
+    if (FR_OK != fr && FR_EXIST != fr) {
+        printf("f_open(%s) error: %s (%d)\n", filename, FRESULT_str(fr), fr);
+        for (;;) __BKPT(2);
+    }
     if (f_printf(&fil, "Hello, world!\n") < 0) {
         printf("f_printf failed\n");
+        for (;;) __BKPT(3);
     }
     fr = f_close(&fil);
     if (FR_OK != fr) {
         printf("f_close error: %s (%d)\n", FRESULT_str(fr), fr);
+        for (;;) __BKPT(4);
     }
     f_unmount(pSD->pcName);
 

@@ -13,10 +13,6 @@ specific language governing permissions and limitations under the License.
 */
 #pragma once
 
-// #ifdef __cplusplus
-// extern "C" {
-// #endif
-
 #include "../src/ff15/source/ff.h"
 //
 #include "../src/ff15/source/diskio.h" /* Declarations of disk functions */
@@ -26,6 +22,22 @@ specific language governing permissions and limitations under the License.
 #include "../src/sd_driver/SDIO/rp2040_sdio.h"
 #include "../src/sd_driver/SPI/spi.h"
 
-// #ifdef __cplusplus
-// }
-// #endif
+#ifdef __cplusplus
+
+class FatFsSpi {
+   
+};
+class FatFsSdCard {
+   sd_card_t sd_card = {};   
+public:
+   FatFsSdCard() = delete;
+   FatFsSdCard(const char *name); 
+};
+class FatFsSdCardSpi: public FatFsSdCard {
+   
+};
+class  FatFsSdCardSdio: public FatFsSdCard {
+   
+};
+
+#endif // __cplusplus

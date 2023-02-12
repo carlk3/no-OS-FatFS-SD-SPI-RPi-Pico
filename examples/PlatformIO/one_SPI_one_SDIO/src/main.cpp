@@ -1,87 +1,109 @@
-/* 
+/*
 Copyright 2023 Carl John Kugler III
 
-Licensed under the Apache License, Version 2.0 (the License); you may not use 
-this file except in compliance with the License. You may obtain a copy of the 
+Licensed under the Apache License, Version 2.0 (the License); you may not use
+this file except in compliance with the License. You may obtain a copy of the
 License at
 
-   http://www.apache.org/licenses/LICENSE-2.0 
-Unless required by applicable law or agreed to in writing, software distributed 
-under the License is distributed on an AS IS BASIS, WITHOUT WARRANTIES OR 
-CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+   http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software distributed
+under the License is distributed on an AS IS BASIS, WITHOUT WARRANTIES OR
+CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 */
 
 #include <vector>
+
 #include "FatFsSd.h"
 #include "SerialUART.h"
+
+#define printf Serial1.printf
+#define puts Serial1.println
 
 static const uint led_pin = PICO_DEFAULT_LED_PIN;
 
 static std::vector<spi_t *> spis;
 static std::vector<sd_card_t *> sd_cards;
 
-/* Infrastructure*/
-extern "C" {
-    int printf(const char *__restrict format, ...) {
-        char buf[256] = {0};
-        va_list xArgs;
-        va_start(xArgs, format);
-        vsnprintf(buf, sizeof buf, format, xArgs);
-        va_end(xArgs);
-        return Serial1.printf("%s", buf);
-    }
-    int	puts (const char *s) {
-        return Serial1.println(s);
-    }
-}
-
 /* ********************************************************************** */
 
 extern "C" size_t sd_get_num() { return sd_cards.size(); }
 extern "C" sd_card_t *sd_get_by_num(size_t num) {
-        if (num <= sd_get_num()) {
-            return sd_cards[num];
-        } else {
-            return NULL;
-        }
+    if (num <= sd_get_num()) {
+        return sd_cards[num];
+    } else {
+        return NULL;
+    }
 }
 extern "C" size_t spi_get_num() { return spis.size(); }
 extern "C" spi_t *spi_get_by_num(size_t num) {
-        if (num <= sd_get_num()) {
-            return spis[num];
-        } else {
-            return NULL;
-        }
+    if (num <= sd_get_num()) {
+        return spis[num];
+    } else {
+        return NULL;
+    }
 }
 void add_spi(spi_t *spi) { spis.push_back(spi); }
 void add_sd_card(sd_card_t *sd_card) { sd_cards.push_back(sd_card); }
 
 void test(sd_card_t *pSD) {
+
     // See FatFs - Generic FAT Filesystem Module, "Application Interface",
     // http://elm-chan.org/fsw/ff/00index_e.html
     FRESULT fr = f_mount(&pSD->fatfs, pSD->pcName, 1);
-    if (FR_OK != fr) panic("f_mount error: %s (%d)\n", FRESULT_str(fr), fr);
+    if (FR_OK != fr) {
+        printf("f_mount error: %s (%d)\n", FRESULT_str(fr), fr);
+        for (;;) __BKPT(1);
+    }
     fr = f_chdrive(pSD->pcName);
-    if (FR_OK != fr) panic("f_chdrive error: %s (%d)\n", FRESULT_str(fr), fr);
+    if (FR_OK != fr) {
+        printf("f_chdrive error: %s (%d)\n", FRESULT_str(fr), fr);
+        for (;;) __BKPT(2);
+    }
 
     FIL fil;
     const char *const filename = "filename.txt";
     fr = f_open(&fil, filename, FA_OPEN_APPEND | FA_WRITE);
-    if (FR_OK != fr && FR_EXIST != fr)
-        panic("f_open(%s) error: %s (%d)\n", filename, FRESULT_str(fr), fr);
+    if (FR_OK != fr && FR_EXIST != fr) {
+        printf("f_open(%s) error: %s (%d)\n", filename, FRESULT_str(fr), fr);
+        for (;;) __BKPT(3);
+    }
     if (f_printf(&fil, "Hello, world!\n") < 0) {
         printf("f_printf failed\n");
+        for (;;) __BKPT(4);
     }
     fr = f_close(&fil);
     if (FR_OK != fr) {
         printf("f_close error: %s (%d)\n", FRESULT_str(fr), fr);
+        for (;;) __BKPT(5);
     }
-
     f_unmount(pSD->pcName);
 }
 
 /* ********************************************************************** */
+/*
+This example assumes the following wiring for SD card 0:
+
+    | signal | SPI1 | GPIO | card | Description            |
+    | ------ | ---- | ---- | ---- | ---------------------- |
+    | MISO   | RX   | 12   |  DO  | Master In, Slave Out   |
+    | CS0    | CSn  | 09   |  CS  | Slave (or Chip) Select |
+    | SCK    | SCK  | 14   | SCLK | SPI clock              |
+    | MOSI   | TX   | 15   |  DI  | Master Out, Slave In   |
+    | CD     |      | 13   |  DET | Card Detect            |
+
+This example assumes the following wiring for SD card 1:
+
+    | GPIO  |  card | Function    |
+    | ----  |  ---- | ----------- |
+    |  16   |  DET  | Card Detect |
+    |  17   |  CLK  | SDIO_CLK    |
+    |  18   |  CMD  | SDIO_CMD    |
+    |  19   |  DAT0 | SDIO_D0     |
+    |  20   |  DAT1 | SDIO_D1     |
+    |  21   |  DAT2 | SDIO_D2     |
+    |  22   |  DAT3 | SDIO_D3     |
+*/
 
 void setup() {
     Serial1.begin(115200);  // set up Serial library at 9600 bps
@@ -99,7 +121,11 @@ void setup() {
     // Hardware Configuration of SPI "object"
     spi_t *p_spi = new spi_t;
     memset(p_spi, 0, sizeof(spi_t));
-    if (!p_spi) panic("Out of memory");
+    if (!p_spi) {
+        printf("Out of memory");
+        for (;;) __BKPT(3);
+    }
+
     p_spi->hw_inst = spi1;  // SPI component
     p_spi->miso_gpio = 12;  // GPIO number (not pin number)
     p_spi->mosi_gpio = 15;
@@ -109,7 +135,10 @@ void setup() {
 
     // Hardware Configuration of the SD Card "object"
     sd_card_t *p_sd_card = new sd_card_t;
-    if (!p_sd_card) panic("Out of memory");
+    if (!p_sd_card) {
+        printf("Out of memory");
+        for (;;) __BKPT(6);
+    }
     memset(p_sd_card, 0, sizeof(sd_card_t));
     p_sd_card->pcName = "0:";  // Name used to mount device
     p_sd_card->type = SD_IF_SPI,
@@ -123,7 +152,10 @@ void setup() {
 
     /* Add another SD card */
     p_sd_card = new sd_card_t;
-    if (!p_sd_card) panic("Out of memory");
+    if (!p_sd_card) {
+        printf("Out of memory");
+        for (;;) __BKPT(7);
+    }
     memset(p_sd_card, 0, sizeof(sd_card_t));
     p_sd_card->pcName = "1:";  // Name used to mount device
     p_sd_card->type = SD_IF_SDIO;
