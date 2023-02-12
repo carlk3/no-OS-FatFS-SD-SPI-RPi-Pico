@@ -69,7 +69,8 @@
           "+<sd_driver/SPI/crc.c>",
           "+<sd_driver/SPI/sd_card_spi.c>",
           "+<sd_driver/SPI/sd_spi.c>",
-          "+<sd_driver/SPI/spi.c>" 
+          "+<sd_driver/SPI/spi.c>",
+          "+<tests/app4-IO_module_function_checker.c>"
       ],
       "flags": [
         "-D _GNU_SOURCE",

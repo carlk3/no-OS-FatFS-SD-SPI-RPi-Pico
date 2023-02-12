@@ -24,6 +24,9 @@ add_executable(simple_example
     main.c
     hw_config.c
 )
+# Can leave these off for silent mode:
+# add_compile_definitions(USE_PRINTF USE_DBG_PRINTF)
+add_compile_definitions(USE_PRINTF)
 
 # Add the standard library and FatFS/SPI to the build
 target_link_libraries(simple_example 

@@ -11,10 +11,11 @@ under the License is distributed on an AS IS BASIS, WITHOUT WARRANTIES OR
 CONDITIONS OF ANY KIND, either express or implied. See the License for the 
 specific language governing permissions and limitations under the License.
 */
-#include <stdio.h>
 #include <stdarg.h>
 #include "my_debug.h"
 
+#ifdef USE_PRINTF
+#  include <stdio.h>
 void my_printf(const char *pcFormat, ...) {
     char pcBuffer[256] = {0};
     va_list xArgs;
@@ -24,6 +25,12 @@ void my_printf(const char *pcFormat, ...) {
     printf("%s", pcBuffer);
     fflush(stdout);
 }
+#else 
+#  define my_printf(...)  // Do nothing
+#  define printf(...)  // Do nothing
+#  define puts(...)
+#  define fflush(...)
+#endif
 
 
 void my_assert_func(const char *file, int line, const char *func,

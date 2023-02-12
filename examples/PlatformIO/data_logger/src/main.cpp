@@ -12,6 +12,11 @@ CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 */
 
+/* 
+This example reads analog input A0 and logs the voltage 
+  in a file on an SD card once per second.
+*/
+
 #include <assert.h>
 #include <time.h>
 #include "FatFsSd.h"
@@ -21,6 +26,7 @@ specific language governing permissions and limitations under the License.
 #include "pico/stdlib.h"
 
 /* Infrastructure*/
+#if USE_PRINTF
 extern "C" int printf(const char *__restrict format, ...) {
     char buf[256] = {0};
     va_list xArgs;
@@ -32,8 +38,26 @@ extern "C" int printf(const char *__restrict format, ...) {
 extern "C" int puts(const char *s) {
     return Serial1.println(s);
 }
+#else
+#  define printf Serial1.printf
+#  define puts Serial1.println
+#endif
 
 /* ********************************************************************** */
+/*
+This example assumes the following wiring:
+
+    | GPIO  | Pico Pin | microSD | Function    | 
+    | ----  | -------- | ------- | ----------- |
+    |  16   |    21    | DET     | Card Detect |
+    |  17   |    22    | CLK     | SDIO_CLK    |
+    |  18   |    24    | CMD     | SDIO_CMD    |
+    |  19   |    25    | DAT0    | SDIO_D0     |
+    |  20   |    26    | DAT1    | SDIO_D1     |
+    |  21   |    27    | DAT2    | SDIO_D2     |
+    |  22   |    29    | DAT3    | SDIO_D3     |
+
+*/
 
 // Hardware Configuration of the SD Card "objects"
 static sd_card_t sd_cards[] = {  // One for each SD card
@@ -54,8 +78,8 @@ static sd_card_t sd_cards[] = {  // One for each SD card
         .sdio_if = {
             .CMD_gpio = 18,
             .D0_gpio = 19,
-            .SDIO_PIO = pio1,
-            .DMA_IRQ_num = DMA_IRQ_1
+            .SDIO_PIO = pio1,  // Either pio0 or pio1
+            .DMA_IRQ_num = DMA_IRQ_1 // Either DMA_IRQ_0 or DMA_IRQ_1
         },
         .use_card_detect = true,    
         .card_detect_gpio = 16,   // Card detect

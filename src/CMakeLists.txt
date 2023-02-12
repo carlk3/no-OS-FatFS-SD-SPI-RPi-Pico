@@ -20,7 +20,7 @@ target_sources(FatFs_SPI INTERFACE
 target_include_directories(FatFs_SPI INTERFACE
     ff15/source
     sd_driver
-    SdFat
+    tests
     include
 )
 target_link_libraries(FatFs_SPI INTERFACE

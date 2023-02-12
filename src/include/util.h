@@ -18,6 +18,7 @@ specific language governing permissions and limitations under the License.
 #include <stdint.h>
 #include "hardware/structs/scb.h"
 #include "RP2040.h"
+#include "my_debug.h"
 
 // works with negative index
 static inline int wrap_ix(int index, int n)
@@ -47,8 +48,9 @@ static inline void dump_bytes(size_t num, uint8_t bytes[num]) {
         printf("%02hhx", j);
         if (j < 15)
             printf(" ");
-        else
+        else {
             printf("\n");
+        }
     }
     for (size_t i = 0; i < num; i += 16) {
         printf("%04x ", i);        
@@ -56,8 +58,9 @@ static inline void dump_bytes(size_t num, uint8_t bytes[num]) {
             printf("%02hhx", bytes[i + j]);
             if (j < 15)
                 printf(" ");
-            else
+            else {
                 printf("\n");
+            }
         }
     }
     printf("\n");

@@ -18,19 +18,12 @@
 #include "my_debug.h"
 #include "rtc.h"
 #include "sd_card.h"
+#include "tests.h"
 // #include "util.h" // for wiring test
 
-extern "C" {
-    int lliot(size_t pnum);
-    void ls(const char *dir);
-    void simple();
-    void bench(char const* logdrv);
-    void big_file_test(const char *const pathname, size_t size,
-                            uint32_t seed);
-    void vCreateAndVerifyExampleFiles(const char *pcMountPath);
-    void vStdioWithCWDTest(const char *pcMountPath);
-    bool process_logger();
-}
+#ifndef USE_PRINTF
+#error This program is useless without standard input and output.
+#endif
 
 static bool logger_enabled;
 static const uint32_t period = 1000;

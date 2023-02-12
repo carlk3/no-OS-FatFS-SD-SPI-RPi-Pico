@@ -4,17 +4,18 @@
 
 #ifdef SD_USE_SDIO
 
-#include "rp2040_sdio.h"
-#include <hardware/gpio.h>
-#include "SdioCard.h"
 #include <assert.h>
-#include <stdio.h>
-#include <string.h>
 #include <stdint.h>
-
+#include <string.h>
+//
+#include <hardware/gpio.h>
+//
 #include "diskio.h"
-#include "util.h"
+#include "my_debug.h"
+#include "rp2040_sdio.h"
 #include "rp2040_sdio.pio.h"
+#include "SdioCard.h"
+#include "util.h"
 
 // #define azlog(...)
 // #define azdbg(...)

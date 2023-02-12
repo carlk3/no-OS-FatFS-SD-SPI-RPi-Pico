@@ -20,18 +20,22 @@ add_executable(command_line
     main.cpp 
     hw_config.c
     data_log_demo.c
-    tests/bench.c
-    tests/simple.c
-    tests/app4-IO_module_function_checker.c
-    tests/big_file_test.c
-    tests/CreateAndVerifyExampleFiles.c
-    tests/ff_stdio_tests_with_cwd.c
+    ../../src/tests/bench.c
+    ../../src/tests/simple.c
+    ../../src/tests/app4-IO_module_function_checker.c
+    ../../src/tests/big_file_test.c
+    ../../src/tests/CreateAndVerifyExampleFiles.c
+    ../../src/tests/ff_stdio_tests_with_cwd.c
 )
 # Add the standard library to the build
 target_link_libraries(command_line pico_stdlib)
 
 # target_compile_options(command_line PUBLIC -Wall -Wextra -Wno-unused-function -Wno-unused-parameter)
 target_compile_options(command_line PUBLIC -Wall -Wextra -Wno-unused-parameter)
+
+# This program is useless without standard standard input and output.
+# add_compile_definitions(USE_PRINTF USE_DBG_PRINTF)
+add_compile_definitions(USE_PRINTF)
 
 set_property(TARGET command_line APPEND_STRING PROPERTY LINK_FLAGS "-Wl,--print-memory-usage")
 

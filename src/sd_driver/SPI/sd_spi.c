@@ -15,7 +15,6 @@ specific language governing permissions and limitations under the License.
 /* Standard includes. */
 #include <inttypes.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <string.h>
 //
 #include "hardware/gpio.h"
