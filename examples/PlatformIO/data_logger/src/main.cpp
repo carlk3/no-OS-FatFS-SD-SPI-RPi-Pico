@@ -19,7 +19,7 @@ This example reads analog input A0 and logs the voltage
 
 #include <assert.h>
 #include <time.h>
-#include "FatFsSd.h"
+#include "FatFsSd_C.h"
 #include "SerialUART.h"
 #include "hardware/adc.h"
 #include "hardware/rtc.h"

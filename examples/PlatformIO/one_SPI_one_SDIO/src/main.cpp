@@ -14,7 +14,7 @@ specific language governing permissions and limitations under the License.
 
 #include <vector>
 
-#include "FatFsSd.h"
+#include "FatFsSd_C.h"
 #include "SerialUART.h"
 
 #define printf Serial1.printf
@@ -37,7 +37,7 @@ extern "C" sd_card_t *sd_get_by_num(size_t num) {
 }
 extern "C" size_t spi_get_num() { return spis.size(); }
 extern "C" spi_t *spi_get_by_num(size_t num) {
-    if (num <= sd_get_num()) {
+    if (num <= spi_get_num()) {
         return spis[num];
     } else {
         return NULL;

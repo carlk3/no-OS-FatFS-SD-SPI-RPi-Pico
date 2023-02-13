@@ -16,7 +16,7 @@ specific language governing permissions and limitations under the License.
 This example runs a low level I/O test than can be helpful for debugging hardware. 
 It will destroy the format of the SD card!
 */
-#include "FatFsSd.h"
+#include "FatFsSd_C.h"
 #include "tests/tests.h"
 //
 #include "SerialUART.h"
