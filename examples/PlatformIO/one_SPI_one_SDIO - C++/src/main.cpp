@@ -20,25 +20,39 @@ specific language governing permissions and limitations under the License.
 
 /* ********************************************************************** */
 
-static void test(FatFs_SdCard *FatFs_SdCard_p) {
-    try {
-        FatFs_SdCard_p->mount();
-        FatFs::chdrive(FatFs_SdCard_p->get_name());
-
-        const char *const filename = "filename.txt";
-
-        FatFs_File file;
-        file.open(filename, FA_OPEN_APPEND | FA_WRITE);
-
-        // if (f_printf(&fil, "Hello, world!\n") < 0) {
-        //     printf("f_printf failed\n");
-        //     for (;;) __BKPT(4);
-        // }
-        file.close();
-        FatFs_SdCard_p->unmount();
-    } catch (std::exception &e) {
-        printf("Error: %s\n", e.what());
+// First (if s is not NULL and *s is not a null byte ('\0')) the argument string s is printed, 
+//   followed by a colon and a blank. Then the FRESULT error message and a new-line.
+static void chk_result(const char *s, FRESULT fr) {
+    if (FR_OK != fr) {
+        if (s && *s)
+            printf("%s: %s (%d)\n", s, FRESULT_str(fr), fr);
+        else
+            printf("%s (%d)\n", FRESULT_str(fr), fr);
+        for (;;) __breakpoint();
     }
+}
+
+static void test(FatFs_SdCard *FatFs_SdCard_p) {
+    FRESULT fr;
+
+    fr = FatFs_SdCard_p->mount();
+    chk_result("mount", fr);
+    fr = FatFs::chdrive(FatFs_SdCard_p->get_name());
+    chk_result("chdrive", fr);
+
+    const char *const filename = "filename.txt";
+    FatFs_File file;
+    fr = file.open(filename, FA_OPEN_APPEND | FA_WRITE);
+    chk_result("open", fr);
+
+    // if (f_printf(&fil, "Hello, world!\n") < 0) {
+    //     printf("f_printf failed\n");
+    //     for (;;) __BKPT(4);
+    // }
+    fr = file.close();
+    chk_result("close", fr);
+
+    FatFs_SdCard_p->unmount();
 }
 
 /* ********************************************************************** */
@@ -84,37 +98,39 @@ void setup() {
 
     /* Hardware Configuration of SPI object */
 
-     // GPIO numbers, not Pico pin numbers!
+    // GPIO numbers, not Pico pin numbers!
     FatFs_Spi spi(
         spi1,  // spi_inst_t *hw_inst,
-        12,    // uint miso_gpio, 
+        12,    // uint miso_gpio,
         15,    // uint mosi_gpio,
         14     // uint sck_gpio
     );
-    FatFs::add_spi_p(&spi);
+    spi_t *spi_p = FatFs::add_spi_p(spi);
 
     /* Hardware Configuration of the SD Card objects */
 
     FatFs_SdCardSpi spi_sd_card(
-        spi,   // FatFs_Spi& ffs,
-        "0:",  // const char *pcName,
-        9,     // uint ss_gpio,  // Slave select for this SD card
-        true,  // bool use_card_detect = false,
-        13,    // uint card_detect_gpio = 0,       // Card detect; ignored if !use_card_detect
-        1      // uint card_detected_true = false  // Varies with card socket; ignored if !use_card_detect
+        spi_p,  // spi_t *spi_p,
+        "0:",   // const char *pcName,
+        9,      // uint ss_gpio,  // Slave select for this SD card
+        true,   // bool use_card_detect = false,
+        13,     // uint card_detect_gpio = 0,       // Card detect; ignored if !use_card_detect
+        1       // uint card_detected_true = false  // Varies with card socket; ignored if !use_card_detect
     );
-    FatFs::add_sd_card_p(&spi_sd_card);
-   
+    FatFs::add_sd_card_p(spi_sd_card);
+
+    static char name1[] = "1:";
+
     // Add another SD card:
     FatFs_SdCardSdio sdio_sd_card(
-        "1:",  // const char *pcName,
-        18,    // uint CMD_gpio,
-        19,    // uint D0_gpio,  // D0
-        true,  // bool use_card_detect = false,
-        16,    // uint card_detect_gpio = 0,    // Card detect, ignored if !use_card_detect
-        1      // uint card_detected_true = 0,  // Varies with card socket, ignored if !use_card_detect
+        name1,  // const char *pcName,
+        18,     // uint CMD_gpio,
+        19,     // uint D0_gpio,  // D0
+        true,   // bool use_card_detect = false,
+        16,     // uint card_detect_gpio = 0,    // Card detect, ignored if !use_card_detect
+        1       // uint card_detected_true = 0,  // Varies with card socket, ignored if !use_card_detect
     );
-    FatFs::add_sd_card_p(&sdio_sd_card);
+    FatFs::add_sd_card_p(sdio_sd_card);
 }
 void loop() {
     for (size_t i = 0; i < FatFs::SdCard_get_num(); ++i)

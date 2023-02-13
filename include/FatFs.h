@@ -13,36 +13,25 @@ specific language governing permissions and limitations under the License.
 */
 #pragma once
 
-#include <string.h>
-
-#include <stdexcept>
-#include <string>
 #include <vector>
 
 #include "FatFs_C.h"
 
-struct FatFs_SdException : public std::runtime_error {
-    FatFs_SdException(const std::string &msg) : std::runtime_error{msg} {}
-};
-struct FatFs_CallException : public FatFs_SdException {
-    FatFs_CallException(const std::string &msg, FRESULT fr)
-        : FatFs_SdException{msg + std::string(FRESULT_str(fr)) + "(" + std::to_string(fr) + ")"} {}
-};
-
 class FatFs_Spi {
     spi_t m_spi = {};
-    friend class FatFs_SdCardSpi;
-    friend spi_t *spi_get_by_num(size_t num);
 
    public:
+    friend class FatFs;
+    friend spi_t *spi_get_by_num(size_t num);
+
     FatFs_Spi(
         spi_inst_t *hw_inst,
-        uint miso_gpio,  // SPI MISO GPIO number (not pin number)
-        uint mosi_gpio,
-        uint sck_gpio,
-        uint baud_rate = 25 * 1000 * 1000,
-        uint DMA_IRQ_num = DMA_IRQ_0,  // DMA_IRQ_0 or DMA_IRQ_1
-        bool set_drive_strength = false,
+        uint miso_gpio,                     // SPI MISO GPIO number
+        uint mosi_gpio,                     // SPI MOSI GPIO number
+        uint sck_gpio,                      // SPI SCLK GPIO number
+        uint baud_rate = 25 * 1000 * 1000,  // Frequency of the SPI clock
+        uint DMA_IRQ_num = DMA_IRQ_0,       // DMA_IRQ_0 or DMA_IRQ_1
+        bool set_drive_strength = false,    // Whether or not to set GPIO drive strength
         enum gpio_drive_strength mosi_gpio_drive_strength = GPIO_DRIVE_STRENGTH_4MA,
         enum gpio_drive_strength sck_gpio_drive_strength = GPIO_DRIVE_STRENGTH_4MA) {
         m_spi = {
@@ -60,10 +49,9 @@ class FatFs_Spi {
 
 class FatFs_SdCard {
    protected:
-    std::string m_name;
     sd_card_t m_sd_card = {};
 
-    FatFs_SdCard(const char *name) : m_name(name) {}
+    // FatFs_SdCard(const char *name) : m_name(name) {}
 
    public:
     const char *get_name() { return m_sd_card.pcName; }
@@ -71,27 +59,26 @@ class FatFs_SdCard {
     FRESULT unmount();
 
     friend sd_card_t *sd_get_by_num(size_t num);
-
-    virtual ~FatFs_SdCard() = 0;
 };
 
 class FatFs_SdCardSpi : public FatFs_SdCard {
    public:
     FatFs_SdCardSpi(
-        FatFs_Spi &ffs,
-        const char *pcName,  // Name used to mount device
-        uint ss_gpio,        // Slave select for this SD card
-        bool use_card_detect = false,
+        spi_t *spi_p,                     // Pointer to the spi_t instance that drives this card
+        const char *pcName,               // Name used to mount device
+        uint ss_gpio,                     // Slave select for this SD card
+        bool use_card_detect = false,     // Whether or not to use Card Detect
         uint card_detect_gpio = 0,        // Card detect; ignored if !use_card_detect
         uint card_detected_true = false,  // Varies with card socket; ignored if !use_card_detect
-        bool set_drive_strength = false,
+        bool set_drive_strength = false,  // Whether or not to set the SPIO drive strength
         enum gpio_drive_strength ss_gpio_drive_strength = GPIO_DRIVE_STRENGTH_4MA)
-        : FatFs_SdCard(pcName) {
+    // : FatFs_SdCard(pcName)
+    {
         m_sd_card = {
-            .pcName = m_name.c_str(),
+            .pcName = pcName,
             .type = SD_IF_SPI,
             .spi_if = {
-                .spi = &ffs.m_spi,   // Pointer to the SPI driving this card
+                .spi = spi_p,   // Pointer to the SPI driving this card
                 .ss_gpio = ss_gpio,  // The SPI slave select GPIO for this SD card
                 .set_drive_strength = set_drive_strength,
                 .ss_gpio_drive_strength = ss_gpio_drive_strength},
@@ -112,10 +99,11 @@ class FatFs_SdCardSdio : public FatFs_SdCard {
         uint card_detected_true = 0,  // Varies with card socket, ignored if !use_card_detect
         PIO SDIO_PIO = pio0,          // either pio0 or pio1
         uint DMA_IRQ_num = DMA_IRQ_0  // DMA_IRQ_0 or DMA_IRQ_1
-    ) 
-    : FatFs_SdCard(pcName) {
+        )
+    // : FatFs_SdCard(pcName)
+    {
         m_sd_card = {
-            .pcName = m_name.c_str(),
+            .pcName = pcName,
             .type = SD_IF_SDIO,
             .sdio_if = {
                 .CMD_gpio = CMD_gpio,
@@ -129,24 +117,30 @@ class FatFs_SdCardSdio : public FatFs_SdCard {
     }
 };
 class FatFs {
-    static std::vector<FatFs_Spi *> Spi_ps;
-    static std::vector<FatFs_SdCard *> SdCard_ps;
+    static std::vector<FatFs_Spi> Spis;
+    static std::vector<FatFs_SdCard> SdCards;
 
    public:
-    static void add_spi_p(FatFs_Spi *Spi_p) { Spi_ps.push_back(Spi_p); }
-    static void add_sd_card_p(FatFs_SdCard *SdCard_p) { SdCard_ps.push_back(SdCard_p); }
-    static size_t SdCard_get_num() { return SdCard_ps.size(); }
+    static spi_t *add_spi_p(FatFs_Spi &Spi) {
+        Spis.push_back(Spi);
+        return &Spis.back().m_spi;
+    }
+    static FatFs_SdCard &add_sd_card_p(FatFs_SdCard &SdCard) {
+        SdCards.push_back(SdCard);
+        return SdCards.back();
+    }
+    static size_t SdCard_get_num() { return SdCards.size(); }
     static FatFs_SdCard *SdCard_get_by_num(size_t num) {
         if (num <= SdCard_get_num()) {
-            return SdCard_ps[num];
+            return &SdCards[num];
         } else {
             return NULL;
         }
     }
-    static size_t Spi_get_num() { return Spi_ps.size(); }
+    static size_t Spi_get_num() { return Spis.size(); }
     static FatFs_Spi *Spi_get_by_num(size_t num) {
         if (num <= Spi_get_num()) {
-            return Spi_ps[num];
+            return &Spis[num];
         } else {
             return NULL;
         }

@@ -56,7 +56,8 @@
         "base": "examples/PlatformIO/hw_debug",
         "files": [
             "platformio.ini",
-            "src/main.cpp"
+            "src/main.cpp",
+            "src/tests/app4-IO_module_function_checker.c"
         ]
       }
 
@@ -83,11 +84,11 @@
           "+<tests/app4-IO_module_function_checker.c>"
       ],
       "flags": [
-        "-D _GNU_SOURCE",
-        "-D __GNU_VISIBLE",
+        "-I include",
         "-I src/sd_driver",
         "-I src/include",
-        "-I src/ff15/source"
+        "-I src/ff15/source",
+        "-Wno-psabi"
       ]
     }
   }

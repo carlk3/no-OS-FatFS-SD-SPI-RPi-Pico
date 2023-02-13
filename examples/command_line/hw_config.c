@@ -74,7 +74,7 @@ static sd_card_t sd_cards[] = {  // One for each SD card
             .CMD_gpio = 18,
             .D0_gpio = 19,
             .SDIO_PIO = pio1,
-            .DMA_IRQ_num = DMA_IRQ_1
+            .DMA_IRQ_num = DMA_IRQ_0
         },
         .use_card_detect = true,    
         .card_detect_gpio = 16,   // Card detect
