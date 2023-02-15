@@ -46,16 +46,18 @@ extern "C" spi_t *spi_get_by_num(size_t num) {
 void add_spi(spi_t *spi) { spis.push_back(spi); }
 void add_sd_card(sd_card_t *sd_card) { sd_cards.push_back(sd_card); }
 
-void test(sd_card_t *pSD) {
+void test(sd_card_t *sd_card_p) {
+
+    printf("Testing drive %s\n", sd_card_p->pcName);
 
     // See FatFs - Generic FAT Filesystem Module, "Application Interface",
     // http://elm-chan.org/fsw/ff/00index_e.html
-    FRESULT fr = f_mount(&pSD->fatfs, pSD->pcName, 1);
+    FRESULT fr = f_mount(&sd_card_p->fatfs, sd_card_p->pcName, 1);
     if (FR_OK != fr) {
         printf("f_mount error: %s (%d)\n", FRESULT_str(fr), fr);
         for (;;) __BKPT(1);
     }
-    fr = f_chdrive(pSD->pcName);
+    fr = f_chdrive(sd_card_p->pcName);
     if (FR_OK != fr) {
         printf("f_chdrive error: %s (%d)\n", FRESULT_str(fr), fr);
         for (;;) __BKPT(2);
@@ -77,7 +79,7 @@ void test(sd_card_t *pSD) {
         printf("f_close error: %s (%d)\n", FRESULT_str(fr), fr);
         for (;;) __BKPT(5);
     }
-    f_unmount(pSD->pcName);
+    f_unmount(sd_card_p->pcName);
 }
 
 /* ********************************************************************** */
@@ -109,6 +111,7 @@ void setup() {
     Serial1.begin(115200);  // set up Serial library at 9600 bps
     while (!Serial1)
         ;  // Serial is via USB; wait for enumeration
+    printf("\033[2J\033[H");  // Clear Screen
     printf("Hello!\n");
 
     gpio_init(led_pin);

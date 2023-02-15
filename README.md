@@ -86,42 +86,6 @@ SanDisk Class 10 A1 16 GB cards:
 SPI:
 ```
 ...
-FILE_SIZE_MB = 5
-BUF_SIZE = 512
-...
-write speed and latency
-speed,max,min,avg
-KB/Sec,usec,usec,usec
-345.3,92192,1136,1482
-349.9,92401,1100,1462
-...
-read speed and latency
-speed,max,min,avg
-KB/Sec,usec,usec,usec
-922.2,1328,532,553
-922.5,1322,532,553
-```
-
-SDIO:
-```
-...
-write speed and latency
-speed,max,min,avg
-KB/Sec,usec,usec,usec
-527.3,44832,741,970
-455.2,92339,776,1124
-...
-read speed and latency
-speed,max,min,avg
-KB/Sec,usec,usec,usec
-2179.6,586,221,234
-2182.5,580,222,234
-```
-However, with a larger BUF_SIZE it goes faster: 
-
-SPI:
-```
-...
 BUF_SIZE = 20000
 ...
 write speed and latency
@@ -200,6 +164,7 @@ Even if it is provided by the hardware, if you have no requirement for it you ca
 I don't know that there's much call for it.
 * It's possible to put more than one card on an SDIO bus, but there is currently no support in this library for it.
 * For SDIO, data lines D0 - D3 must be on consecutive GPIOs, with D0 being the lowest numbered GPIO.
+Furthermore, the CMD signal must be on GPIO D0 GPIO number - 2, modulo 32. (This can be changed in the PIO code.)
 * Wires should be kept short and direct. SPI operates at HF radio frequencies.
 
 ### Pull Up Resistors and other electrical considerations
@@ -221,17 +186,6 @@ On some, you can even configure the card's output drivers using the Driver Stage
 ## Notes about prewired boards with SD card sockets:
 * I don't think the [Pimoroni Pico VGA Demo Base](https://shop.pimoroni.com/products/pimoroni-pico-vga-demo-base) can work with a built in RP2040 SPI controller. It looks like RP20040 SPI0 SCK needs to be on GPIO 2, 6, or 18 (pin 4, 9, or 24, respectively), but Pimoroni wired it to GPIO 5 (pin 7). SDIO? For sure it could work with one bit SDIO, but I don't know about 4-bit. It looks like it *can* work, depending on what other functions you need on the board.
 * The [SparkFun RP2040 Thing Plus](https://learn.sparkfun.com/tutorials/rp2040-thing-plus-hookup-guide/hardware-overview) works well on SPI1. For SDIO, the data lines are consecutive, but in the reverse order! I think that it could be made to work, but you might have to do some bit twiddling. A downside to this board is that it's difficult to access the signal lines if you want to look at them with, say, a logic analyzer or an oscilloscope.
-<!--
-  * For SparkFun RP2040 Thing Plus:
-
-    |       | SPI0  | GPIO  | Description            | 
-    | ----- | ----  | ----- | ---------------------- |
-    | MISO  | RX    | 12    | Master In, Slave Out   |
-    | CS0   | CSn   | 09    | Slave (or Chip) Select |
-    | SCK   | SCK   | 14    | SPI clock              |
-    | MOSI  | TX    | 15    | Master Out, Slave In   |
-    | CD    |       |       | Card Detect            |
--->  
 * [Maker Pi Pico](https://www.cytron.io/p-maker-pi-pico) works on SPI1. Looks fine for 4-bit wide SDIO.
 * [Challenger RP2040 SD/RTC](https://ilabs.se/challenger-rp2040-sd-rtc-datasheet/) looks usable for SPI only. 
 * Here is one list of RP2040 boards: [earlephilhower/arduino-pico: Raspberry Pi Pico Arduino core, for all RP2040 boards](https://github.com/earlephilhower/arduino-pico) Only a fraction of them have an SD card socket.
@@ -401,6 +355,168 @@ you may call `sd_init_driver()` to initialize the block device driver. `sd_init_
 * There is a simple example in the `simple_example` subdirectory.
 * There is also POSIX-like API wrapper layer in `ff_stdio.h` and `ff_stdio.c`, written for compatibility with [FreeRTOS+FAT API](https://www.freertos.org/FreeRTOS-Plus/FreeRTOS_Plus_FAT/index.html) (mainly so that I could reuse some tests from that environment.)
 
+## C++ Wrapper
+At heart, this is a C library, but I have made a (thin) C++ wrapper for it: `include\FatFsSd.h`. 
+
+### class FatFs
+This is a pure static class that represents the global file system as a whole. 
+It stores the hardware configuration objects internally, 
+which is useful in Arduino-like environments where you have a `setup` and a `loop`.
+The objects can be constructed in the `setup` and added to `FatFs` and the copies won't go out of scope
+when control leaves `setup` and goes to `loop`. 
+It automatically provides these functions required internally by the library:
+
+* `size_t spi_get_num()` Returns the number of SPIs to use  
+* `spi_t *spi_get_by_num(size_t num)` Returns a pointer to the SPI "object" at the given (zero origin) index  
+* `size_t sd_get_num()` Returns the number of SD cards  
+* `sd_card_t *sd_get_by_num(size_t num)` Returns a pointer to the SD card "object" at the given (zero origin) index.  
+
+Static Public Member Functions:
+* `static spi_handle_t  add_spi_p (FatFs_Spi &Spi)`
+* `static FatFs_SdCard &add_sd_card_p (FatFs_SdCard &SdCard)`
+* `static size_t        SdCard_get_num ()`
+* `static FatFs_SdCard *SdCard_get_by_num (size_t num)`
+* `static FatFs_SdCard *SdCard_get_by_name (const char *const name)`
+* `static size_t        Spi_get_num ()`
+* `static FatFs_Spi    *Spi_get_by_num (size_t num)`
+* `static FRESULT       chdrive (const TCHAR *path)`
+* `static FRESULT       setcp (WORD cp)`
+* `static bool  begin ()`
+* `static spi_handle_t  add_spi_p (FatFs_Spi &Spi)`
+* `static FatFs_SdCard &add_sd_card_p (FatFs_SdCard &SdCard)`
+* `static size_t        SdCard_get_num ()`
+* `static FatFs_SdCard *SdCard_get_by_num (size_t num)`
+* `static FatFs_SdCard *SdCard_get_by_name (const char *const name)`
+* `static size_t        Spi_get_num ()`
+* `static FatFs_Spi    *Spi_get_by_num (size_t num)`
+* `static FRESULT       chdrive (const TCHAR *path)`
+* `static FRESULT       setcp (WORD cp)`
+* `static bool  begin ()`
+
+### class FatFs_SdCard
+Represents an SD card socket. It is generalized: the SD card can be either SPI or SDIO attached.
+
+Public Member Functions:
+* `const char * get_name ()`
+* `FRESULT      mount ()`
+* `FRESULT      unmount ()`
+* `FRESULT      format ()`
+* `bool         readCID (cid_t *cid)`
+* `FATFS *      fatfs ()`
+* `uint64_t     get_num_sectors ()`
+
+Static Public Member Functions
+* `static FRESULT getfree (const TCHAR *path, DWORD *nclst, FATFS **fatfs)`
+* `static FRESULT getlabel (const TCHAR *path, TCHAR *label, DWORD *vsn)`
+* `static FRESULT setlabel (const TCHAR *label)`
+* `static FRESULT mkfs (const TCHAR *path, const MKFS_PARM *opt, void *work, UINT len)`
+* `static FRESULT fdisk (BYTE pdrv, const LBA_t ptbl[], void *work)`
+
+### class FatFs_SdCardSdio
+This is a subclass of `FatFs_SdCard` that is specific to SDIO-attached cards. 
+It only has a constructor. 
+After construction, it is used as a generic `FatFs_SdCard`.
+
+```
+FatFs_SdCardSdio::FatFs_SdCardSdio	(	
+  const char * 	pcName,
+  uint 	CMD_gpio,
+  uint 	D0_gpio,
+  bool 	use_card_detect = false,
+  uint 	card_detect_gpio = 0,
+  uint 	card_detected_true = 0,
+  PIO 	SDIO_PIO = pio0,
+  uint 	DMA_IRQ_num = DMA_IRQ_0 
+)		
+```
+
+### class FatFs_Spi
+This represents the configuration of one of the RP2040's SPI controllers.
+```
+FatFs_Spi::FatFs_Spi	(	spi_inst_t * 	hw_inst,
+uint 	miso_gpio,
+uint 	mosi_gpio,
+uint 	sck_gpio,
+uint 	baud_rate = 25 * 1000 * 1000,
+uint 	DMA_IRQ_num = DMA_IRQ_0,
+bool 	set_drive_strength = false,
+enum gpio_drive_strength 	mosi_gpio_drive_strength = GPIO_DRIVE_STRENGTH_4MA,
+enum gpio_drive_strength 	sck_gpio_drive_strength = GPIO_DRIVE_STRENGTH_4MA 
+)	
+```	
+
+### class FatFs_SdCardSpi
+This is a subclass of `FatFs_SdCard` that is specific to SPI-attached cards. 
+It only has a constructor. 
+After construction, it is used as a generic `FatFs_SdCard`.
+
+The constructor requires a handle to a `FatFs_Spi`, 
+since there may be more than one SPI,
+and multiple SD cards can share one SPI.
+
+```
+FatFs_SdCardSpi::FatFs_SdCardSpi	(	
+  spi_handle_t 	spi_p,
+  const char * 	pcName,
+  uint 	ss_gpio,
+  bool 	use_card_detect = false,
+  uint 	card_detect_gpio = 0,
+  uint 	card_detected_true = false,
+  bool 	set_drive_strength = false,
+  enum gpio_drive_strength 	ss_gpio_drive_strength = GPIO_DRIVE_STRENGTH_4MA 
+)		
+```
+
+### class FatFs_File
+
+ * `FRESULT      open (const TCHAR *path, BYTE mode)`
+ * `FRESULT      close ()`
+ * `FRESULT      read (void *buff, UINT btr, UINT *br)`
+ * `FRESULT      write (const void *buff, UINT btw, UINT *bw)`
+ * `FRESULT      lseek (FSIZE_t ofs)`
+ * `FRESULT      truncate ()`
+ * `FRESULT      sync ()`
+ * `int  putc (TCHAR c)`
+ * `int  puts (const TCHAR *str)`
+ * `int  printf (const TCHAR *str,...)`
+ * `TCHAR *      gets (TCHAR *buff, int len)`
+ * `bool         eof ()`
+ * `BYTE         error ()`
+ * `FSIZE_t      tell ()`
+ * `FSIZE_t      size ()`
+ * `FRESULT      rewind ()`
+ * `FRESULT      forward (UINT(*func)(const BYTE *, UINT), UINT btf, UINT *bf)`
+ * `FRESULT      expand (FSIZE_t fsz, BYTE opt)`
+
+### class FatFs_Dir 
+
+Public Member Functions:
+* `FRESULT      rewinddir ()`
+* `FRESULT      rmdir (const TCHAR *path)`
+* `FRESULT      opendir (const TCHAR *path)`
+* `FRESULT      closedir ()`
+* `FRESULT      readdir (FILINFO *fno)`
+* `FRESULT      findfirst (FILINFO *fno, const TCHAR *path, const TCHAR *pattern)`
+* `FRESULT      findnext (FILINFO *fno)`
+Static Public Member Functions:
+* `static FRESULT       mkdir (const TCHAR *path)`
+* `static FRESULT       unlink (const TCHAR *path)`
+* `static FRESULT       rename (const TCHAR *path_old, const TCHAR *path_new)`
+* `static FRESULT       stat (const TCHAR *path, FILINFO *fno)`
+* `static FRESULT       chmod (const TCHAR *path, BYTE attr, BYTE mask)`
+* `static FRESULT       utime (const TCHAR *path, const FILINFO *fno)`
+* `static FRESULT       chdir (const TCHAR *path)`
+* `static FRESULT       chdrive (const TCHAR *path)`
+* `static FRESULT       getcwd (TCHAR *buff, UINT len)`
+
+## PlatformIO Libary
+This library is available at https://registry.platformio.org/libraries/carlk3/no-OS-FatFS-SD-SPI-RPi-Pico.
+It is currently running with 
+```
+platform = https://github.com/maxgerhardt/platform-raspberrypi.git
+board_build.core = earlephilhower
+```
+
 ## Next Steps
 * There is a example data logging application in `data_log_demo.c`. 
 It can be launched from the `no-OS-FatFS/example` CLI with the `start_logger` command.
@@ -433,7 +549,7 @@ You are welcome to contribute to this project! Just submit a Pull Request. Here 
 * Support 1-bit SDIO
 * Try multiple cards on a single SDIO bus
 * Multiple SDIO buses?
-* PlatformIO library
+* ~~PlatformIO library~~ Done: See https://registry.platformio.org/libraries/carlk3/no-OS-FatFS-SD-SPI-RPi-Pico.
 * Port SDIO driver to [FreeRTOS-FAT-CLI-for-RPi-Pico](https://github.com/carlk3/FreeRTOS-FAT-CLI-for-RPi-Pico)
 
 ## Appendix A: Adding Additional Cards

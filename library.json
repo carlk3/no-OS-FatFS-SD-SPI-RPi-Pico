@@ -20,7 +20,15 @@
     "platforms": "raspberrypi",
     "examples": [
       {
-          "name": "one_SDIO",
+        "name": "Example1_one_SD_card_on_SPI",
+        "base": "examples/PlatformIO/one_SPI.C++",
+        "files": [
+            "platformio.ini",
+            "src/main.cpp"
+        ]
+      },
+      {
+          "name": "Example2_one_SD_card_on_SDIO",
           "base": "examples/PlatformIO/one_SDIO",
           "files": [
               "platformio.ini",
@@ -28,23 +36,15 @@
           ]
       },
       {
-        "name": "one_SPI",
-        "base": "examples/PlatformIO/one_SPI",
+        "name": "Example3_one_SPI_one_SDIO",
+        "base": "examples/PlatformIO/one_SPI_one_SDIO.C++",
         "files": [
             "platformio.ini",
             "src/main.cpp"
         ]
       },
       {
-        "name": "one_SPI_one_SDIO",
-        "base": "examples/PlatformIO/one_SPI_one_SDIO",
-        "files": [
-            "platformio.ini",
-            "src/main.cpp"
-        ]
-      },
-      {
-        "name": "data_logger",
+        "name": "Example4_data_logger",
         "base": "examples/PlatformIO/data_logger",
         "files": [
             "platformio.ini",
@@ -52,7 +52,15 @@
         ]
       },
       {
-        "name": "hw_debug",
+        "name": "Example5_bench",
+        "base": "examples/PlatformIO/bench2",
+        "files": [
+            "platformio.ini",
+            "src/main.cpp"
+        ]
+      },
+      {
+        "name": "Example6_hw_debug",
         "base": "examples/PlatformIO/hw_debug",
         "files": [
             "platformio.ini",
@@ -60,12 +68,11 @@
             "src/tests/app4-IO_module_function_checker.c"
         ]
       }
-
     ],
     "build": {
       "srcFilter": [
           "-<.git/> -<.svn/>",
-          "+<FatFs.cpp>",
+          "+<FatFsSd.cpp>",
           "+<ff15/source/ff.c>",
           "+<ff15/source/ffsystem.c>",
           "+<ff15/source/ffunicode.c>",
@@ -88,7 +95,8 @@
         "-I src/sd_driver",
         "-I src/include",
         "-I src/ff15/source",
-        "-Wno-psabi"
+        "-Wno-psabi",
+        "-D PICO_MAX_SHARED_IRQ_HANDLERS=8u"
       ]
     }
   }

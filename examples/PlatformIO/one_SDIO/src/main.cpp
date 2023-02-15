@@ -82,6 +82,7 @@ void setup() {
     Serial1.begin(115200);  // set up Serial library at 9600 bps
     while (!Serial1)
         ;  // Serial is via USB; wait for enumeration
+    printf("\033[2J\033[H");  // Clear Screen
     puts("Hello, world!");
 
     // See FatFs - Generic FAT Filesystem Module, "Application Interface",
