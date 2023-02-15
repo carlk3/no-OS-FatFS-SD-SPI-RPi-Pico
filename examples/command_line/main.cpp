@@ -18,7 +18,7 @@
 #include "my_debug.h"
 #include "rtc.h"
 #include "sd_card.h"
-#include "tests.h"
+#include "tests/tests.h"
 // #include "util.h" // for wiring test
 
 #ifndef USE_PRINTF

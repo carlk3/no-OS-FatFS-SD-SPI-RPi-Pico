@@ -13,6 +13,7 @@ specific language governing permissions and limitations under the License.
 */
 
 /* Write "Hello, world!\n" to SD Card */
+#include <string.h>
 #include "FatFsSd_C.h"
 //
 #include "SerialUART.h"
@@ -78,6 +79,15 @@ extern "C" spi_t *spi_get_by_num(size_t num) { return NULL; }
 
 /* ********************************************************************** */
 
+// Check the FRESULT of a library call.
+//  (See http://elm-chan.org/fsw/ff/doc/rc.html.)
+#define CHK_FRESULT(s, fr)                                  \
+    if (FR_OK != fr) {                                      \
+        printf("%s:%d %s error: %s (%d)\n",                 \
+               __FILE__, __LINE__, s, FRESULT_str(fr), fr); \
+        for (;;) __breakpoint();                            \
+    }
+
 void setup() {
     Serial1.begin(115200);  // set up Serial library at 9600 bps
     while (!Serial1)
@@ -89,27 +99,20 @@ void setup() {
     // http://elm-chan.org/fsw/ff/00index_e.html
     sd_card_t *pSD = sd_get_by_num(0);
     FRESULT fr = f_mount(&pSD->fatfs, pSD->pcName, 1);
-    if (FR_OK != fr) {
-        printf("f_mount error: %s (%d)\n", FRESULT_str(fr), fr);
-        for (;;) __BKPT(1);
-    }
+    CHK_FRESULT("f_mount", fr);
     FIL fil;
     const char* const filename = "filename.txt";
     fr = f_open(&fil, filename, FA_OPEN_APPEND | FA_WRITE);
-    if (FR_OK != fr && FR_EXIST != fr) {
-        printf("f_open(%s) error: %s (%d)\n", filename, FRESULT_str(fr), fr);
-        for (;;) __BKPT(2);
-    }
-    if (f_printf(&fil, "Hello, world!\n") < 0) {
+    CHK_FRESULT("f_open", fr);
+    char const * const str = "Hello, world!\n";
+    if (f_printf(&fil, str) < strlen(str)) {
         printf("f_printf failed\n");
-        for (;;) __BKPT(3);
+        for (;;) __breakpoint();
     }
     fr = f_close(&fil);
-    if (FR_OK != fr) {
-        printf("f_close error: %s (%d)\n", FRESULT_str(fr), fr);
-        for (;;) __BKPT(4);
-    }
-    f_unmount(pSD->pcName);
+    CHK_FRESULT("f_close", fr);
+    fr = f_unmount(pSD->pcName);
+    CHK_FRESULT("f_unmount", fr);
 
     puts("Goodbye, world!");
 }

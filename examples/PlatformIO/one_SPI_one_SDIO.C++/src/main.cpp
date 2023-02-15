@@ -12,130 +12,14 @@ CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 */
 
+#include <string.h>
+
 #include "FatFsSd.h"
 #include "SerialUART.h"
+#include "iostream/ArduinoStream.h"
 
-/* Infrastructure*/
-extern "C" int printf(const char *__restrict format, ...) {
-    char buf[256] = {0};
-    va_list xArgs;
-    va_start(xArgs, format);
-    vsnprintf(buf, sizeof buf, format, xArgs);
-    va_end(xArgs);
-    return Serial1.printf("%s", buf);
-}
-extern "C" int puts(const char *s) {
-    return Serial1.println(s);
-}
-
-/* ********************************************************************** */
-
-// First (if s is not NULL and *s is not a null byte ('\0')) the argument string s is printed,
-//   followed by a colon and a blank. Then the FRESULT error message and a new-line.
-static void chk_result(const char *s, FRESULT fr) {
-    if (FR_OK != fr) {
-        if (s && *s)
-            printf("%s: %s (%d)\n", s, FRESULT_str(fr), fr);
-        else
-            printf("%s (%d)\n", FRESULT_str(fr), fr);
-        for (;;) __breakpoint();
-    }
-}
-
-void ls(const char *dir) {
-    char cwdbuf[FF_LFN_BUF] = {0};
-    FRESULT fr; /* Return value */
-    char const *dir_str;
-    if (dir[0]) {
-        dir_str = dir;
-    } else {
-        fr = FatFs_Dir::getcwd(cwdbuf, sizeof cwdbuf);
-        chk_result("getcwd", fr);
-        dir_str = cwdbuf;
-    }
-    printf("Directory Listing: %s\n", dir_str);
-    FILINFO fno; /* File information */
-    memset(&fno, 0, sizeof fno);
-    FatFs_Dir dirobj;
-    fr = dirobj.findfirst(&fno, dir_str, "*");
-    chk_result("findfirst", fr);
-    while (fr == FR_OK && fno.fname[0]) { /* Repeat while an item is found */
-        /* Create a string that includes the file name, the file size and the
-         attributes string. */
-        const char *pcWritableFile = "writable file",
-                   *pcReadOnlyFile = "read only file",
-                   *pcDirectory = "directory";
-        const char *pcAttrib;
-        /* Point pcAttrib to a string that describes the file. */
-        if (fno.fattrib & AM_DIR) {
-            pcAttrib = pcDirectory;
-        } else if (fno.fattrib & AM_RDO) {
-            pcAttrib = pcReadOnlyFile;
-        } else {
-            pcAttrib = pcWritableFile;
-        }
-        /* Create a string that includes the file name, the file size and the
-         attributes string. */
-        printf("%s [%s] [size=%llu]\n", fno.fname, pcAttrib, fno.fsize);
-
-        fr = dirobj.findnext(&fno); /* Search for next item */
-    }
-    dirobj.closedir();
-}
-
-static void test(FatFs_SdCard *FatFs_SdCard_p) {
-    FRESULT fr;
-
-    printf("Testing drive %s\n", FatFs_SdCard_p->get_name());
-
-    fr = FatFs_SdCard_p->mount();
-    chk_result("mount", fr);
-    fr = FatFs::chdrive(FatFs_SdCard_p->get_name());
-    chk_result("chdrive", fr);
-    ls(NULL);
-
-    FatFs_File file;
-    fr = file.open("filename.txt", FA_OPEN_APPEND | FA_WRITE);
-    chk_result("open", fr);
-
-    if (file.printf("Hello, world!\n") < 0) {
-        printf("f_printf failed\n");
-        for (;;) __breakpoint();
-    }
-    fr = file.close();
-    chk_result("close", fr);
-
-    ls(NULL);
-
-    fr = FatFs_Dir::mkdir("subdir");
-    if (FR_OK != fr && FR_EXIST != fr) {
-        printf("f_mkdir error: %s (%d)\n", FRESULT_str(fr), fr);
-        for (;;) __breakpoint();
-    }
-    fr = FatFs_Dir::chdir("subdir");
-    chk_result("chdir", fr);
-    fr = file.open("filename2.txt", FA_OPEN_APPEND | FA_WRITE);
-    chk_result("open", fr);
-    char const str[] = "Hello again\n";
-    UINT bw;
-    fr = file.write(str, strlen(str) + 1, &bw);
-    chk_result("write", fr);
-    if (strlen(str) + 1 != bw) {
-        printf("Short write!\n");
-        for (;;) __breakpoint();
-    }
-    fr = file.close();
-    chk_result("close", fr);
-
-    ls(NULL);
-
-    fr = FatFs_Dir::chdir("/");
-    chk_result("chdir", fr);
-
-    ls(NULL);
-
-    FatFs_SdCard_p->unmount();
-}
+// Serial output stream
+ArduinoOutStream cout(Serial1);
 
 /* ********************************************************************** */
 /*
@@ -176,8 +60,8 @@ void setup() {
     Serial1.begin(115200);  // set up Serial library at 9600 bps
     while (!Serial1)
         ;                     // Serial is via USB; wait for enumeration
-    printf("\033[2J\033[H");  // Clear Screen
-    puts("Hello, world!");
+    cout << "\033[2J\033[H";  // Clear Screen
+    cout << "Hello, world!" << endl;
 
     /* Hardware Configuration of SPI object */
 
@@ -216,8 +100,122 @@ void setup() {
     );
     FatFs::add_sd_card_p(sdio_sd_card);
 }
+
+/* ********************************************************************** */
+
+// Check the FRESULT of a library call.
+//  (See http://elm-chan.org/fsw/ff/doc/rc.html.)
+#define CHK_FRESULT(s, fr)                                       \
+    if (FR_OK != fr) {                                           \
+        cout << __FILE__ << ":" << __LINE__ << ": " << s << ": " \
+             << FRESULT_str(fr) << " (" << fr << ")" << endl;    \
+        for (;;) __breakpoint();                                 \
+    }
+
+void ls(const char *dir) {
+    char cwdbuf[FF_LFN_BUF] = {0};
+    FRESULT fr; /* Return value */
+    char const *dir_str;
+    if (dir[0]) {
+        dir_str = dir;
+    } else {
+        fr = FatFs_Dir::getcwd(cwdbuf, sizeof cwdbuf);
+        CHK_FRESULT("getcwd", fr);
+        dir_str = cwdbuf;
+    }
+    cout << "Directory Listing: " << dir_str << endl;
+    FILINFO fno = {}; /* File information */
+    FatFs_Dir dirobj;
+    fr = dirobj.findfirst(&fno, dir_str, "*");
+    CHK_FRESULT("findfirst", fr);
+    while (fr == FR_OK && fno.fname[0]) { /* Repeat while an item is found */
+        /* Create a string that includes the file name, the file size and the
+         attributes string. */
+        const char *pcWritableFile = "writable file",
+                   *pcReadOnlyFile = "read only file",
+                   *pcDirectory = "directory";
+        const char *pcAttrib;
+        /* Point pcAttrib to a string that describes the file. */
+        if (fno.fattrib & AM_DIR) {
+            pcAttrib = pcDirectory;
+        } else if (fno.fattrib & AM_RDO) {
+            pcAttrib = pcReadOnlyFile;
+        } else {
+            pcAttrib = pcWritableFile;
+        }
+        /* Create a string that includes the file name, the file size and the
+         attributes string. */
+        cout << fno.fname << " [" << pcAttrib << "]"
+             << "[size=" << fno.fsize << "]" << endl;
+
+        fr = dirobj.findnext(&fno); /* Search for next item */
+    }
+    dirobj.closedir();
+}
+
+static void test(FatFs_SdCard *FatFs_SdCard_p) {
+    FRESULT fr;
+
+    cout << endl << "Testing drive " << FatFs_SdCard_p->get_name() << endl;
+
+    fr = FatFs_SdCard_p->mount();
+    CHK_FRESULT("mount", fr);
+    fr = FatFs::chdrive(FatFs_SdCard_p->get_name());
+    CHK_FRESULT("chdrive", fr);
+    ls(NULL);
+
+    FatFs_File file;
+    fr = file.open("filename.txt", FA_OPEN_APPEND | FA_WRITE);
+    CHK_FRESULT("open", fr);
+    {
+        char const *const str = "Hello, world!\n";
+        if (file.printf(str) < strlen(str)) {
+            cout << "printf failed" << endl;
+            ;
+            for (;;) __breakpoint();
+        }
+    }
+    fr = file.close();
+    CHK_FRESULT("close", fr);
+
+    ls("/");
+
+    fr = FatFs_Dir::mkdir("subdir");
+    if (FR_OK != fr && FR_EXIST != fr) {
+        cout << "mkdir error: " << FRESULT_str(fr) << "(" << fr << ")" << endl;
+        for (;;) __breakpoint();
+    }
+    fr = FatFs_Dir::chdir("subdir");
+    CHK_FRESULT("chdir", fr);
+    fr = file.open("filename2.txt", FA_OPEN_APPEND | FA_WRITE);
+    CHK_FRESULT("open", fr);
+    {
+        char const *const str = "Hello again\n";
+        UINT bw;
+        fr = file.write(str, strlen(str) + 1, &bw);
+        CHK_FRESULT("write", fr);
+        if (strlen(str) + 1 != bw) {
+            cout << "Short write!" << endl;
+            ;
+            for (;;) __breakpoint();
+        }
+    }
+    fr = file.close();
+    CHK_FRESULT("close", fr);
+
+    ls(NULL);
+
+    fr = FatFs_Dir::chdir("/");
+    CHK_FRESULT("chdir", fr);
+
+    ls(NULL);
+
+    fr = FatFs_SdCard_p->unmount();
+    CHK_FRESULT("unmount", fr);
+}
+
 void loop() {
     for (size_t i = 0; i < FatFs::SdCard_get_num(); ++i)
         test(FatFs::SdCard_get_by_num(i));
-    sleep_ms(500);
+    sleep_ms(1000);
 }

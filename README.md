@@ -80,40 +80,49 @@ Directory Listing: 0:/
 bf [writable file] [size=4293918720]
 ```
 
-Results from a port of SdFat's `bench` with a pair of 
-SanDisk Class 10 A1 16 GB cards:
+Results from a port of SdFat's `bench`:
 
 SPI:
 ```
+Card size: 31.95 GB (GB = 1E9 bytes)
 ...
-BUF_SIZE = 20000
+FILE_SIZE_MB = 5
+BUF_SIZE = 20480
 ...
 write speed and latency
 speed,max,min,avg
 KB/Sec,usec,usec,usec
-1207.4,22740,14951,16541
-1172.1,27632,14960,17047
+1384.4,21733,14159,14777
+1389.9,18609,14150,14723
 ...
 read speed and latency
 speed,max,min,avg
 KB/Sec,usec,usec,usec
-1374.4,15424,14150,14554
-1374.4,15264,14153,14552
+1437.6,15185,14035,14244
+1438.4,15008,14046,14238
+...
 ```
 
 SDIO:
 ```
+...
+Card size: 31.95 GB (GB = 1E9 bytes)
+...
+FILE_SIZE_MB = 5
+BUF_SIZE = 20480
+...
 write speed and latency
 speed,max,min,avg
 KB/Sec,usec,usec,usec
-3690.0,21160,2595,5399
-3003.0,22169,3192,6644
+6378.2,13172,2588,3194
+6488.7,6725,2597,3145
 ...
 read speed and latency
 speed,max,min,avg
 KB/Sec,usec,usec,usec
-9940.4,2788,1617,2012
-9940.4,2614,1617,2010
+11915.6,2340,1577,1718
+11915.6,2172,1579,1716
+...
 ```
 
 ## Choosing the Interface Type(s)

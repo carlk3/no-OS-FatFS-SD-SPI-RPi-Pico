@@ -23,20 +23,16 @@ ArduinoOutStream cout(Serial1);
 
 /* ********************************************************************** */
 
-// First (if s is not NULL and *s is not a null byte ('\0')) the argument string s is printed,
-//   followed by a colon and a blank. Then the FRESULT error message and a new-line.
-static void chk_result(const char* s, FRESULT fr) {
-    if (FR_OK != fr) {
-        if (s && *s)
-            cout << __LINE__ << ": " << s << ": " << FRESULT_str(fr) << " (" << fr << ")" << endl;
-        else
-            cout << __LINE__ << ": " << FRESULT_str(fr) << " (" << fr << ")" << endl;
-        for (;;) __breakpoint();
+// Check the FRESULT of a library call.
+//  (See http://elm-chan.org/fsw/ff/doc/rc.html.)
+#define CHK_RESULT(s, fr)                                        \
+    if (FR_OK != fr) {                                           \
+        cout << __FILE__ << ":" << __LINE__ << ": " << s << ": " \
+             << FRESULT_str(fr) << " (" << fr << ")" << endl;    \
+        for (;;) __breakpoint();                                 \
     }
-}
 
 void setup() {
-
     Serial1.begin(115200);  // set up Serial library
     while (!Serial1)
         ;  // Serial is via USB; wait for enumeration
@@ -80,28 +76,29 @@ void setup() {
         13,          // uint card_detect_gpio = 0,       // Card detect; ignored if !use_card_detect
         1            // uint card_detected_true = false  // Varies with card socket; ignored if !use_card_detect
     );
-    
+
     FatFs_SdCard& card(FatFs::add_sd_card_p(spi_sd_card));
 
-/* ********************************************************************** */
+    /* ********************************************************************** */
     cout << "\033[2J\033[H";  // Clear Screen
     cout << "Hello, world!" << endl;
     // sd_card_t* pSD = sd_get_by_num(0);
-    FRESULT fr =card.mount();
-    chk_result("mount", fr);
+    FRESULT fr = card.mount();
+    CHK_RESULT("mount", fr);
     FatFs_File file;
     char const* const filename = "filename.txt";
     fr = file.open(filename, FA_OPEN_APPEND | FA_WRITE);
-    chk_result("open", fr);
+    CHK_RESULT("open", fr);
     char const* const str = "Hello, world!\n";
     if (file.printf(str) < strlen(str)) {
-        cout << "printf failed\n" << endl;
+        cout << "printf failed\n"
+             << endl;
         for (;;) __breakpoint();
     }
     fr = file.close();
-    chk_result("close", fr);
+    CHK_RESULT("close", fr);
     fr = card.unmount();
-    chk_result("unmount", fr);
+    CHK_RESULT("unmount", fr);
 
     cout << "Goodbye, world!" << endl;
 }

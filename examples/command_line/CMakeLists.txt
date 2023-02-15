@@ -8,7 +8,7 @@ project(command_line C CXX ASM)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 
-add_compile_options(-Os) # Optimize for size (place before pico_sdk_init)
+# add_compile_options(-Os) # Optimize for size (place before pico_sdk_init)
 
 # Initialise the Pico SDK
 pico_sdk_init()
@@ -20,12 +20,12 @@ add_executable(command_line
     main.cpp 
     hw_config.c
     data_log_demo.c
-    ../../src/tests/bench.c
-    ../../src/tests/simple.c
-    ../../src/tests/app4-IO_module_function_checker.c
-    ../../src/tests/big_file_test.c
-    ../../src/tests/CreateAndVerifyExampleFiles.c
-    ../../src/tests/ff_stdio_tests_with_cwd.c
+    tests/bench.c
+    tests/simple.c
+    tests/app4-IO_module_function_checker.c
+    tests/big_file_test.c
+    tests/CreateAndVerifyExampleFiles.c
+    tests/ff_stdio_tests_with_cwd.c
 )
 # Add the standard library to the build
 target_link_libraries(command_line pico_stdlib)

@@ -57,8 +57,11 @@ class FatFs_Spi {
 class FatFs_SdCard {
    protected:
     sd_card_t m_sd_card = {};
+    FatFs_SdCard() {}
 
    public:
+    FatFs_SdCard(sd_card_t sd_card): m_sd_card(sd_card) {}
+
     const char* get_name() { return m_sd_card.pcName; }
 
     FRESULT mount() {

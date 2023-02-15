@@ -12,11 +12,11 @@ CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 */
 
+#include "FatFsSd.h"
+
 #include <assert.h>
 #include <stdarg.h>
 #include <stdio.h>
-
-#include "FatFsSd.h"
 
 /*
     See FatFs - Generic FAT Filesystem Module, "Application Interface",
@@ -26,10 +26,18 @@ specific language governing permissions and limitations under the License.
 std::vector<FatFs_Spi> FatFs::Spis;
 std::vector<FatFs_SdCard> FatFs::SdCards;
 
-size_t spi_get_num() { return FatFs::Spi_get_num(); }
-spi_t *spi_get_by_num(size_t num) { return &FatFs::Spi_get_by_num(num)->m_spi; }
-size_t sd_get_num() { return FatFs::SdCard_get_num(); }
-sd_card_t *sd_get_by_num(size_t num) { return &FatFs::SdCard_get_by_num(num)->m_sd_card; }
+size_t __attribute__((weak)) spi_get_num() {
+    return FatFs::Spi_get_num();
+}
+spi_t __attribute__((weak)) *spi_get_by_num(size_t num) {
+    return &FatFs::Spi_get_by_num(num)->m_spi;
+}
+size_t __attribute__((weak)) sd_get_num() {
+    return FatFs::SdCard_get_num();
+}
+sd_card_t __attribute__((weak)) *sd_get_by_num(size_t num) {
+    return &FatFs::SdCard_get_by_num(num)->m_sd_card;
+}
 
 /* Put a formatted string to the file */
 int FatFs_File::printf(const TCHAR *format, ...) {

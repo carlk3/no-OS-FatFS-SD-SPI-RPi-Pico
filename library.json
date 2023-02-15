@@ -1,6 +1,6 @@
 {
     "name": "no-OS-FatFS-SD-SPI-RPi-Pico",
-    "version": "1.0.3",
+    "version": "1.0.5",
     "description": "Simple library for SD Cards on the RP2040",
     "keywords": ["Data Storage", "FatFs", "SD card", "Secure Digital card", "SPI", "SDIO"],
     "repository":
@@ -65,30 +65,29 @@
         "files": [
             "platformio.ini",
             "src/main.cpp",
-            "src/tests/app4-IO_module_function_checker.c"
+            "../../../src/tests/app4-IO_module_function_checker.c"
         ]
       }
     ],
     "build": {
       "srcFilter": [
           "-<.git/> -<.svn/>",
-          "+<FatFsSd.cpp>",
           "+<ff15/source/ff.c>",
           "+<ff15/source/ffsystem.c>",
           "+<ff15/source/ffunicode.c>",
-          "+<rtc.c>",
-          "+<f_util.c>",
-          "+<glue.c>",
-          "+<my_debug.c>",
-          "+<rtc.c>",
+          "+<sd_driver/sd_card.c>",
           "+<sd_driver/SDIO/rp2040_sdio.c>",
           "+<sd_driver/SDIO/sd_card_sdio.c>",
-          "+<sd_driver/sd_card.c>",
           "+<sd_driver/SPI/crc.c>",
           "+<sd_driver/SPI/sd_card_spi.c>",
           "+<sd_driver/SPI/sd_spi.c>",
           "+<sd_driver/SPI/spi.c>",
-          "+<tests/app4-IO_module_function_checker.c>"
+          "+<source/f_util.c>",
+          "+<source/FatFsSd.cpp>",
+          "+<source/glue.c>",
+          "+<source/my_debug.c>",
+          "+<source/rtc.c>",
+          "+<source/rtc.c>"
       ],
       "flags": [
         "-I include",
