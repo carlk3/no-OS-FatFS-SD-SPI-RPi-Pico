@@ -22,13 +22,12 @@ specific language governing permissions and limitations under the License.
 
 #include "FatFsSd_C.h"
 
-typedef spi_t* spi_handle_t;
-
 class FatFs_Spi {
     spi_t m_spi = {};
 
    public:
     friend class FatFs;
+    friend class FatFs_SdCardSpi;
     friend spi_t* spi_get_by_num(size_t num);
 
     FatFs_Spi(
@@ -54,13 +53,15 @@ class FatFs_Spi {
     }
 };
 
+typedef FatFs_Spi* spi_handle_t;
+
 class FatFs_SdCard {
    protected:
     sd_card_t m_sd_card = {};
     FatFs_SdCard() {}
 
    public:
-    FatFs_SdCard(sd_card_t sd_card): m_sd_card(sd_card) {}
+    FatFs_SdCard(sd_card_t sd_card) : m_sd_card(sd_card) {}
 
     const char* get_name() { return m_sd_card.pcName; }
 
@@ -105,7 +106,7 @@ class FatFs_SdCard {
 class FatFs_SdCardSpi : public FatFs_SdCard {
    public:
     FatFs_SdCardSpi(
-        spi_handle_t spi_p,               // Pointer to the spi_t instance that drives this card
+        spi_handle_t Spi_p,               // Pointer to the spi_t instance that drives this card
         const char* pcName,               // Name used to mount device
         uint ss_gpio,                     // Slave select for this SD card
         bool use_card_detect = false,     // Whether or not to use Card Detect
@@ -119,7 +120,7 @@ class FatFs_SdCardSpi : public FatFs_SdCard {
             .pcName = pcName,
             .type = SD_IF_SPI,
             .spi_if = {
-                .spi = spi_p,        // Pointer to the SPI driving this card
+                .spi = &Spi_p->m_spi,        // Pointer to the SPI driving this card
                 .ss_gpio = ss_gpio,  // The SPI slave select GPIO for this SD card
                 .set_drive_strength = set_drive_strength,
                 .ss_gpio_drive_strength = ss_gpio_drive_strength},
@@ -165,35 +166,13 @@ class FatFs {
    public:
     static spi_handle_t add_spi_p(FatFs_Spi& Spi) {
         Spis.push_back(Spi);
-        return &Spis.back().m_spi;
+        return &Spis.back();
     }
     static FatFs_SdCard& add_sd_card_p(FatFs_SdCard& SdCard) {
         SdCards.push_back(SdCard);
         return SdCards.back();
     }
-    static size_t SdCard_get_num() { return SdCards.size(); }
-    static FatFs_SdCard* SdCard_get_by_num(size_t num) {
-        if (num <= SdCard_get_num()) {
-            return &SdCards[num];
-        } else {
-            return NULL;
-        }
-    }
-    static FatFs_SdCard* SdCard_get_by_name(const char* const name) {
-        for (size_t i = 0; i < SdCard_get_num(); ++i)
-            if (0 == strcmp(SdCard_get_by_num(i)->get_name(), name))
-                return SdCard_get_by_num(i);
-        // printf("%s: unknown name %s\n", __func__, name);
-        return NULL;
-    }
-    static size_t Spi_get_num() { return Spis.size(); }
-    static FatFs_Spi* Spi_get_by_num(size_t num) {
-        if (num <= Spi_get_num()) {
-            return &Spis[num];
-        } else {
-            return NULL;
-        }
-    }
+    
     static FRESULT chdrive(const TCHAR* path) {
         return f_chdrive(path);
     }
@@ -201,6 +180,13 @@ class FatFs {
         return f_setcp(cp);
     }
     static bool begin();
+
+    static size_t SdCard_get_num();
+    static FatFs_SdCard* SdCard_get_by_num(size_t num);
+    static FatFs_SdCard* SdCard_get_by_name(const char* const name);
+    static size_t Spi_get_num();
+    static FatFs_Spi* Spi_get_by_num(size_t num);
+
 };
 
 class FatFs_File {

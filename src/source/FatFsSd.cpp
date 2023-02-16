@@ -26,25 +26,62 @@ specific language governing permissions and limitations under the License.
 std::vector<FatFs_Spi> FatFs::Spis;
 std::vector<FatFs_SdCard> FatFs::SdCards;
 
+size_t __attribute__((weak))
+FatFs::SdCard_get_num() {
+    return SdCards.size();
+}
+
+FatFs_SdCard* __attribute__((weak))
+FatFs::SdCard_get_by_num(size_t num) {
+    if (num <= SdCard_get_num()) {
+        return &SdCards[num];
+    } else {
+        return NULL;
+    }
+}
+
+FatFs_SdCard* __attribute__((weak))
+FatFs::SdCard_get_by_name(const char* const name) {
+    for (size_t i = 0; i < SdCard_get_num(); ++i)
+        if (0 == strcmp(SdCard_get_by_num(i)->get_name(), name))
+            return SdCard_get_by_num(i);
+    // printf("%s: unknown name %s\n", __func__, name);
+    return NULL;
+}
+
+size_t __attribute__((weak))
+FatFs::Spi_get_num() {
+    return Spis.size();
+}
+
+FatFs_Spi* __attribute__((weak))
+FatFs::Spi_get_by_num(size_t num) {
+    if (num <= Spi_get_num()) {
+        return &Spis[num];
+    } else {
+        return NULL;
+    }
+}
+
 size_t __attribute__((weak)) spi_get_num() {
     return FatFs::Spi_get_num();
 }
-spi_t __attribute__((weak)) *spi_get_by_num(size_t num) {
+spi_t __attribute__((weak)) * spi_get_by_num(size_t num) {
     return &FatFs::Spi_get_by_num(num)->m_spi;
 }
 size_t __attribute__((weak)) sd_get_num() {
     return FatFs::SdCard_get_num();
 }
-sd_card_t __attribute__((weak)) *sd_get_by_num(size_t num) {
-    return &FatFs::SdCard_get_by_num(num)->m_sd_card;
+sd_card_t __attribute__((weak)) * sd_get_by_num(size_t num) {
+    return &(FatFs::SdCard_get_by_num(num)->m_sd_card);
 }
 
 /* Put a formatted string to the file */
-int FatFs_File::printf(const TCHAR *format, ...) {
+int FatFs_File::printf(const TCHAR* format, ...) {
     va_list arg;
     va_start(arg, format);
     char temp[64];
-    char *buffer = temp;
+    char* buffer = temp;
     size_t len = vsnprintf(temp, sizeof(temp), format, arg);
     va_end(arg);
     if (len > sizeof(temp) - 1) {
@@ -75,7 +112,7 @@ bool FatFs::begin() {
     if (!sd_init_driver())
         return false;
     for (size_t i = 0; i < sd_get_num(); ++i) {
-        sd_card_t *sd_card_p = sd_get_by_num(i);
+        sd_card_t* sd_card_p = sd_get_by_num(i);
         if (!sd_card_p) return false;
         // See http://elm-chan.org/fsw/ff/doc/dstat.html
         int dstatus = sd_card_p->init(sd_card_p);
