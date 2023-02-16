@@ -18,6 +18,8 @@ specific language governing permissions and limitations under the License.
 #include "SerialUART.h"
 #include "iostream/ArduinoStream.h"
 
+using namespace FatFsNs;
+
 // Serial output stream
 ArduinoOutStream cout(Serial1);
 
@@ -57,18 +59,18 @@ void setup() {
 
     // Hardware Configuration of SPI object
 
-    FatFsNs::SpiCfg spi(
+    SpiCfg spi(
         spi1,             // spi_inst_t *hw_inst,
         12,               // uint miso_gpio,
         15,               // uint mosi_gpio,
         14,               // uint sck_gpio
         25 * 1000 * 1000  // uint baud_rate
     );
-    FatFsNs::spi_handle_t spi_handle(FatFsNs::FatFs::add_spi(spi));
+    spi_handle_t spi_handle(FatFs::add_spi(spi));
 
     // Hardware Configuration of the SD Card object
 
-    FatFsNs::SdCardSpiCfg spi_sd_card(
+    SdCardSpiCfg spi_sd_card(
         spi_handle,  // spi_handle_t spi_handle,
         "0:",        // const char *pcName,
         9,           // uint ss_gpio,  // Slave select for this SD card
@@ -77,7 +79,7 @@ void setup() {
         1            // uint card_detected_true = false  // Varies with card socket; ignored if !use_card_detect
     );
 
-    FatFsNs::SdCard* card_p(FatFsNs::FatFs::add_sd_card(spi_sd_card));
+    FatFsNs::SdCard* card_p(FatFs::add_sd_card(spi_sd_card));
 
     /* ********************************************************************** */
     cout << "\033[2J\033[H";  // Clear Screen
@@ -85,7 +87,7 @@ void setup() {
     // sd_card_t* pSD = sd_get_by_num(0);
     FRESULT fr = card_p->mount();
     CHK_RESULT("mount", fr);
-    FatFsNs::File file;
+    File file;
     char const* const filename = "filename.txt";
     fr = file.open(filename, FA_OPEN_APPEND | FA_WRITE);
     CHK_RESULT("open", fr);

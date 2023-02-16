@@ -205,9 +205,9 @@ This example assumes the following wiring for the SD card:
         13,          // uint card_detect_gpio = 0,       // Card detect; ignored if !use_card_detect
         1            // uint card_detected_true = false  // Varies with card socket; ignored if !use_card_detect
     );
-    FatFs::add_sd_card(spi_sd_card);
+    FatFsNs::SdCard* SdCard_p(FatFs::add_sd_card(spi_sd_card));
 
-    FRESULT fr = FatFs::SdCard_get_by_num(0)->mount();
+    FRESULT fr = SdCard_p->mount();
     CHK_FRESULT("mount", fr);
 
     next_log_time = delayed_by_ms(get_absolute_time(), period);
