@@ -66,18 +66,18 @@ void setup() {
     /* Hardware Configuration of SPI object */
 
     // GPIO numbers, not Pico pin numbers!
-    FatFs_Spi spi(
+    FatFsNs::SpiCfg spi(
         spi1,             // spi_inst_t *hw_inst,
         12,               // uint miso_gpio,
         15,               // uint mosi_gpio,
         14,               // uint sck_gpio
         25 * 1000 * 1000  // uint baud_rate
     );
-    spi_handle_t spi_handle = FatFs::add_spi_p(spi);
+    FatFsNs::spi_handle_t spi_handle(FatFsNs::FatFs::add_spi(spi));
 
     /* Hardware Configuration of the SD Card objects */
 
-    FatFs_SdCardSpi spi_sd_card(
+    FatFsNs::SdCardSpiCfg spi_sd_card(
         spi_handle,  // spi_handle_t spi_handle,
         "0:",        // const char *pcName,
         9,           // uint ss_gpio,  // Slave select for this SD card
@@ -85,10 +85,10 @@ void setup() {
         13,          // uint card_detect_gpio = 0,       // Card detect; ignored if !use_card_detect
         1            // uint card_detected_true = false  // Varies with card socket; ignored if !use_card_detect
     );
-    FatFs::add_sd_card_p(spi_sd_card);
+    FatFsNs::FatFs::add_sd_card(spi_sd_card);
 
     // Add another SD card:
-    FatFs_SdCardSdio sdio_sd_card(
+    FatFsNs::SdCardSdioCfg sdio_sd_card(
         "1:",      // const char *pcName,
         18,        // uint CMD_gpio,
         19,        // uint D0_gpio,  // D0
@@ -98,7 +98,7 @@ void setup() {
         pio1,      // PIO SDIO_PIO = pio0,          // either pio0 or pio1
         DMA_IRQ_1  // uint DMA_IRQ_num = DMA_IRQ_0  // DMA_IRQ_0 or DMA_IRQ_1
     );
-    FatFs::add_sd_card_p(sdio_sd_card);
+    FatFsNs::FatFs::add_sd_card(sdio_sd_card);
 }
 
 /* ********************************************************************** */
@@ -119,13 +119,13 @@ void ls(const char *dir) {
     if (dir[0]) {
         dir_str = dir;
     } else {
-        fr = FatFs_Dir::getcwd(cwdbuf, sizeof cwdbuf);
+        fr = FatFsNs::Dir::getcwd(cwdbuf, sizeof cwdbuf);
         CHK_FRESULT("getcwd", fr);
         dir_str = cwdbuf;
     }
     cout << "Directory Listing: " << dir_str << endl;
     FILINFO fno = {}; /* File information */
-    FatFs_Dir dirobj;
+    FatFsNs::Dir dirobj;
     fr = dirobj.findfirst(&fno, dir_str, "*");
     CHK_FRESULT("findfirst", fr);
     while (fr == FR_OK && fno.fname[0]) { /* Repeat while an item is found */
@@ -153,18 +153,18 @@ void ls(const char *dir) {
     dirobj.closedir();
 }
 
-static void test(FatFs_SdCard *FatFs_SdCard_p) {
+static void test(FatFsNs::SdCard *SdCard_p) {
     FRESULT fr;
 
-    cout << endl << "Testing drive " << FatFs_SdCard_p->get_name() << endl;
+    cout << endl << "Testing drive " << SdCard_p->get_name() << endl;
 
-    fr = FatFs_SdCard_p->mount();
+    fr = SdCard_p->mount();
     CHK_FRESULT("mount", fr);
-    fr = FatFs::chdrive(FatFs_SdCard_p->get_name());
+    fr = FatFsNs::FatFs::chdrive(SdCard_p->get_name());
     CHK_FRESULT("chdrive", fr);
     ls(NULL);
 
-    FatFs_File file;
+    FatFsNs::File file;
     fr = file.open("filename.txt", FA_OPEN_APPEND | FA_WRITE);
     CHK_FRESULT("open", fr);
     {
@@ -180,12 +180,12 @@ static void test(FatFs_SdCard *FatFs_SdCard_p) {
 
     ls("/");
 
-    fr = FatFs_Dir::mkdir("subdir");
+    fr = FatFsNs::Dir::mkdir("subdir");
     if (FR_OK != fr && FR_EXIST != fr) {
         cout << "mkdir error: " << FRESULT_str(fr) << "(" << fr << ")" << endl;
         for (;;) __breakpoint();
     }
-    fr = FatFs_Dir::chdir("subdir");
+    fr = FatFsNs::Dir::chdir("subdir");
     CHK_FRESULT("chdir", fr);
     fr = file.open("filename2.txt", FA_OPEN_APPEND | FA_WRITE);
     CHK_FRESULT("open", fr);
@@ -205,17 +205,17 @@ static void test(FatFs_SdCard *FatFs_SdCard_p) {
 
     ls(NULL);
 
-    fr = FatFs_Dir::chdir("/");
+    fr = FatFsNs::Dir::chdir("/");
     CHK_FRESULT("chdir", fr);
 
     ls(NULL);
 
-    fr = FatFs_SdCard_p->unmount();
+    fr = SdCard_p->unmount();
     CHK_FRESULT("unmount", fr);
 }
 
 void loop() {
-    for (size_t i = 0; i < FatFs::SdCard_get_num(); ++i)
-        test(FatFs::SdCard_get_by_num(i));
+    for (size_t i = 0; i < FatFsNs::FatFs::SdCard_get_num(); ++i)
+        test(FatFsNs::FatFs::SdCard_get_by_num(i));
     sleep_ms(1000);
 }

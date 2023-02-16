@@ -10,6 +10,8 @@
 #include "Arduino.h"
 #include "FatFsSd.h"
 
+using namespace FatFsNs;
+
 /* Infrastructure*/
 #if 1
 // This implementation has the advantage that it works for
@@ -68,7 +70,7 @@ static const uint8_t READ_COUNT = 2;
 // static const uint32_t FILE_SIZE = 1000000UL * FILE_SIZE_MB;
 static const uint32_t FILE_SIZE = (1024 * 1024 * FILE_SIZE_MiB);
 
-static void cidDmp(FatFs_SdCard* SdCard_p) {
+static void cidDmp(SdCard* SdCard_p) {
     cid_t cid;
     if (!SdCard_p->readCID(&cid)) {
         error("readCID failed");
@@ -137,18 +139,18 @@ void setup() {
     /* Hardware Configuration of SPI object */
 
     // GPIO numbers, not Pico pin numbers!
-    FatFs_Spi spi(
+    SpiCfg spi(
         spi1,             // spi_inst_t *hw_inst,
         12,               // uint miso_gpio,
         15,               // uint mosi_gpio,
         14,               // uint sck_gpio
         25 * 1000 * 1000  // uint baud_rate
     );
-    spi_handle_t spi_handle = FatFs::add_spi_p(spi);
+    spi_handle_t spi_handle = FatFs::add_spi(spi);
 
     /* Hardware Configuration of the SD Card objects */
 
-    FatFs_SdCardSpi spi_sd_card(
+    SdCardSpiCfg spi_sd_card(
         spi_handle,  // spi_handle_t spi_handle,
         "0:",        // const char *pcName,
         9,           // uint ss_gpio,  // Slave select for this SD card
@@ -156,10 +158,10 @@ void setup() {
         13,          // uint card_detect_gpio = 0,       // Card detect; ignored if !use_card_detect
         1            // uint card_detected_true = false  // Varies with card socket; ignored if !use_card_detect
     );
-    FatFs::add_sd_card_p(spi_sd_card);
+    FatFs::add_sd_card(spi_sd_card);
 
     // Add another SD card:
-    FatFs_SdCardSdio sdio_sd_card(
+    SdCardSdioCfg sdio_sd_card(
         "1:",      // const char *pcName,
         18,        // uint CMD_gpio,
         19,        // uint D0_gpio,  // D0
@@ -169,16 +171,16 @@ void setup() {
         pio1,      // PIO SDIO_PIO = pio0,          // either pio0 or pio1
         DMA_IRQ_1  // uint DMA_IRQ_num = DMA_IRQ_0  // DMA_IRQ_0 or DMA_IRQ_1
     );
-    FatFs::add_sd_card_p(sdio_sd_card);
+    FatFs::add_sd_card(sdio_sd_card);
 
     if (!FatFs::begin())
         error("Driver initialization failed\n");
 
     if (FORMAT) {
         for (size_t i = 0; i < FatFs::SdCard_get_num(); ++i) {
-            FatFs_SdCard* FatFs_SdCard_p = FatFs::SdCard_get_by_num(i);
-            printf("Formatting drive %s...\n", FatFs_SdCard_p->get_name());
-            FRESULT fr = FatFs_SdCard_p->format();
+            SdCard* SdCard_p = FatFs::SdCard_get_by_num(i);
+            printf("Formatting drive %s...\n", SdCard_p->get_name());
+            FRESULT fr = SdCard_p->format();
             chk_result("format", fr);
         }
     }
@@ -186,7 +188,7 @@ void setup() {
 
 //------------------------------------------------------------------------------
 static void bench(char const* logdrv) {
-    FatFs_File file;
+    File file;
     float s;
     uint32_t t;
     uint32_t maxLatency;
@@ -201,7 +203,7 @@ static void bench(char const* logdrv) {
     uint32_t buf32[(BUF_SIZE + 3) / 4] __attribute__((aligned(4)));
     uint8_t* buf = (uint8_t*)buf32;
 
-    FatFs_SdCard* SdCard_p(FatFs::SdCard_get_by_name(logdrv));
+    SdCard* SdCard_p(FatFs::SdCard_get_by_name(logdrv));
     if (!SdCard_p) {
         printf("Unknown logical drive name: %s\n", logdrv);
         for (;;) __breakpoint();
