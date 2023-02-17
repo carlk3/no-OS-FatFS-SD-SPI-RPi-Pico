@@ -28,19 +28,6 @@ using namespace FatFsNs;
 std::vector<Spi> FatFs::Spis;
 std::vector<SdCard> FatFs::SdCards;
 
-size_t spi_get_num() {
-    return FatFs::Spi_get_num();
-}
-spi_t * spi_get_by_num(size_t num) {
-    return &FatFs::Spi_get_by_num(num)->m_spi;
-}
-size_t sd_get_num() {
-    return FatFs::SdCard_get_num();
-}
-sd_card_t * sd_get_by_num(size_t num) {
-    return &(FatFs::SdCard_get_by_num(num)->m_sd_card);
-}
-
 /* Put a formatted string to the file */
 int File::printf(const TCHAR* format, ...) {
     va_list arg;
@@ -84,4 +71,17 @@ bool FatFs::begin() {
         if (dstatus & STA_NOINIT) return false;
     }
     return true;
+}
+
+size_t __attribute__((weak)) spi_get_num() {
+    return FatFs::Spi_get_num();
+}
+spi_t __attribute__((weak)) * spi_get_by_num(size_t num) {
+    return &FatFs::Spi_get_by_num(num)->m_spi;
+}
+size_t __attribute__((weak)) sd_get_num() {
+    return FatFs::SdCard_get_num();
+}
+sd_card_t __attribute__((weak)) * sd_get_by_num(size_t num) {
+    return &(FatFs::SdCard_get_by_num(num)->m_sd_card);
 }
