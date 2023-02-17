@@ -365,7 +365,12 @@ you may call `sd_init_driver()` to initialize the block device driver. `sd_init_
 * There is also POSIX-like API wrapper layer in `ff_stdio.h` and `ff_stdio.c`, written for compatibility with [FreeRTOS+FAT API](https://www.freertos.org/FreeRTOS-Plus/FreeRTOS_Plus_FAT/index.html) (mainly so that I could reuse some tests from that environment.)
 
 ## C++ Wrapper
-At heart, this is a C library, but I have made a (thin) C++ wrapper for it: `include\FatFsSd.h`. 
+At heart, this is a C library, but I have made a (thin) C++ wrapper for it: `include\FatFsSd.h`.
+It uses "Dynamic Configuration", so the configuration is built at run time.
+For most of the functions, refer to [FatFs - Generic FAT Filesystem Module, "Application Interface"](http://elm-chan.org/fsw/ff/00index_e.html).
+
+### namespace FatFsNs
+The C++ API is in namespace FatFsNs, to avoid name clashes with other packages (e.g.: SdFat).
 
 ### class FatFs
 This is a pure static class that represents the global file system as a whole. 
@@ -381,28 +386,18 @@ It automatically provides these functions required internally by the library:
 * `sd_card_t *sd_get_by_num(size_t num)` Returns a pointer to the SD card "object" at the given (zero origin) index.  
 
 Static Public Member Functions:
-* `static spi_handle_t  add_spi_p (FatFs_Spi &Spi)`
-* `static FatFs_SdCard &add_sd_card_p (FatFs_SdCard &SdCard)`
+* `static spi_handle_t add_spi(SpiCfg& Spi)` Use this to add an SPI controller configuration. Returns a handle that can be used to construct an `SdCardSpiCfg`.
+* `static SdCard* add_sd_card(SdCard& SdCard)` Use this to add a `SdCardSdioCfg` or `SdCardSpiCfg` to the configuration. Returns a pointer that can be used to access the newly created SDCard object.
 * `static size_t        SdCard_get_num ()`
-* `static FatFs_SdCard *SdCard_get_by_num (size_t num)`
-* `static FatFs_SdCard *SdCard_get_by_name (const char *const name)`
+* `static SdCard *SdCard_get_by_num (size_t num)`
+* `static SdCard *SdCard_get_by_name (const char *const name)`
 * `static size_t        Spi_get_num ()`
-* `static FatFs_Spi    *Spi_get_by_num (size_t num)`
-* `static FRESULT       chdrive (const TCHAR *path)`
-* `static FRESULT       setcp (WORD cp)`
-* `static bool  begin ()`
-* `static spi_handle_t  add_spi_p (FatFs_Spi &Spi)`
-* `static FatFs_SdCard &add_sd_card_p (FatFs_SdCard &SdCard)`
-* `static size_t        SdCard_get_num ()`
-* `static FatFs_SdCard *SdCard_get_by_num (size_t num)`
-* `static FatFs_SdCard *SdCard_get_by_name (const char *const name)`
-* `static size_t        Spi_get_num ()`
-* `static FatFs_Spi    *Spi_get_by_num (size_t num)`
+* `static Spi    *Spi_get_by_num (size_t num)`
 * `static FRESULT       chdrive (const TCHAR *path)`
 * `static FRESULT       setcp (WORD cp)`
 * `static bool  begin ()`
 
-### class FatFs_SdCard
+### class SdCard
 Represents an SD card socket. It is generalized: the SD card can be either SPI or SDIO attached.
 
 Public Member Functions:
@@ -421,13 +416,14 @@ Static Public Member Functions
 * `static FRESULT mkfs (const TCHAR *path, const MKFS_PARM *opt, void *work, UINT len)`
 * `static FRESULT fdisk (BYTE pdrv, const LBA_t ptbl[], void *work)`
 
-### class FatFs_SdCardSdio
-This is a subclass of `FatFs_SdCard` that is specific to SDIO-attached cards. 
+### class SdCardSdioCfg
+This is a subclass of `SdCard` that is specific to SDIO-attached cards. 
 It only has a constructor. 
-After construction, it is used as a generic `FatFs_SdCard`.
+Before an instance can be used, it needs to be added to the file system configuration with `FatFs::add_sd_card`.
+Then, it can be used as a generic `SdCard`.
 
 ```
-FatFs_SdCardSdio::FatFs_SdCardSdio	(	
+SdCardSdio::SdCardSdio	(	
   const char * 	pcName,
   uint 	CMD_gpio,
   uint 	D0_gpio,
@@ -439,10 +435,10 @@ FatFs_SdCardSdio::FatFs_SdCardSdio	(
 )		
 ```
 
-### class FatFs_Spi
+### class Spi
 This represents the configuration of one of the RP2040's SPI controllers.
 ```
-FatFs_Spi::FatFs_Spi	(	spi_inst_t * 	hw_inst,
+Spi::Spi	(	spi_inst_t * 	hw_inst,
 uint 	miso_gpio,
 uint 	mosi_gpio,
 uint 	sck_gpio,
@@ -454,17 +450,18 @@ enum gpio_drive_strength 	sck_gpio_drive_strength = GPIO_DRIVE_STRENGTH_4MA
 )	
 ```	
 
-### class FatFs_SdCardSpi
-This is a subclass of `FatFs_SdCard` that is specific to SPI-attached cards. 
+### class SdCardSpiCfg
+This is a subclass of `SdCard` that is specific to SPI-attached cards. 
 It only has a constructor. 
-After construction, it is used as a generic `FatFs_SdCard`.
+Before an instance can be used, it needs to be added to the file system configuration with `FatFs::add_sd_card`.
+Then, it can be used as a generic `SdCard`.
 
-The constructor requires a handle to a `FatFs_Spi`, 
+The constructor requires a handle to an `Spi`, 
 since there may be more than one SPI,
 and multiple SD cards can share one SPI.
 
 ```
-FatFs_SdCardSpi::FatFs_SdCardSpi	(	
+SdCardSpi::SdCardSpi	(	
   spi_handle_t 	spi_p,
   const char * 	pcName,
   uint 	ss_gpio,
@@ -476,7 +473,7 @@ FatFs_SdCardSpi::FatFs_SdCardSpi	(
 )		
 ```
 
-### class FatFs_File
+### class File
 
  * `FRESULT      open (const TCHAR *path, BYTE mode)`
  * `FRESULT      close ()`
@@ -497,7 +494,7 @@ FatFs_SdCardSpi::FatFs_SdCardSpi	(
  * `FRESULT      forward (UINT(*func)(const BYTE *, UINT), UINT btf, UINT *bf)`
  * `FRESULT      expand (FSIZE_t fsz, BYTE opt)`
 
-### class FatFs_Dir 
+### class Dir 
 
 Public Member Functions:
 * `FRESULT      rewinddir ()`
@@ -534,7 +531,7 @@ It records the temperature as reported by the RP2040 internal Temperature Sensor
 in files named something like `/data/2021-03-21/11.csv`.
 Use this as a starting point for your own data logging application!
 
-* If you want to use FatFs_SPI as a library embedded in another project, use something like:
+* If you want to use no-OS-FatFS-SD-SPI-RPi-Pico as a library embedded in another project, use something like:
   ```
   git submodule add -b sdio git@github.com:carlk3/no-OS-FatFS-SD-SPI-RPi-Pico.git
   ```
@@ -545,8 +542,8 @@ Use this as a starting point for your own data logging application!
   
 You will need to pick up the library in CMakeLists.txt:
 ```
-add_subdirectory(no-OS-FatFS-SD-SPI-RPi-Pico/FatFs_SPI build)
-target_link_libraries(_my_app_ FatFs_SPI)
+add_subdirectory(no-OS-FatFS-SD-SPI-RPi-Pico/src build)
+target_link_libraries(_my_app_ src)
 ```
 and `#include "ff.h"`.
 

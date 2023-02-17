@@ -18,33 +18,22 @@ specific language governing permissions and limitations under the License.
 #include <stdarg.h>
 #include <stdio.h>
 
+using namespace FatFsNs;
+
 /*
     See FatFs - Generic FAT Filesystem Module, "Application Interface",
     http://elm-chan.org/fsw/ff/00index_e.html
  */
 
-std::vector<FatFs_Spi> FatFs::Spis;
-std::vector<FatFs_SdCard> FatFs::SdCards;
-
-size_t __attribute__((weak)) spi_get_num() {
-    return FatFs::Spi_get_num();
-}
-spi_t __attribute__((weak)) *spi_get_by_num(size_t num) {
-    return &FatFs::Spi_get_by_num(num)->m_spi;
-}
-size_t __attribute__((weak)) sd_get_num() {
-    return FatFs::SdCard_get_num();
-}
-sd_card_t __attribute__((weak)) *sd_get_by_num(size_t num) {
-    return &FatFs::SdCard_get_by_num(num)->m_sd_card;
-}
+std::vector<Spi> FatFs::Spis;
+std::vector<SdCard> FatFs::SdCards;
 
 /* Put a formatted string to the file */
-int FatFs_File::printf(const TCHAR *format, ...) {
+int File::printf(const TCHAR* format, ...) {
     va_list arg;
     va_start(arg, format);
     char temp[64];
-    char *buffer = temp;
+    char* buffer = temp;
     size_t len = vsnprintf(temp, sizeof(temp), format, arg);
     va_end(arg);
     if (len > sizeof(temp) - 1) {
@@ -75,11 +64,24 @@ bool FatFs::begin() {
     if (!sd_init_driver())
         return false;
     for (size_t i = 0; i < sd_get_num(); ++i) {
-        sd_card_t *sd_card_p = sd_get_by_num(i);
+        sd_card_t* sd_card_p = sd_get_by_num(i);
         if (!sd_card_p) return false;
         // See http://elm-chan.org/fsw/ff/doc/dstat.html
         int dstatus = sd_card_p->init(sd_card_p);
         if (dstatus & STA_NOINIT) return false;
     }
     return true;
+}
+
+size_t __attribute__((weak)) spi_get_num() {
+    return FatFs::Spi_get_num();
+}
+spi_t __attribute__((weak)) * spi_get_by_num(size_t num) {
+    return &FatFs::Spi_get_by_num(num)->m_spi;
+}
+size_t __attribute__((weak)) sd_get_num() {
+    return FatFs::SdCard_get_num();
+}
+sd_card_t __attribute__((weak)) * sd_get_by_num(size_t num) {
+    return &(FatFs::SdCard_get_by_num(num)->m_sd_card);
 }

@@ -1,6 +1,6 @@
 {
     "name": "no-OS-FatFS-SD-SPI-RPi-Pico",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "description": "Simple library for SD Cards on the RP2040",
     "keywords": ["Data Storage", "FatFs", "SD card", "Secure Digital card", "SPI", "SDIO"],
     "repository":
@@ -64,8 +64,7 @@
         "base": "examples/PlatformIO/hw_debug",
         "files": [
             "platformio.ini",
-            "src/main.cpp",
-            "../../../src/tests/app4-IO_module_function_checker.c"
+            "src/main.cpp"
         ]
       }
     ],

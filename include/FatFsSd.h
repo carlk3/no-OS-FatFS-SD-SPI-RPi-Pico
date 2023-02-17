@@ -1,4 +1,4 @@
-/* FatFs_Sd.h
+/* Sd.h
 Copyright 2023 Carl John Kugler III
 
 Licensed under the Apache License, Version 2.0 (the License); you may not use
@@ -22,16 +22,20 @@ specific language governing permissions and limitations under the License.
 
 #include "FatFsSd_C.h"
 
-typedef spi_t* spi_handle_t;
+namespace FatFsNs {
 
-class FatFs_Spi {
+class Spi {
+   protected:
     spi_t m_spi = {};
 
    public:
     friend class FatFs;
-    friend spi_t* spi_get_by_num(size_t num);
-
-    FatFs_Spi(
+    friend class SdCardSpiCfg;
+    friend spi_t* ::spi_get_by_num(size_t num);
+};
+class SpiCfg : public Spi {
+   public:
+    SpiCfg(
         spi_inst_t* hw_inst,
         uint miso_gpio,                     // SPI MISO GPIO number
         uint mosi_gpio,                     // SPI MOSI GPIO number
@@ -54,13 +58,15 @@ class FatFs_Spi {
     }
 };
 
-class FatFs_SdCard {
+typedef Spi* spi_handle_t;
+
+class SdCard {
    protected:
     sd_card_t m_sd_card = {};
-    FatFs_SdCard() {}
+    SdCard() {}
 
    public:
-    FatFs_SdCard(sd_card_t sd_card): m_sd_card(sd_card) {}
+    SdCard(const SdCard&) = default;
 
     const char* get_name() { return m_sd_card.pcName; }
 
@@ -99,13 +105,13 @@ class FatFs_SdCard {
     uint64_t get_num_sectors() {
         return m_sd_card.get_num_sectors(&m_sd_card);
     }
-    friend sd_card_t* sd_get_by_num(size_t num);
+    friend sd_card_t* ::sd_get_by_num(size_t num);
 };
 
-class FatFs_SdCardSpi : public FatFs_SdCard {
+class SdCardSpiCfg : public SdCard {
    public:
-    FatFs_SdCardSpi(
-        spi_handle_t spi_p,               // Pointer to the spi_t instance that drives this card
+    SdCardSpiCfg(
+        spi_handle_t Spi_p,               // Pointer to the spi_t instance that drives this card
         const char* pcName,               // Name used to mount device
         uint ss_gpio,                     // Slave select for this SD card
         bool use_card_detect = false,     // Whether or not to use Card Detect
@@ -113,14 +119,14 @@ class FatFs_SdCardSpi : public FatFs_SdCard {
         uint card_detected_true = false,  // Varies with card socket; ignored if !use_card_detect
         bool set_drive_strength = false,  // Whether or not to set the SPIO drive strength
         enum gpio_drive_strength ss_gpio_drive_strength = GPIO_DRIVE_STRENGTH_4MA)
-    // : FatFs_SdCard(pcName)
+    // : SdCard(pcName)
     {
         m_sd_card = {
             .pcName = pcName,
             .type = SD_IF_SPI,
             .spi_if = {
-                .spi = spi_p,        // Pointer to the SPI driving this card
-                .ss_gpio = ss_gpio,  // The SPI slave select GPIO for this SD card
+                .spi = &Spi_p->m_spi,  // Pointer to the SPI driving this card
+                .ss_gpio = ss_gpio,    // The SPI slave select GPIO for this SD card
                 .set_drive_strength = set_drive_strength,
                 .ss_gpio_drive_strength = ss_gpio_drive_strength},
             .use_card_detect = use_card_detect,
@@ -129,9 +135,9 @@ class FatFs_SdCardSpi : public FatFs_SdCard {
         };
     }
 };
-class FatFs_SdCardSdio : public FatFs_SdCard {
+class SdCardSdioCfg : public SdCard {
    public:
-    FatFs_SdCardSdio(
+    SdCardSdioCfg(
         const char* pcName,  // Name used to mount device
         uint CMD_gpio,
         uint D0_gpio,  // D0
@@ -141,7 +147,7 @@ class FatFs_SdCardSdio : public FatFs_SdCard {
         PIO SDIO_PIO = pio0,          // either pio0 or pio1
         uint DMA_IRQ_num = DMA_IRQ_0  // DMA_IRQ_0 or DMA_IRQ_1
         )
-    // : FatFs_SdCard(pcName)
+    // : SdCard(pcName)
     {
         m_sd_card = {
             .pcName = pcName,
@@ -159,41 +165,19 @@ class FatFs_SdCardSdio : public FatFs_SdCard {
 };
 
 class FatFs {
-    static std::vector<FatFs_Spi> Spis;
-    static std::vector<FatFs_SdCard> SdCards;
+    static std::vector<Spi> Spis;
+    static std::vector<SdCard> SdCards;
 
    public:
-    static spi_handle_t add_spi_p(FatFs_Spi& Spi) {
+    static spi_handle_t add_spi(SpiCfg& Spi) {
         Spis.push_back(Spi);
-        return &Spis.back().m_spi;
+        return &Spis.back();
     }
-    static FatFs_SdCard& add_sd_card_p(FatFs_SdCard& SdCard) {
+    static SdCard* add_sd_card(SdCard& SdCard) {
         SdCards.push_back(SdCard);
-        return SdCards.back();
+        return &SdCards.back();
     }
-    static size_t SdCard_get_num() { return SdCards.size(); }
-    static FatFs_SdCard* SdCard_get_by_num(size_t num) {
-        if (num <= SdCard_get_num()) {
-            return &SdCards[num];
-        } else {
-            return NULL;
-        }
-    }
-    static FatFs_SdCard* SdCard_get_by_name(const char* const name) {
-        for (size_t i = 0; i < SdCard_get_num(); ++i)
-            if (0 == strcmp(SdCard_get_by_num(i)->get_name(), name))
-                return SdCard_get_by_num(i);
-        // printf("%s: unknown name %s\n", __func__, name);
-        return NULL;
-    }
-    static size_t Spi_get_num() { return Spis.size(); }
-    static FatFs_Spi* Spi_get_by_num(size_t num) {
-        if (num <= Spi_get_num()) {
-            return &Spis[num];
-        } else {
-            return NULL;
-        }
-    }
+
     static FRESULT chdrive(const TCHAR* path) {
         return f_chdrive(path);
     }
@@ -201,9 +185,37 @@ class FatFs {
         return f_setcp(cp);
     }
     static bool begin();
+
+    static size_t SdCard_get_num() {
+        return SdCards.size();
+    }
+    static SdCard* SdCard_get_by_num(size_t num) {
+        if (num <= SdCard_get_num()) {
+            return &SdCards[num];
+        } else {
+            return NULL;
+        }
+    }
+    static SdCard* SdCard_get_by_name(const char* const name) {
+        for (size_t i = 0; i < SdCard_get_num(); ++i)
+            if (0 == strcmp(SdCard_get_by_num(i)->get_name(), name))
+                return SdCard_get_by_num(i);
+        // printf("%s: unknown name %s\n", __func__, name);
+        return NULL;
+    }
+    static size_t Spi_get_num() {
+        return Spis.size();
+    }
+    static Spi* Spi_get_by_num(size_t num) {
+        if (num <= Spi_get_num()) {
+            return &Spis[num];
+        } else {
+            return NULL;
+        }
+    }
 };
 
-class FatFs_File {
+class File {
     FIL fil;
 
    public:
@@ -261,7 +273,7 @@ class FatFs_File {
     }
 };
 
-class FatFs_Dir {
+class Dir {
     DIR dir = {};
 
    public:
@@ -314,3 +326,4 @@ class FatFs_Dir {
         return f_getcwd(buff, len);
     }
 };
+}  // namespace FatFsNs
