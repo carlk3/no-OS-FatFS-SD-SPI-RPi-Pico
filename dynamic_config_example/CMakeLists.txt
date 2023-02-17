@@ -40,5 +40,7 @@ target_link_libraries(dynamic_config_example
     FatFs_SPI
 )
 
+# add_compile_definitions(CARD2)
+
 pico_add_extra_outputs(dynamic_config_example)
 

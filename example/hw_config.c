@@ -1,14 +1,14 @@
 /* hw_config.c
 Copyright 2021 Carl John Kugler III
 
-Licensed under the Apache License, Version 2.0 (the License); you may not use 
-this file except in compliance with the License. You may obtain a copy of the 
+Licensed under the Apache License, Version 2.0 (the License); you may not use
+this file except in compliance with the License. You may obtain a copy of the
 License at
 
-   http://www.apache.org/licenses/LICENSE-2.0 
-Unless required by applicable law or agreed to in writing, software distributed 
-under the License is distributed on an AS IS BASIS, WITHOUT WARRANTIES OR 
-CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+   http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software distributed
+under the License is distributed on an AS IS BASIS, WITHOUT WARRANTIES OR
+CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 */
 /*
@@ -40,35 +40,36 @@ socket, which SPI it is driven by, and how it is wired.
 // selects.
 static spi_t spis[] = {  // One for each SPI.
     {
-        .hw_inst = spi1,  // SPI component
-        .miso_gpio = 12,  // GPIO number (not Pico pin number)
-        .mosi_gpio = 15,
-        .sck_gpio = 14,
-        .set_drive_strength = true,
-        .mosi_gpio_drive_strength = GPIO_DRIVE_STRENGTH_2MA,
-        .sck_gpio_drive_strength = GPIO_DRIVE_STRENGTH_2MA,
+        .hw_inst = spi0,  // SPI component
+        .miso_gpio = 16,  // GPIO number (not pin number)
+        .mosi_gpio = 19,
+        .sck_gpio = 18,
 
         // .baud_rate = 1000 * 1000,
-        //.baud_rate = 12500 * 1000,  // The limitation here is SPI slew rate.
-        .baud_rate = 25 * 1000 * 1000, // Actual frequency: 20833333. Has
-        // worked for me with SanDisk.        
-    }
-};
+        .baud_rate = 12500 * 1000,
+        // .baud_rate = 25 * 1000 * 1000, // Actual frequency: 20833333.
+    }};
 
 // Hardware Configuration of the SD Card "objects"
 static sd_card_t sd_cards[] = {  // One for each SD card
     {
         .pcName = "0:",   // Name used to mount device
         .spi = &spis[0],  // Pointer to the SPI driving this card
-        .ss_gpio = 9,     // The SPI slave select GPIO for this SD card
-        .set_drive_strength = true,
-        .ss_gpio_drive_strength = GPIO_DRIVE_STRENGTH_2MA,
+        .ss_gpio = 17,    // The SPI slave select GPIO for this SD card
         .use_card_detect = true,
-        .card_detect_gpio = 13,   // Card detect
-        .card_detected_true = 1   // What the GPIO read returns when a card is
-                                  // present.
-    }
-};
+        .card_detect_gpio = 22,  // Card detect
+        .card_detected_true = 1  // What the GPIO read returns when a card is
+                                 // present.
+    },
+    {
+        .pcName = "1:",   // Name used to mount device
+        .spi = &spis[0],  // Pointer to the SPI driving this card
+        .ss_gpio = 15,    // The SPI slave select GPIO for this SD card
+        .use_card_detect = true,
+        .card_detect_gpio = 14,  // Card detect
+        .card_detected_true = 0  // What the GPIO read returns when a card is
+                                 // present. Use -1 if there is no card detect.
+    }};
 
 /* ********************************************************************** */
 size_t sd_get_num() { return count_of(sd_cards); }
@@ -81,7 +82,7 @@ sd_card_t *sd_get_by_num(size_t num) {
 }
 size_t spi_get_num() { return count_of(spis); }
 spi_t *spi_get_by_num(size_t num) {
-    if (num <= sd_get_num()) {
+    if (num <= spi_get_num()) {
         return &spis[num];
     } else {
         return NULL;
