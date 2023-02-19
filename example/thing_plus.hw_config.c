@@ -35,7 +35,8 @@ socket, which SPI it is driven by, and how it is wired.
 //
 #include "diskio.h" /* Declarations of disk functions */
 
-/* This example assumes the following hardware configuration:
+/* This configuration is for the [SparkFun Thing Plus - RP2040](https://www.sparkfun.com/products/17745),
+    which has the following hardware configuration:
 
 |                                   | Old  |      |      |                            |                                      |
 | Signal                            | term | spi0 | GPIO | Description                | Controller/Peripheral (NEW)          |
@@ -45,6 +46,7 @@ socket, which SPI it is driven by, and how it is wired.
 | CLK/SCK                           | SCK  | SCK  | 14   | Serial Clock               |                                      |
 | DATA 3/CS                         | SS   | CSn  | 9    | Slave Select pin (SS)      | Chip Select Pin (CS)                 |
 
+See [RP2040 Thing Plus Hookup Guide](https://learn.sparkfun.com/tutorials/rp2040-thing-plus-hookup-guide/hardware-overview).
 */
 
 // Hardware Configuration of SPI "objects"
