@@ -1,14 +1,14 @@
 /* hw_config.c
 Copyright 2021 Carl John Kugler III
 
-Licensed under the Apache License, Version 2.0 (the License); you may not use 
-this file except in compliance with the License. You may obtain a copy of the 
+Licensed under the Apache License, Version 2.0 (the License); you may not use
+this file except in compliance with the License. You may obtain a copy of the
 License at
 
-   http://www.apache.org/licenses/LICENSE-2.0 
-Unless required by applicable law or agreed to in writing, software distributed 
-under the License is distributed on an AS IS BASIS, WITHOUT WARRANTIES OR 
-CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+   http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software distributed
+under the License is distributed on an AS IS BASIS, WITHOUT WARRANTIES OR
+CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 */
 /*
@@ -35,6 +35,18 @@ socket, which SPI it is driven by, and how it is wired.
 //
 #include "diskio.h" /* Declarations of disk functions */
 
+/* This example assumes the following hardware configuration:
+
+|                                   | Old  |      |      |                            |                                      |
+| Signal                            | term | spi0 | GPIO | Description                | Controller/Peripheral (NEW)          |
+| --------------------------------- | ---- | ---- | ---- | -------------------------- | ------------------------------------ |
+| DATA 0/CIPO (or Peripheral's SDO) | MISO | RX   | 12   | Master In Slave Out (MISO) | Controller In, Peripheral Out (CIPO) |
+| CMD/COPI (or Peripheral's SDI)    | MOSI | TX   | 15   | Master Out Slave In (MOSI) | Controller Out Peripheral In (COPI)  |
+| CLK/SCK                           | SCK  | SCK  | 14   | Serial Clock               |                                      |
+| DATA 3/CS                         | SS   | CSn  | 9    | Slave Select pin (SS)      | Chip Select Pin (CS)                 |
+
+*/
+
 // Hardware Configuration of SPI "objects"
 // Note: multiple SD cards can be driven by one SPI if they use different slave
 // selects.
@@ -44,25 +56,18 @@ static spi_t spis[] = {  // One for each SPI.
         .miso_gpio = 12,  // GPIO number (not pin number)
         .mosi_gpio = 15,
         .sck_gpio = 14,
-        .set_drive_strength = true,
-        .mosi_gpio_drive_strength = GPIO_DRIVE_STRENGTH_2MA,
-        .sck_gpio_drive_strength = GPIO_DRIVE_STRENGTH_2MA,
 
-        // .baud_rate = 1000 * 1000,
-        //.baud_rate = 12500 * 1000,
-        .baud_rate = 25 * 1000 * 1000,  // Actual frequency: 20833333.
+        // .baud_rate = 1000 * 1000
+        //.baud_rate = 12500 * 1000
+        .baud_rate = 25 * 1000 * 1000   // Actual frequency: 20833333.
     }};
 
 // Hardware Configuration of the SD Card "objects"
 static sd_card_t sd_cards[] = {  // One for each SD card
     {
-        .pcName = "0:",           // Name used to mount device
-        .spi = &spis[0],          // Pointer to the SPI driving this card
-        .ss_gpio = 9,             // The SPI slave select GPIO for this SD card
-        .set_drive_strength = true,
-        .ss_gpio_drive_strength = GPIO_DRIVE_STRENGTH_2MA
-    }
-};
+        .pcName = "0:",   // Name used to mount device
+        .spi = &spis[0],  // Pointer to the SPI driving this card
+        .ss_gpio = 9      // The SPI slave select GPIO for this SD card
 
 /* ********************************************************************** */
 size_t sd_get_num() { return count_of(sd_cards); }
@@ -75,7 +80,7 @@ sd_card_t *sd_get_by_num(size_t num) {
 }
 size_t spi_get_num() { return count_of(spis); }
 spi_t *spi_get_by_num(size_t num) {
-    if (num <= sd_get_num()) {
+    if (num <= spi_get_num()) {
         return &spis[num];
     } else {
         return NULL;
