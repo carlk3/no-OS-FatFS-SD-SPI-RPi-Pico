@@ -45,10 +45,15 @@ On a SanDisk Class 4 16 GB card, I have been able to push the SPI baud rate as f
 ## Prerequisites:
 * Raspberry Pi Pico
 * Something like the [Adafruit Micro SD SPI or SDIO Card Breakout Board](https://www.adafruit.com/product/4682)[^3] or [SparkFun microSD Transflash Breakout](https://www.sparkfun.com/products/544)
+
+***Warning***: Stay away from Aduino breakout boards like these: [Micro SD Storage Board Micro SD Card Modules](https://smile.amazon.com/gp/product/B07XF4Q1TT/). They are designed for 5 V Arduino signals. They use simple resistor dividers to drop the signal voltage, and will not work with the 3.3 V Raspberry Pi Pico. There's usually no easy way to bypass the resistors. 
+
+Some people have made micro SD card sockets by soldering pins onto old SD Card adapters.
+
 * Breadboard and wires
 * Raspberry Pi Pico C/C++ SDK
 * (Optional) A couple of ~5-10kΩ resistors for pull-ups
-* (Optional) A couple of ~100 pF capacitors for decoupling
+* (Optional) A couple of capacitors for decoupling. Ideally, use three capacitors: 10 uF, 0.1 uF (100 nF), and .001 uF (1 nF) on the Vdd line to the of the SD card, located close to the socket. (The Adafruit board already has the 10 uF and 0.1 uF: [Schematic](https://learn.adafruit.com/assets/93596).)
 
 ![image](https://github.com/carlk3/FreeRTOS-FAT-CLI-for-RPi-Pico/blob/master/images/IMG_1478.JPG "Prototype")
 
