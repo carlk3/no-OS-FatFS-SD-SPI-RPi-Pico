@@ -1,6 +1,6 @@
 # no-OS-FatFS-SD-SPI-RPi-Pico
 
-**Note:** *This branch is SPI only. If you want to use SDIO (and/or SPI), please switch to the `sdio` branch.*
+**Note:** *This branch is SPI only. If you want to use SDIO (and/or SPI), please switch to the [sdio branch](https://github.com/carlk3/no-OS-FatFS-SD-SPI-RPi-Pico/tree/sdio).*
 
 ## Simple library for SD Cards on the Pico
 
