@@ -346,12 +346,11 @@ static uint8_t sd_cmd_spi(sd_card_t *pSD, cmdSupported cmd, uint32_t arg) {
     return response;
 }
 
-static bool sd_wait_ready(sd_card_t *pSD, int timeout) {
+static bool sd_wait_until_ready(sd_card_t *pSD, absolute_time_t timeout_time) {
     char resp;
 
     // Keep sending dummy clocks with DI held high until the card releases the
     // DO line
-    absolute_time_t timeout_time = make_timeout_time_ms(timeout);
     do {
         resp = sd_spi_write(pSD, 0xFF);
     } while (resp == 0x00 &&
@@ -361,6 +360,10 @@ static bool sd_wait_ready(sd_card_t *pSD, int timeout) {
 
     // Return success/failure
     return (resp > 0x00);
+}
+
+static bool sd_wait_ready(sd_card_t *pSD, int timeoutMs) {
+    return sd_wait_until_ready(pSD, make_timeout_time_ms(timeoutMs));
 }
 
 // An SD card can only do one thing at a time.
@@ -450,15 +453,21 @@ static const char *cmd2str(const cmdSupported cmd) {
 #define SD_COMMAND_TIMEOUT 2000 /*!< Timeout in ms for response */
 
 static int sd_cmd(sd_card_t *pSD, const cmdSupported cmd, uint32_t arg,
-                  bool isAcmd, uint32_t *resp) {
+                  bool isAcmd, uint32_t *resp, absolute_time_t *p_timeout_time) {
     TRACE_PRINTF("%s(%s(0x%08lx)): ", __FUNCTION__, cmd2str(cmd), arg);
 
     int32_t status = SD_BLOCK_DEVICE_ERROR_NONE;
     uint32_t response;
+    absolute_time_t default_timeout_time = make_timeout_time_ms(SD_COMMAND_TIMEOUT);
+
+    if (p_timeout_time == NULL)
+    {
+        p_timeout_time = &default_timeout_time;
+    }
 
     // No need to wait for card to be ready when sending the stop command
     if (CMD12_STOP_TRANSMISSION != cmd) {
-        if (false == sd_wait_ready(pSD, SD_COMMAND_TIMEOUT)) {
+        if (false == sd_wait_until_ready(pSD, *p_timeout_time)) {
             DBG_PRINTF("%s:%d: Card not ready yet\r\n", __FILE__, __LINE__);
         }
     }
@@ -468,7 +477,7 @@ static int sd_cmd(sd_card_t *pSD, const cmdSupported cmd, uint32_t arg,
         if (isAcmd) {
             response = sd_cmd_spi(pSD, CMD55_APP_CMD, 0x0);
             // Wait for card to be ready after CMD55
-            if (false == sd_wait_ready(pSD, SD_COMMAND_TIMEOUT)) {
+            if (false == sd_wait_until_ready(pSD, *p_timeout_time)) {
                 DBG_PRINTF("%s:%d: Card not ready yet\r\n", __FILE__, __LINE__);
             }
         }
@@ -531,7 +540,7 @@ static int sd_cmd(sd_card_t *pSD, const cmdSupported cmd, uint32_t arg,
             break;
         case CMD12_STOP_TRANSMISSION:  // Response R1b
         case CMD38_ERASE:
-            sd_wait_ready(pSD, SD_COMMAND_TIMEOUT);
+            sd_wait_until_ready(pSD, *p_timeout_time);
             break;
         case CMD13_SEND_STATUS:  // Response R2
             response <<= 8;
@@ -644,7 +653,7 @@ static uint32_t sd_go_idle_state(sd_card_t *pSD) {
      * not be interpreted as a command and get lost. For some cards retrying
      * the command overcomes this situation. */
     for (int i = 0; i < SD_CMD0_GO_IDLE_STATE_RETRIES; i++) {
-        sd_cmd(pSD, CMD0_GO_IDLE_STATE, 0x0, false, &response);
+        sd_cmd(pSD, CMD0_GO_IDLE_STATE, 0x0, false, &response, NULL);
         if (R1_IDLE_STATE == response) {
             break;
         }
@@ -665,7 +674,7 @@ static int sd_cmd8(sd_card_t *pSD) {
 
     arg |= (0x1 << 8);  // 2.7-3.6V             // [11:8]supply voltage(VHS)
 
-    status = sd_cmd(pSD, CMD8_SEND_IF_COND, arg, false, &response);
+    status = sd_cmd(pSD, CMD8_SEND_IF_COND, arg, false, &response, NULL);
     // Verify voltage and pattern for V2 version of card
     if ((SD_BLOCK_DEVICE_ERROR_NONE == status) &&
         (SDCARD_V2 == pSD->card_type)) {
@@ -703,7 +712,7 @@ static uint64_t sd_sectors_nolock(sd_card_t *pSD) {
     uint64_t blocks = 0, capacity = 0;
 
     // CMD9, Response R2 (R1 byte + 16-byte block read)
-    if (sd_cmd(pSD, CMD9_SEND_CSD, 0x0, false, 0) != 0x0) {
+    if (sd_cmd(pSD, CMD9_SEND_CSD, 0x0, false, 0, NULL) != 0x0) {
         DBG_PRINTF("Didn't get a response from the disk\r\n");
         return 0;
     }
@@ -756,6 +765,43 @@ uint64_t sd_sectors(sd_card_t *pSD) {
     uint64_t sectors = sd_sectors_nolock(pSD);
     sd_release(pSD);
     return sectors;
+}
+
+bool sd_test_com(sd_card_t *pSD, uint32_t timeoutMs) {
+    // This is allowed to be called before initialization, so ensure mutex is created
+    if (!mutex_is_initialized(&pSD->mutex)) mutex_init(&pSD->mutex);
+
+    sd_acquire(pSD);
+
+    bool success = false;
+    absolute_time_t timeout_time = make_timeout_time_ms(timeoutMs);
+
+    if (!(pSD->m_Status & STA_NOINIT)) {
+        // Currently initialized, test with status message
+        int status = sd_cmd(pSD, CMD13_SEND_STATUS, 0, false, NULL, &timeout_time);
+        success = (status != SD_BLOCK_DEVICE_ERROR_NO_DEVICE);
+        if (!success && !pSD->use_card_detect)
+        {
+            // Card no longer sensed - ensure card is initialized once re-attached
+            pSD->m_Status |= STA_NOINIT;
+        }
+    }
+    else{
+        // Do a "light" version of init, just enough to test com
+
+        // Initialize the member variables
+        pSD->card_type = SDCARD_NONE;
+
+        sd_spi_go_low_frequency(pSD);
+        sd_spi_send_initializing_sequence(pSD);
+
+        int status = sd_cmd(pSD, CMD0_GO_IDLE_STATE, 0x0, false, NULL, &timeout_time);
+        success = (status != SD_BLOCK_DEVICE_ERROR_NO_DEVICE);
+    }
+
+    sd_release(pSD);
+
+    return success;
 }
 
 // SPI function to wait till chip is ready and sends start token
@@ -863,9 +909,9 @@ static int in_sd_read_blocks(sd_card_t *pSD, uint8_t *buffer,
     }
     // Write command ro receive data
     if (blockCnt > 1) {
-        status = sd_cmd(pSD, CMD18_READ_MULTIPLE_BLOCK, addr, false, 0);
+        status = sd_cmd(pSD, CMD18_READ_MULTIPLE_BLOCK, addr, false, 0, NULL);
     } else {
-        status = sd_cmd(pSD, CMD17_READ_SINGLE_BLOCK, addr, false, 0);
+        status = sd_cmd(pSD, CMD17_READ_SINGLE_BLOCK, addr, false, 0, NULL);
     }
     if (SD_BLOCK_DEVICE_ERROR_NONE != status) {
         return status;
@@ -882,7 +928,7 @@ static int in_sd_read_blocks(sd_card_t *pSD, uint8_t *buffer,
     }
     // Send CMD12(0x00000000) to stop the transmission for multi-block transfer
     if (ulSectorCount > 1) {
-        status = sd_cmd(pSD, CMD12_STOP_TRANSMISSION, 0x0, false, 0);
+        status = sd_cmd(pSD, CMD12_STOP_TRANSMISSION, 0x0, false, 0, NULL);
     }
     return rd_status ? rd_status : status;
 }
@@ -967,7 +1013,7 @@ static int in_sd_write_blocks(sd_card_t *pSD, const uint8_t *buffer,
     if (blockCnt == 1) {
         // Single block write command
         if (SD_BLOCK_DEVICE_ERROR_NONE !=
-            (status = sd_cmd(pSD, CMD24_WRITE_BLOCK, addr, false, 0))) {
+            (status = sd_cmd(pSD, CMD24_WRITE_BLOCK, addr, false, 0, NULL))) {
             return status;
         }
         // Write data
@@ -980,14 +1026,14 @@ static int in_sd_write_blocks(sd_card_t *pSD, const uint8_t *buffer,
         }
     } else {
         // Pre-erase setting prior to multiple block write operation
-        sd_cmd(pSD, ACMD23_SET_WR_BLK_ERASE_COUNT, blockCnt, 1, 0);
+        sd_cmd(pSD, ACMD23_SET_WR_BLK_ERASE_COUNT, blockCnt, 1, 0, NULL);
 
         // Some SD cards want to be deselected between every bus transaction:
         sd_spi_deselect_pulse(pSD);
 
         // Multiple block write command
         if (SD_BLOCK_DEVICE_ERROR_NONE !=
-            (status = sd_cmd(pSD, CMD25_WRITE_MULTIPLE_BLOCK, addr, false, 0))) {
+            (status = sd_cmd(pSD, CMD25_WRITE_MULTIPLE_BLOCK, addr, false, 0, NULL))) {
             return status;
         }
         // Write the data: one block at a time
@@ -1009,7 +1055,7 @@ static int in_sd_write_blocks(sd_card_t *pSD, const uint8_t *buffer,
     uint32_t stat = 0;
     // Some SD cards want to be deselected between every bus transaction:
     sd_spi_deselect_pulse(pSD);
-    status = sd_cmd(pSD, CMD13_SEND_STATUS, 0, false, &stat);
+    status = sd_cmd(pSD, CMD13_SEND_STATUS, 0, false, &stat, NULL);
     return status;
 }
 
@@ -1058,13 +1104,13 @@ static int sd_init_medium(sd_card_t *pSD) {
         // Enable CRC
         // int sd_cmd(sd_card_t *pSD, cmdSupported cmd, uint32_t arg, bool
         // isAcmd, uint32_t *resp)
-        status = sd_cmd(pSD, CMD59_CRC_ON_OFF, 1, false, 0);
+        status = sd_cmd(pSD, CMD59_CRC_ON_OFF, 1, false, 0, NULL);
     }
 #endif
 
     // Read OCR - CMD58 Response contains OCR register
     if (SD_BLOCK_DEVICE_ERROR_NONE !=
-        (status = sd_cmd(pSD, CMD58_READ_OCR, 0x0, false, &response))) {
+        (status = sd_cmd(pSD, CMD58_READ_OCR, 0x0, false, &response, NULL))) {
         return status;
     }
     // Check if card supports voltage range: 3.3V
@@ -1087,7 +1133,7 @@ static int sd_init_medium(sd_card_t *pSD) {
      */
     absolute_time_t timeout_time = make_timeout_time_ms(SD_COMMAND_TIMEOUT);
     do {
-        status = sd_cmd(pSD, ACMD41_SD_SEND_OP_COND, arg, true, &response);
+        status = sd_cmd(pSD, ACMD41_SD_SEND_OP_COND, arg, true, &response, NULL);
     } while (response & R1_IDLE_STATE &&
              0 < absolute_time_diff_us(get_absolute_time(), timeout_time));
 
@@ -1101,7 +1147,7 @@ static int sd_init_medium(sd_card_t *pSD) {
     if (SDCARD_V2 == pSD->card_type) {
         // Get the card capacity CCS: CMD58
         if (SD_BLOCK_DEVICE_ERROR_NONE ==
-            (status = sd_cmd(pSD, CMD58_READ_OCR, 0x0, false, &response))) {
+            (status = sd_cmd(pSD, CMD58_READ_OCR, 0x0, false, &response, NULL))) {
             // High Capacity card
             if (response & OCR_HCS_CCS) {
                 pSD->card_type = SDCARD_V2HC;
@@ -1119,10 +1165,10 @@ static int sd_init_medium(sd_card_t *pSD) {
 #if SD_CRC_ENABLED
     if (!crc_on) {
         // Disable CRC
-        status = sd_cmd(pSD, CMD59_CRC_ON_OFF, 0, false, 0);
+        status = sd_cmd(pSD, CMD59_CRC_ON_OFF, 0, false, 0, NULL);
     }
 #else
-    status = sd_cmd(pSD, CMD59_CRC_ON_OFF, 0, false, 0);
+    status = sd_cmd(pSD, CMD59_CRC_ON_OFF, 0, false, 0, NULL);
 #endif
 
     return status;
@@ -1215,7 +1261,7 @@ static int sd_init(sd_card_t *pSD) {
         return pSD->m_Status;
     }
     // Set block length to 512 (CMD16)
-    if (sd_cmd(pSD, CMD16_SET_BLOCKLEN, _block_size, false, 0) != 0) {
+    if (sd_cmd(pSD, CMD16_SET_BLOCKLEN, _block_size, false, 0, NULL) != 0) {
         DBG_PRINTF("Set %" PRIu32 "-byte block timed out\r\n", _block_size);
         sd_spi_release(pSD);
         sd_unlock(pSD);
