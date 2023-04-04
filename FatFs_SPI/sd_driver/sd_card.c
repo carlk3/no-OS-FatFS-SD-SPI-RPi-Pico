@@ -447,6 +447,7 @@ static const char *cmd2str(const cmdSupported cmd) {
 }
 #endif
 
+#define SD_COMMAND_RETRIES 3 /*!< Times SPI cmd is retried when there is no response */
 #define SD_COMMAND_TIMEOUT 2000 /*!< Timeout in ms for response */
 
 static int sd_cmd(sd_card_t *pSD, const cmdSupported cmd, uint32_t arg,
@@ -463,7 +464,7 @@ static int sd_cmd(sd_card_t *pSD, const cmdSupported cmd, uint32_t arg,
         }
     }
     // Re-try command
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < SD_COMMAND_RETRIES; i++) {
         // Send CMD55 for APP command first
         if (isAcmd) {
             response = sd_cmd_spi(pSD, CMD55_APP_CMD, 0x0);
@@ -1232,6 +1233,71 @@ static int sd_init(sd_card_t *pSD) {
 
     // Return the disk status
     return pSD->m_Status;
+}
+
+bool sd_test_com(sd_card_t *pSD) {
+    // This is allowed to be called before initialization, so ensure mutex is created
+    if (!mutex_is_initialized(&pSD->mutex)) mutex_init(&pSD->mutex);
+
+    sd_acquire(pSD);
+
+    bool success = false;
+
+    if (!(pSD->m_Status & STA_NOINIT)) {
+        // SD card is currently initialized
+
+        // Timeout of 0 means only check once
+        if (sd_wait_ready(pSD, 0)) {
+            // DO has been released, try to get status
+            uint32_t response;
+            for (int i = 0; i < SD_COMMAND_RETRIES; i++) {
+                // Send command over SPI interface
+                response = sd_cmd_spi(pSD, CMD13_SEND_STATUS, 0);
+                if (R1_NO_RESPONSE != response) {
+                    // Got a response!
+                    success = true;
+                    break;
+                }
+            }
+
+            if (!success) {
+                // Card no longer sensed - ensure card is initialized once re-attached
+                pSD->m_Status |= STA_NOINIT;
+            }
+        } else {
+            // SD card is currently holding DO which is sufficient enough to know it's still there
+            success = true;
+        }
+    } else {
+        // Do a "light" version of init, just enough to test com
+
+        // Initialize the member variables
+        pSD->card_type = SDCARD_NONE;
+
+        sd_spi_go_low_frequency(pSD);
+        sd_spi_send_initializing_sequence(pSD);
+
+        if (sd_wait_ready(pSD, 0)) {
+            // DO has been released, try to make SD card go idle
+            uint32_t response;
+            for (int i = 0; i < SD_COMMAND_RETRIES; i++) {
+                // Send command over SPI interface
+                response = sd_cmd_spi(pSD, CMD0_GO_IDLE_STATE, 0);
+                if (R1_NO_RESPONSE != response) {
+                    // Got a response!
+                    success = true;
+                    break;
+                }
+            }
+        } else {
+            // Something is holding DO - better to return false and allow user to try again later
+            success = false;
+        }
+    }
+
+    sd_release(pSD);
+
+    return success;
 }
 
 /* [] END OF FILE */
