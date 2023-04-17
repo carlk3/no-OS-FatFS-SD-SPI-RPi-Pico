@@ -111,7 +111,7 @@ static void run_lliot() {
     if (!arg1 && 1 != sd_get_num()) {
         printf("Missing argument: Specify physical drive number\n");
         return;
-    }    
+    }
     size_t pnum = 0;
     if (arg1) {
         pnum = strtoul(arg1, NULL, 0);
@@ -120,12 +120,12 @@ static void run_lliot() {
 }
 static void run_format() {
     const char *arg1 = strtok(NULL, " ");
-    if (!arg1 && 1 == sd_get_num()) 
+    if (!arg1 && 1 == sd_get_num())
         arg1 = sd_get_by_num(0)->pcName;
     else if (!arg1) {
         printf("Missing argument: Specify logical drive\n");
         return;
-    }    
+    }
     FATFS *p_fs = sd_get_fs_by_name(arg1);
     if (!p_fs) {
         printf("Unknown logical drive number: \"%s\"\n", arg1);
@@ -137,12 +137,12 @@ static void run_format() {
 }
 static void run_mount() {
     const char *arg1 = strtok(NULL, " ");
-    if (!arg1 && 1 == sd_get_num()) 
+    if (!arg1 && 1 == sd_get_num())
         arg1 = sd_get_by_num(0)->pcName;
     else if (!arg1) {
         printf("Missing argument: Specify logical drive\n");
         return;
-    }    
+    }
     FATFS *p_fs = sd_get_fs_by_name(arg1);
     if (!p_fs) {
         printf("Unknown logical drive number: \"%s\"\n", arg1);
@@ -159,12 +159,12 @@ static void run_mount() {
 }
 static void run_unmount() {
     const char *arg1 = strtok(NULL, " ");
-    if (!arg1 && 1 == sd_get_num()) 
+    if (!arg1 && 1 == sd_get_num())
         arg1 = sd_get_by_num(0)->pcName;
     else if (!arg1) {
         printf("Missing argument: Specify logical drive\n");
         return;
-    }    
+    }
     FATFS *p_fs = sd_get_fs_by_name(arg1);
     if (!p_fs) {
         printf("Unknown logical drive number: \"%s\"\n", arg1);
@@ -188,12 +188,12 @@ static void run_chdrive() {
 }
 static void run_getfree() {
     const char *arg1 = strtok(NULL, " ");
-    if (!arg1 && 1 == sd_get_num()) 
+    if (!arg1 && 1 == sd_get_num())
         arg1 = sd_get_by_num(0)->pcName;
     else if (!arg1) {
         printf("Missing argument: Specify logical drive\n");
         return;
-    }    
+    }
     /* Get volume information and free clusters of drive */
     FATFS *p_fs = sd_get_fs_by_name(arg1);
     if (!p_fs) {
@@ -345,12 +345,12 @@ static void run_del_node() {
 }
 static void run_bench() {
     const char *arg1 = strtok(NULL, " ");
-    if (!arg1 && 1 == sd_get_num()) 
+    if (!arg1 && 1 == sd_get_num())
         arg1 = sd_get_by_num(0)->pcName;
     else if (!arg1) {
         printf("Missing argument: Specify logical drive\n");
         return;
-    }    
+    }
     bench(arg1);
 }
 static void run_cdef() {
@@ -551,8 +551,8 @@ int main() {
     printf("\n> ");
     stdio_flush();
 
-    // Implicitly called by disk_initialize, 
-    // but called here to set up the GPIOs 
+    // Implicitly called by disk_initialize,
+    // but called here to set up the GPIOs
     // before enabling the card detect interrupt:
     sd_init_driver();
 
@@ -567,6 +567,8 @@ int main() {
         }
     }
 
+    bool connected = false;
+    uint64_t tt = 0;
     for (;;) {  // Super Loop
         if (logger_enabled &&
             absolute_time_diff_us(get_absolute_time(), next_log_time) < 0) {
@@ -576,6 +578,17 @@ int main() {
         int cRxedChar = getchar_timeout_us(0);
         /* Get the character from terminal */
         if (PICO_ERROR_TIMEOUT != cRxedChar) process_stdio(cRxedChar);
+
+        if (time_us_64() >= (tt + 1000000))
+        {
+            tt = time_us_64();
+            bool c = sd_get_by_num(0)->sd_test_com(sd_get_by_num(0));
+            if (c != connected)
+            {
+                printf("SD now %s\n", c ? "connected" : "disconnected");
+                connected = c;
+            }
+        }
     }
     return 0;
 }

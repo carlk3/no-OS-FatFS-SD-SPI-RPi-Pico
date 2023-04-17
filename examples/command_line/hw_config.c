@@ -1,14 +1,14 @@
 /* hw_config.c
 Copyright 2021 Carl John Kugler III
 
-Licensed under the Apache License, Version 2.0 (the License); you may not use 
-this file except in compliance with the License. You may obtain a copy of the 
+Licensed under the Apache License, Version 2.0 (the License); you may not use
+this file except in compliance with the License. You may obtain a copy of the
 License at
 
-   http://www.apache.org/licenses/LICENSE-2.0 
-Unless required by applicable law or agreed to in writing, software distributed 
-under the License is distributed on an AS IS BASIS, WITHOUT WARRANTIES OR 
-CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+   http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software distributed
+under the License is distributed on an AS IS BASIS, WITHOUT WARRANTIES OR
+CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 */
 /*
@@ -48,7 +48,7 @@ static spi_t spis[] = {  // One for each SPI.
         .mosi_gpio_drive_strength = GPIO_DRIVE_STRENGTH_2MA,
         .sck_gpio_drive_strength = GPIO_DRIVE_STRENGTH_2MA,
 
-        .baud_rate = 25 * 1000 * 1000, // Actual frequency: 20833333. 
+        .baud_rate = 25 * 1000 * 1000, // Actual frequency: 20833333.
 
         .DMA_IRQ_num = DMA_IRQ_1,
     }
@@ -57,13 +57,13 @@ static spi_t spis[] = {  // One for each SPI.
 // Hardware Configuration of the SD Card "objects"
 static sd_card_t sd_cards[] = {  // One for each SD card
     {
-        .pcName = "0:",   // Name used to mount device            
+        .pcName = "0:",   // Name used to mount device
         .type = SD_IF_SDIO,
-        /* 
+        /*
         Pins CLK_gpio, D1_gpio, D2_gpio, and D3_gpio are at offsets from pin D0_gpio.
         The offsets are determined by sd_driver\SDIO\rp2040_sdio.pio.
             CLK_gpio = (D0_gpio + SDIO_CLK_PIN_D0_OFFSET) % 32;
-            As of this writing, SDIO_CLK_PIN_D0_OFFSET is 30, 
+            As of this writing, SDIO_CLK_PIN_D0_OFFSET is 30,
               which is -2 in mod32 arithmetic, so:
             CLK_gpio = D0_gpio -2.
             D1_gpio = D0_gpio + 1;
@@ -76,7 +76,7 @@ static sd_card_t sd_cards[] = {  // One for each SD card
             .SDIO_PIO = pio1,
             .DMA_IRQ_num = DMA_IRQ_0
         },
-        .use_card_detect = true,    
+        .use_card_detect = false,
         .card_detect_gpio = 16,   // Card detect
         .card_detected_true = 1   // What the GPIO read returns when a card is
                                   // present.

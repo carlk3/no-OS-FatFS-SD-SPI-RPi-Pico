@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.13)
 
+set(PICO_SDK_PATH "/home/jsmith/github/DreamcastControllerUsbPico/ext/pico-sdk/" CACHE INTERNAL PICO_SDK_PATH)
+message("Using pico SDK at ('${PICO_SDK_PATH}')")
+
 # Pull in Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
 
@@ -16,8 +19,8 @@ pico_sdk_init()
 add_subdirectory(../../src build)
 
 # Add executable. Default name is the project name, version 0.1
-add_executable(command_line 
-    main.cpp 
+add_executable(command_line
+    main.cpp
     hw_config.c
     data_log_demo.c
     tests/bench.c
@@ -54,4 +57,3 @@ target_link_libraries(command_line
 )
 
 pico_add_extra_outputs(command_line)
-
