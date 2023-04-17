@@ -174,7 +174,7 @@
         printf(format, __VA_ARGS__); \
         fflush(stdout);              \
     }
-#endif
+#endif 
 
 
 #ifndef SD_CRC_ENABLED
@@ -649,7 +649,7 @@ uint64_t sd_spi_sectors(sd_card_t *sd_card_p) {
     return sectors;
 }
 
-static bool in_sd_spi_readCID(sd_card_t *sd_card_p, cid_t* cid) {
+static bool in_sd_spi_readCID(sd_card_t *sd_card_p, cid_t* cid) {    
     static_assert(16 == sizeof(cid_t));
     // CMD10, Response R2 (R1 byte + 16-byte block read)
     if (sd_cmd(sd_card_p, CMD10_SEND_CID, 0x0, false, 0) != 0x0) {

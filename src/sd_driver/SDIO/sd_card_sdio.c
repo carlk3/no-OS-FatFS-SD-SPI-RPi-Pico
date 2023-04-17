@@ -76,7 +76,7 @@ static sd_callback_t get_stream_callback(const uint8_t *buf, uint32_t count, con
             return NULL;
         }
     }
-
+    
     return NULL;
 }
 
@@ -84,7 +84,7 @@ bool sd_sdio_begin(sd_card_t *sd_card_p)
 {
     uint32_t reply;
     sdio_status_t status;
-
+    
     // Initialize at 1 MHz clock speed
     rp2040_sdio_init(sd_card_p, 25);
 
@@ -105,7 +105,7 @@ bool sd_sdio_begin(sd_card_t *sd_card_p)
     if (reply != 0x1AA || status != SDIO_OK)
     {
         // azdbg("SDIO not responding to CMD8 SEND_IF_COND, status ", (int)status, " reply ", reply);
-        printf("%s,%d SDIO not responding to CMD8 SEND_IF_COND, status 0x%x reply 0x%lx\n",
+        printf("%s,%d SDIO not responding to CMD8 SEND_IF_COND, status 0x%x reply 0x%lx\n", 
             __func__, __LINE__, status, reply);
         return false;
     }
@@ -195,7 +195,7 @@ uint32_t sd_sdio_errorLine() // const
     return g_sdio_error_line;
 }
 
-bool sd_sdio_isBusy(sd_card_t *sd_card_p)
+bool sd_sdio_isBusy(sd_card_t *sd_card_p) 
 {
     // return (sio_hw->gpio_in & (1 << SDIO_D0)) == 0;
     return (sio_hw->gpio_in & (1 << sd_card_p->sdio_if.D0_gpio)) == 0;
@@ -462,7 +462,7 @@ bool sd_sdio_readSector(sd_card_t *sd_card_p, uint32_t sector, uint8_t* dst)
     if (g_sdio_error != SDIO_OK)
     {
         // azlog("sd_sdio_readSector(", sector, ") failed: ", (int)g_sdio_error);
-        printf("%s,%d sd_sdio_readSector(%lu) failed: %d\n",
+        printf("%s,%d sd_sdio_readSector(%lu) failed: %d\n", 
             __func__, __LINE__, sector, g_sdio_error);
     }
 
@@ -576,15 +576,15 @@ static int sd_sdio_write_blocks(sd_card_t *sd_card_p, const uint8_t *buffer,
     if (rc)
         return SD_BLOCK_DEVICE_ERROR_NONE;
     else
-        return SD_BLOCK_DEVICE_ERROR_WRITE;
+        return SD_BLOCK_DEVICE_ERROR_WRITE;                                    
 }
 static int sd_sdio_read_blocks(sd_card_t *sd_card_p, uint8_t *buffer, uint64_t ulSectorNumber,
                                uint32_t ulSectorCount) {
     // bool sd_sdio_readSectors(sd_card_t *sd_card_p, uint32_t sector, uint8_t* dst, size_t n)
     bool rc;
-    if (1 == ulSectorCount)
+    if (1 == ulSectorCount) 
         rc = sd_sdio_readSector(sd_card_p, ulSectorNumber, buffer);
-    else
+    else        
         rc= sd_sdio_readSectors(sd_card_p, ulSectorNumber, buffer, ulSectorCount);
     if (rc)
         return SD_BLOCK_DEVICE_ERROR_NONE;
