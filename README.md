@@ -6,7 +6,7 @@
 
 At the heart of this library is ChaN's [FatFs - Generic FAT Filesystem Module](http://elm-chan.org/fsw/ff/00index_e.html).
 It also contains a Serial Peripheral Interface (SPI) SD Card block driver for the [Raspberry Pi Pico](https://www.raspberrypi.org/products/raspberry-pi-pico/),
-derived from [SDBlockDevice from Mbed OS 5](https://os.mbed.com/docs/mbed-os/v5.15/apis/sdblockdevice.html).
+derived from [SDBlockDevice from Mbed OS 5](https://os.mbed.com/docs/mbed-os/v5.15/apis/sdblockdevice.html). 
 It is wrapped up in a complete runnable project, with a little command line interface, some self tests, and an example data logging application.
 
 ![image](https://github.com/carlk3/FreeRTOS-FAT-CLI-for-RPi-Pico/blob/master/images/IMG_1473.JPG "Prototype")
@@ -46,7 +46,7 @@ On a SanDisk Class 4 16 GB card, I have been able to push the SPI baud rate as f
 * Raspberry Pi Pico
 * Something like the [Adafruit Micro SD SPI or SDIO Card Breakout Board](https://www.adafruit.com/product/4682)[^3] or [SparkFun microSD Transflash Breakout](https://www.sparkfun.com/products/544)
 
-***Warning***: Stay away from Aduino breakout boards like these: [Micro SD Storage Board Micro SD Card Modules](https://smile.amazon.com/gp/product/B07XF4Q1TT/). They are designed for 5 V Arduino signals. They use simple resistor dividers to drop the signal voltage, and will not work with the 3.3 V Raspberry Pi Pico. There's usually no easy way to bypass the resistors.
+***Warning***: Stay away from Aduino breakout boards like these: [Micro SD Storage Board Micro SD Card Modules](https://smile.amazon.com/gp/product/B07XF4Q1TT/). They are designed for 5 V Arduino signals. They use simple resistor dividers to drop the signal voltage, and will not work with the 3.3 V Raspberry Pi Pico. There's usually no easy way to bypass the resistors. 
 
 Some people have made micro SD card sockets by soldering pins onto old SD Card adapters.
 
@@ -59,7 +59,7 @@ Some people have made micro SD card sockets by soldering pins onto old SD Card a
 
 ![image](https://www.raspberrypi.com/documentation/microcontrollers/images/pico-pinout.svg "Pinout")
 
-|       | SPI0  | GPIO  | Pin   | SPI       | MicroSD 0 | Description            |
+|       | SPI0  | GPIO  | Pin   | SPI       | MicroSD 0 | Description            | 
 | ----- | ----  | ----- | ---   | --------  | --------- | ---------------------- |
 | MISO  | RX    | 16    | 21    | DO        | DO        | Master In, Slave Out   |
 | CS0   | CSn   | 17    | 22    | SS or CS  | CS        | Slave (or Chip) Select |
@@ -70,17 +70,17 @@ Some people have made micro SD card sockets by soldering pins onto old SD Card a
 | 3v3   |       |       | 36    |           | 3v3       | 3.3 volt power         |
 
 ## Construction:
-* The wiring is so simple that I didn't bother with a schematic.
+* The wiring is so simple that I didn't bother with a schematic. 
 I just referred to the table above, wiring point-to-point from the Pin column on the Pico to the MicroSD 0 column on the Transflash.
-* Card Detect is optional. Some SD card sockets have no provision for it.
+* Card Detect is optional. Some SD card sockets have no provision for it. 
 Even if it is provided by the hardware, if you have no requirement for it you can skip it and save a Pico I/O pin.
 * You can choose to use either or both of the Pico's SPIs.
 * Wires should be kept short and direct. SPI operates at HF radio frequencies.
 
 ### Pull Up Resistors and other electrical considerations
 * The SPI MISO (**DO** on SD card, **SPI**x **RX** on Pico) is open collector (or tristate). It should be pulled up. The Pico internal gpio_pull_up is weak: around 56uA or 60kΩ. It's best to add an external pull up resistor of around 5kΩ to 3.3v. You might get away without one if you only run one SD card and don't push the SPI baud rate too high.
-* The SPI Slave Select (SS), or Chip Select (CS) line enables one SPI slave of possibly multiple slaves on the bus. This is what enables the tristate buffer for Data Out (DO), among other things. It's best to pull CS up so that it doesn't float before the Pico GPIO is initialized. It is imperative to pull it up for any devices on the bus that aren't initialized. For example, if you have two SD cards on one bus but the firmware is aware of only one card (see hw_config); you can't let the CS float on the unused one.
-* Driving the SD card directly with the GPIOs is not ideal. Take a look at the CM1624 (https://www.onsemi.com/pdf/datasheet/cm1624-d.pdf). Unfortunately, it's a tiny little surface mount part -- not so easy to work with, but the schematic in the data sheet is still instructive. Besides the pull up resistors, it's probably not a bad idea to have 40 - 100 Ω series terminating resistors at the SD card end of CS, SCK, MISO, MOSI.
+* The SPI Slave Select (SS), or Chip Select (CS) line enables one SPI slave of possibly multiple slaves on the bus. This is what enables the tristate buffer for Data Out (DO), among other things. It's best to pull CS up so that it doesn't float before the Pico GPIO is initialized. It is imperative to pull it up for any devices on the bus that aren't initialized. For example, if you have two SD cards on one bus but the firmware is aware of only one card (see hw_config); you can't let the CS float on the unused one. 
+* Driving the SD card directly with the GPIOs is not ideal. Take a look at the CM1624 (https://www.onsemi.com/pdf/datasheet/cm1624-d.pdf). Unfortunately, it's a tiny little surface mount part -- not so easy to work with, but the schematic in the data sheet is still instructive. Besides the pull up resistors, it's probably not a bad idea to have 40 - 100 Ω series terminating resistors at the SD card end of CS, SCK, MISO, MOSI. 
 * It can be helpful to add a decoupling capacitor or two (e.g., 10, 100 nF) between 3.3 V and GND on the SD card.
 * Note: the [Adafruit Breakout Board](https://learn.adafruit.com/assets/93596) takes care of the pull ups and decoupling caps, but the Sparkfun one doesn't.
 
@@ -97,14 +97,14 @@ Even if it is provided by the hardware, if you have no requirement for it you ca
 * The [SparkFun RP2040 Thing Plus](https://learn.sparkfun.com/tutorials/rp2040-thing-plus-hookup-guide/hardware-overview) works well, on SPI1. The only downside to this board is that it's difficult to access the signal lines if you want to look at them with, say, a logic analyzer or an oscilloscope.
   * For SparkFun RP2040 Thing Plus:
 
-    |       | SPI0  | GPIO  | Description            |
+    |       | SPI0  | GPIO  | Description            | 
     | ----- | ----  | ----- | ---------------------- |
     | MISO  | RX    | 12    | Master In, Slave Out   |
     | CS0   | CSn   | 09    | Slave (or Chip) Select |
     | SCK   | SCK   | 14    | SPI clock              |
     | MOSI  | TX    | 15    | Master Out, Slave In   |
     | CD    |       |       | Card Detect            |
-
+  
 * [Maker Pi Pico](https://www.cytron.io/p-maker-pi-pico) looks like it could work on SPI1. It has CS on GPIO 15, which is not a pin that the RP2040 built in SPI1 controller would drive as CS, but this driver controls CS explicitly with `gpio_put`, so it doesn't matter.
 
 ## Firmware:
@@ -114,23 +114,23 @@ Even if it is provided by the hardware, if you have no requirement for it you ca
 * Customize:
   * Configure the code to match the hardware: see section [Customizing for the Hardware Configuration](#customizing-for-the-hardware-configuration), below.
   * Customize `ff14a/source/ffconf.h` as desired
-  * Customize `pico_enable_stdio_uart` and `pico_enable_stdio_usb` in CMakeLists.txt as you prefer.
-(See *4.1. Serial input and output on Raspberry Pi Pico* in [Getting started with Raspberry Pi Pico](https://datasheets.raspberrypi.org/pico/getting-started-with-pico.pdf) and *2.7.1. Standard Input/Output (stdio) Support* in [Raspberry Pi Pico C/C++ SDK](https://datasheets.raspberrypi.org/pico/raspberry-pi-pico-c-sdk.pdf).)
+  * Customize `pico_enable_stdio_uart` and `pico_enable_stdio_usb` in CMakeLists.txt as you prefer. 
+(See *4.1. Serial input and output on Raspberry Pi Pico* in [Getting started with Raspberry Pi Pico](https://datasheets.raspberrypi.org/pico/getting-started-with-pico.pdf) and *2.7.1. Standard Input/Output (stdio) Support* in [Raspberry Pi Pico C/C++ SDK](https://datasheets.raspberrypi.org/pico/raspberry-pi-pico-c-sdk.pdf).) 
 * Build:
-```
+```  
    cd no-OS-FatFS/example
    mkdir build
    cd build
    cmake ..
    make
-```
+```   
   * Program the device
-
-## Customizing for the Hardware Configuration
-This library can support many different hardware configurations.
-Therefore, the hardware configuration is not defined in the library[^1].
-Instead, the application must provide it.
-The configuration is defined in "objects" of type `spi_t` (see `sd_driver/spi.h`) and `sd_card_t` (see `sd_driver/sd_card.h`).
+  
+## Customizing for the Hardware Configuration 
+This library can support many different hardware configurations. 
+Therefore, the hardware configuration is not defined in the library[^1]. 
+Instead, the application must provide it. 
+The configuration is defined in "objects" of type `spi_t` (see `sd_driver/spi.h`) and `sd_card_t` (see `sd_driver/sd_card.h`). 
 There can be one or more objects of both types.
 These objects specify which pins to use for what, SPI baud rate, features like Card Detect, etc.
 
@@ -191,15 +191,15 @@ typedef struct {
 * `mosi_gpio_drive_strength` SPI Master Out, Slave In (MOSI) drive strength
 * `sck_gpio_drive_strength` SPI Serial Clock (SCK) drive strength
 
-You must provide a definition for the functions declared in `sd_driver/hw_config.h`:
-`size_t spi_get_num()` Returns the number of SPIs to use
-`spi_t *spi_get_by_num(size_t num)` Returns a pointer to the SPI "object" at the given (zero origin) index
-`size_t sd_get_num()` Returns the number of SD cards
-`sd_card_t *sd_get_by_num(size_t num)` Returns a pointer to the SD card "object" at the given (zero origin) index.
+You must provide a definition for the functions declared in `sd_driver/hw_config.h`:  
+`size_t spi_get_num()` Returns the number of SPIs to use  
+`spi_t *spi_get_by_num(size_t num)` Returns a pointer to the SPI "object" at the given (zero origin) index  
+`size_t sd_get_num()` Returns the number of SD cards  
+`sd_card_t *sd_get_by_num(size_t num)` Returns a pointer to the SD card "object" at the given (zero origin) index.  
 
 ### Static vs. Dynamic Configuration
-The definition of the hardware configuration can either be built in at build time, which I'm calling "static configuration", or supplied at run time, which I call "dynamic configuration".
-In either case, the application simply provides an implementation of the functions declared in `sd_driver/hw_config.h`.
+The definition of the hardware configuration can either be built in at build time, which I'm calling "static configuration", or supplied at run time, which I call "dynamic configuration". 
+In either case, the application simply provides an implementation of the functions declared in `sd_driver/hw_config.h`. 
 * See `simple_example.dir/hw_config.c` or `example/hw_config.c` for examples of static configuration.
 * See `dynamic_config_example/hw_config.cpp` for an example of dynamic configuration.
 
@@ -218,10 +218,10 @@ In either case, the application simply provides an implementation of the functio
 * There is also POSIX-like API wrapper layer in `ff_stdio.h` and `ff_stdio.c`, written for compatibility with [FreeRTOS+FAT API](https://www.freertos.org/FreeRTOS-Plus/FreeRTOS_Plus_FAT/index.html) (mainly so that I could reuse some tests from that environment.)
 
 ## Next Steps
-* There is a example data logging application in `data_log_demo.c`.
+* There is a example data logging application in `data_log_demo.c`. 
 It can be launched from the `no-OS-FatFS/example` CLI with the `start_logger` command.
 (Stop it with the `stop_logger` command.)
-It records the temperature as reported by the RP2040 internal Temperature Sensor once per second
+It records the temperature as reported by the RP2040 internal Temperature Sensor once per second 
 in files named something like `/data/2021-03-21/11.csv`.
 Use this as a starting point for your own data logging application!
 
@@ -233,7 +233,7 @@ Use this as a starting point for your own data logging application!
   ```
   git submodule add https://github.com/carlk3/no-OS-FatFS-SD-SPI-RPi-Pico.git
   ```
-
+  
 You will need to pick up the library in CMakeLists.txt:
 ```
 add_subdirectory(no-OS-FatFS-SD-SPI-RPi-Pico/FatFs_SPI build)
@@ -245,7 +245,7 @@ Happy hacking!
 ![image](https://github.com/carlk3/FreeRTOS-FAT-CLI-for-RPi-Pico/blob/master/images/IMG_20210322_201928116.jpg "Prototype")
 
 ## Appendix A: Adding Additional Cards
-When you're dealing with information storage, it's always nice to have redundancy. There are many possible combinations of SPIs and SD cards. One of these is putting multiple SD cards on the same SPI bus, at a cost of one (or two) additional Pico I/O pins (depending on whether or you care about Card Detect). I will illustrate that example here.
+When you're dealing with information storage, it's always nice to have redundancy. There are many possible combinations of SPIs and SD cards. One of these is putting multiple SD cards on the same SPI bus, at a cost of one (or two) additional Pico I/O pins (depending on whether or you care about Card Detect). I will illustrate that example here. 
 
 To add a second SD card on the same SPI, connect it in parallel, except that it will need a unique GPIO for the Card Select/Slave Select (CSn) and another for Card Detect (CD) (optional).
 
@@ -262,7 +262,7 @@ CD0||22|29|||CD|
 GND|||18, 23|||GND|GND
 3v3|||36|||3v3|3v3
 
-### Wiring:
+### Wiring: 
 As you can see from the table above, the only new signals are CD1 and CS1. Otherwise, the new card is wired in parallel with the first card.
 ### Firmware:
 * `hw_config.c` (or equivalent) must be edited to add a new instance to `static sd_card_t sd_cards[]`
@@ -276,10 +276,10 @@ As you can see from the table above, the only new signals are CD1 and CS1. Other
   * `tio -m ODELBS /dev/ttyACM0`
 * Press Enter to start the CLI. You should see a prompt like:
 ```
-    >
-```
+    > 
+```    
 * The `help` command describes the available commands:
-```
+```    
 setrtc <DD> <MM> <YY> <hh> <mm> <ss>:
   Set Real Time Clock
   Parameters: new date (DD MM YY) new time in 24-hour format (hh mm ss)
@@ -350,8 +350,8 @@ stop_logger:
 
 ## Appendix C: Troubleshooting
 * The first thing to try is lowering the SPI baud rate (see hw_config.c). This will also make it easier to use things like logic analyzers.
-* Make sure the SD card(s) are getting enough power. Try an external supply. Try adding a decoupling capacitor between Vcc and GND.
-  * Hint: check voltage while formatting card. It must be 2.7 to 3.6 volts.
+* Make sure the SD card(s) are getting enough power. Try an external supply. Try adding a decoupling capacitor between Vcc and GND. 
+  * Hint: check voltage while formatting card. It must be 2.7 to 3.6 volts. 
   * Hint: If you are powering a Pico with a PicoProbe, try adding a USB cable to a wall charger to the Pico under test.
 * Try another brand of SD card. Some handle the SPI interface better than others. (Most consumer devices like cameras or PCs use the SDIO interface.) I have had good luck with SanDisk.
 * Tracing: Most of the source files have a couple of lines near the top of the file like:
@@ -360,7 +360,7 @@ stop_logger:
 //#define TRACE_PRINTF printf // Trace with printf
 ```
 You can swap the commenting to enable tracing of what's happening in that file.
-* Logic analyzer: for less than ten bucks, something like this [Comidox 1Set USB Logic Analyzer Device Set USB Cable 24MHz 8CH 24MHz 8 Channel UART IIC SPI Debug for Arduino ARM FPGA M100 Hot](https://smile.amazon.com/gp/product/B07KW445DJ/) and [PulseView - sigrok](https://sigrok.org/) make a nice combination for looking at SPI, as long as you don't run the baud rate too high.
+* Logic analyzer: for less than ten bucks, something like this [Comidox 1Set USB Logic Analyzer Device Set USB Cable 24MHz 8CH 24MHz 8 Channel UART IIC SPI Debug for Arduino ARM FPGA M100 Hot](https://smile.amazon.com/gp/product/B07KW445DJ/) and [PulseView - sigrok](https://sigrok.org/) make a nice combination for looking at SPI, as long as you don't run the baud rate too high. 
 * Get yourself a protoboard and solder everything. So much more reliable than solderless breadboard!
 ![image](https://github.com/carlk3/FreeRTOS-FAT-CLI-for-RPi-Pico/blob/master/images/PXL_20211214_165648888.MP.jpg)
 
