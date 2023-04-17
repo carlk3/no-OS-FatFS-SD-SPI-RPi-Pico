@@ -60,6 +60,10 @@ struct sd_card_t {
                     uint64_t ulSectorNumber, uint32_t blockCnt);
     int (*read_blocks)(sd_card_t *sd_card_p, uint8_t *buffer, uint64_t ulSectorNumber,
                     uint32_t ulSectorCount);
+
+    // Useful when use_card_detect is false - call periodically to check for presence of SD card
+    // Returns true if and only if SD card was sensed on the bus
+    bool (*sd_test_com)(sd_card_t *sd_card_p);
 };
 
 #define SD_BLOCK_DEVICE_ERROR_NONE 0
@@ -85,10 +89,6 @@ struct sd_card_t {
 
 bool sd_card_detect(sd_card_t *pSD);
 uint64_t sd_sectors(sd_card_t *pSD);
-
-// Useful when use_card_detect is false - call periodically to check for presence of SD card
-// Returns true if and only if SD card was sensed on SPI bus
-bool sd_test_com(sd_card_t *pSD);
 
 bool sd_init_driver();
 bool sd_card_detect(sd_card_t *sd_card_p);

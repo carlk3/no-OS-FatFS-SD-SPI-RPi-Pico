@@ -1129,6 +1129,7 @@ static int sd_init_medium(sd_card_t *pSD) {
     return status;
 }
 static int sd_init(sd_card_t *pSD);
+static bool sd_test_com(sd_card_t *pSD);
 
 static void sd_ctor(sd_card_t *pSD) {
     // State variables:
@@ -1136,6 +1137,7 @@ static void sd_ctor(sd_card_t *pSD) {
     pSD->init = sd_init;
     pSD->write_blocks = sd_write_blocks;
     pSD->read_blocks = sd_read_blocks;
+    pSD->sd_test_com = sd_test_com;
 }
 bool sd_init_driver() {
     static bool initialized;
@@ -1235,7 +1237,7 @@ static int sd_init(sd_card_t *pSD) {
     return pSD->m_Status;
 }
 
-bool sd_test_com(sd_card_t *pSD) {
+static bool sd_test_com(sd_card_t *pSD) {
     // This is allowed to be called before initialization, so ensure mutex is created
     if (!mutex_is_initialized(&pSD->mutex)) mutex_init(&pSD->mutex);
 
