@@ -76,7 +76,7 @@ static sd_callback_t get_stream_callback(const uint8_t *buf, uint32_t count, con
             return NULL;
         }
     }
-    
+
     return NULL;
 }
 
@@ -84,7 +84,7 @@ bool sd_sdio_begin(sd_card_t *sd_card_p)
 {
     uint32_t reply;
     sdio_status_t status;
-    
+
     // Initialize at 1 MHz clock speed
     rp2040_sdio_init(sd_card_p, 25);
 
@@ -105,7 +105,7 @@ bool sd_sdio_begin(sd_card_t *sd_card_p)
     if (reply != 0x1AA || status != SDIO_OK)
     {
         // azdbg("SDIO not responding to CMD8 SEND_IF_COND, status ", (int)status, " reply ", reply);
-        printf("%s,%d SDIO not responding to CMD8 SEND_IF_COND, status 0x%x reply 0x%lx\n", 
+        printf("%s,%d SDIO not responding to CMD8 SEND_IF_COND, status 0x%x reply 0x%lx\n",
             __func__, __LINE__, status, reply);
         return false;
     }
@@ -195,7 +195,7 @@ uint32_t sd_sdio_errorLine() // const
     return g_sdio_error_line;
 }
 
-bool sd_sdio_isBusy(sd_card_t *sd_card_p) 
+bool sd_sdio_isBusy(sd_card_t *sd_card_p)
 {
     // return (sio_hw->gpio_in & (1 << SDIO_D0)) == 0;
     return (sio_hw->gpio_in & (1 << sd_card_p->sdio_if.D0_gpio)) == 0;
@@ -462,7 +462,7 @@ bool sd_sdio_readSector(sd_card_t *sd_card_p, uint32_t sector, uint8_t* dst)
     if (g_sdio_error != SDIO_OK)
     {
         // azlog("sd_sdio_readSector(", sector, ") failed: ", (int)g_sdio_error);
-        printf("%s,%d sd_sdio_readSector(%lu) failed: %d\n", 
+        printf("%s,%d sd_sdio_readSector(%lu) failed: %d\n",
             __func__, __LINE__, sector, g_sdio_error);
     }
 
@@ -522,6 +522,40 @@ bool sd_sdio_readSectors(sd_card_t *sd_card_p, uint32_t sector, uint8_t* dst, si
     }
 }
 
+static bool sd_sdio_test_com(sd_card_t *sd_card_p) {
+    bool success = false;
+
+    if (!(sd_card_p->m_Status & STA_NOINIT)) {
+        // SD card is currently initialized
+
+        // Get status
+        uint32_t reply = 0;
+        sdio_status_t status = rp2040_sdio_command_R1(sd_card_p, CMD13, g_sdio_rca, &reply);
+
+        // Only care that communication succeeded
+        success = (status == SDIO_OK);
+
+        if (!success) {
+            // Card no longer sensed - ensure card is initialized once re-attached
+            sd_card_p->m_Status |= STA_NOINIT;
+        }
+    } else {
+        // Do a "light" version of init, just enough to test com
+
+        // Initialize at 1 MHz clock speed
+        rp2040_sdio_init(sd_card_p, 25);
+
+        // Establish initial connection with the card
+        rp2040_sdio_command_R1(sd_card_p, CMD0, 0, NULL); // GO_IDLE_STATE
+        uint32_t reply = 0;
+        sdio_status_t status = rp2040_sdio_command_R1(sd_card_p, CMD8, 0x1AA, &reply); // SEND_IF_COND
+
+        success = (reply == 0x1AA && status == SDIO_OK);
+    }
+
+    return success;
+}
+
 static int sd_sdio_init(sd_card_t *sd_card_p) {
     // bool sd_sdio_begin(sd_card_t *sd_card_p);
     bool rc = sd_sdio_begin(sd_card_p);
@@ -542,15 +576,15 @@ static int sd_sdio_write_blocks(sd_card_t *sd_card_p, const uint8_t *buffer,
     if (rc)
         return SD_BLOCK_DEVICE_ERROR_NONE;
     else
-        return SD_BLOCK_DEVICE_ERROR_WRITE;                                    
+        return SD_BLOCK_DEVICE_ERROR_WRITE;
 }
 static int sd_sdio_read_blocks(sd_card_t *sd_card_p, uint8_t *buffer, uint64_t ulSectorNumber,
                                uint32_t ulSectorCount) {
     // bool sd_sdio_readSectors(sd_card_t *sd_card_p, uint32_t sector, uint8_t* dst, size_t n)
     bool rc;
-    if (1 == ulSectorCount) 
+    if (1 == ulSectorCount)
         rc = sd_sdio_readSector(sd_card_p, ulSectorNumber, buffer);
-    else        
+    else
         rc= sd_sdio_readSectors(sd_card_p, ulSectorNumber, buffer, ulSectorCount);
     if (rc)
         return SD_BLOCK_DEVICE_ERROR_NONE;
@@ -590,6 +624,7 @@ void sd_sdio_ctor(sd_card_t *sd_card_p) {
     sd_card_p->read_blocks = sd_sdio_read_blocks;
     sd_card_p->get_num_sectors = sd_sdio_sectorCount;
     sd_card_p->sd_readCID = sd_sdio_readCID;
+    sd_card_p->sd_test_com = sd_sdio_test_com;
 
     //        pin                          function        pup   pdown  out    state fast
     gpio_conf(sd_card_p->sdio_if.CLK_gpio, GPIO_FUNC_PIO1, true, false, true,  true, true);

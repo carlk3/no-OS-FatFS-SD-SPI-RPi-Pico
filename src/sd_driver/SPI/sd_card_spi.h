@@ -16,7 +16,3 @@ specific language governing permissions and limitations under the License.
 
 void sd_spi_ctor(sd_card_t *sd_card_p);  // Constructor for sd_card_t
 bool sd_spi_readCID(sd_card_t *sd_card_p, cid_t* cid);
-
-// Useful when use_card_detect is false - call periodically to check for presence of SD card
-// Returns true if and only if SD card was sensed on SPI bus
-bool sd_spi_test_com(sd_card_t *sd_card_p);

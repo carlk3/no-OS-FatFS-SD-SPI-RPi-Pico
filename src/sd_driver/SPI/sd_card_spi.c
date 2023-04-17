@@ -1062,7 +1062,7 @@ static int sd_init_medium(sd_card_t *sd_card_p) {
     return status;
 }
 
-bool sd_spi_test_com(sd_card_t *sd_card_p) {
+static bool sd_spi_test_com(sd_card_t *sd_card_p) {
     // This is allowed to be called before initialization, so ensure mutex is created
     if (!mutex_is_initialized(&sd_card_p->mutex)) mutex_init(&sd_card_p->mutex);
 
@@ -1197,6 +1197,7 @@ void sd_spi_ctor(sd_card_t *sd_card_p) {
     sd_card_p->init = sd_spi_init;
     sd_card_p->get_num_sectors = sd_spi_sectors;
     sd_card_p->sd_readCID = sd_spi_readCID;
+    sd_card_p->sd_test_com = sd_spi_test_com;
 
     if (sd_card_p->use_card_detect) {
         gpio_init(sd_card_p->card_detect_gpio);
