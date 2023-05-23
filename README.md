@@ -210,7 +210,7 @@ On some, you can even configure the card's output drivers using the Driver Stage
 (See *4.1. Serial input and output on Raspberry Pi Pico* in [Getting started with Raspberry Pi Pico](https://datasheets.raspberrypi.org/pico/getting-started-with-pico.pdf) and *2.7.1. Standard Input/Output (stdio) Support* in [Raspberry Pi Pico C/C++ SDK](https://datasheets.raspberrypi.org/pico/raspberry-pi-pico-c-sdk.pdf).) 
 * Build:
 ```  
-   cd no-OS-FatFS/example
+   cd no-OS-FatFS/examples/command_line
    mkdir build
    cd build
    cmake ..
