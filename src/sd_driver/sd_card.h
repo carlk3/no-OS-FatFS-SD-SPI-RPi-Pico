@@ -99,6 +99,10 @@ struct sd_card_t {
                     uint32_t ulSectorCount);    
     uint64_t (*get_num_sectors)(sd_card_t *sd_card_p);
     bool (*sd_readCID)(sd_card_t *sd_card_p, cid_t *cid);
+
+    // Useful when use_card_detect is false - call periodically to check for presence of SD card
+    // Returns true if and only if SD card was sensed on the bus
+    bool (*sd_test_com)(sd_card_t *sd_card_p);
 };
 bool sd_init_driver();
 bool sd_card_detect(sd_card_t *sd_card_p);

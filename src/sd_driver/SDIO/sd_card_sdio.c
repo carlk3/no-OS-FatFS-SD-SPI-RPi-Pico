@@ -523,6 +523,40 @@ bool sd_sdio_readSectors(sd_card_t *sd_card_p, uint32_t sector, uint8_t* dst, si
     }
 }
 
+static bool sd_sdio_test_com(sd_card_t *sd_card_p) {
+    bool success = false;
+
+    if (!(sd_card_p->m_Status & STA_NOINIT)) {
+        // SD card is currently initialized
+
+        // Get status
+        uint32_t reply = 0;
+        sdio_status_t status = rp2040_sdio_command_R1(sd_card_p, CMD13, g_sdio_rca, &reply);
+
+        // Only care that communication succeeded
+        success = (status == SDIO_OK);
+
+        if (!success) {
+            // Card no longer sensed - ensure card is initialized once re-attached
+            sd_card_p->m_Status |= STA_NOINIT;
+        }
+    } else {
+        // Do a "light" version of init, just enough to test com
+
+        // Initialize at 1 MHz clock speed
+        rp2040_sdio_init(sd_card_p, 25);
+
+        // Establish initial connection with the card
+        rp2040_sdio_command_R1(sd_card_p, CMD0, 0, NULL); // GO_IDLE_STATE
+        uint32_t reply = 0;
+        sdio_status_t status = rp2040_sdio_command_R1(sd_card_p, CMD8, 0x1AA, &reply); // SEND_IF_COND
+
+        success = (reply == 0x1AA && status == SDIO_OK);
+    }
+
+    return success;
+}
+
 static int sd_sdio_init(sd_card_t *sd_card_p) {
     // bool sd_sdio_begin(sd_card_t *sd_card_p);
     bool rc = sd_sdio_begin(sd_card_p);
@@ -591,6 +625,7 @@ void sd_sdio_ctor(sd_card_t *sd_card_p) {
     sd_card_p->read_blocks = sd_sdio_read_blocks;
     sd_card_p->get_num_sectors = sd_sdio_sectorCount;
     sd_card_p->sd_readCID = sd_sdio_readCID;
+    sd_card_p->sd_test_com = sd_sdio_test_com;
 
     //        pin                          function        pup   pdown  out    state fast
     gpio_conf(sd_card_p->sdio_if.CLK_gpio, GPIO_FUNC_PIO1, true, false, true,  true, true);
