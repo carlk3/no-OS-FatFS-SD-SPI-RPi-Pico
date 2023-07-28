@@ -544,7 +544,8 @@ static bool sd_sdio_test_com(sd_card_t *sd_card_p) {
         // Do a "light" version of init, just enough to test com
 
         // Initialize at 1 MHz clock speed
-        rp2040_sdio_init(sd_card_p, 25);
+        rp2040_sdio_init(sd_card_p, 125, 0);
+
 
         // Establish initial connection with the card
         rp2040_sdio_command_R1(sd_card_p, CMD0, 0, NULL); // GO_IDLE_STATE
