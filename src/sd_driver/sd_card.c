@@ -69,7 +69,20 @@ bool sd_init_driver() {
                     sd_sdio_ctor(sd_card_p);
                     break;
             }  // switch (sd_card_p->type)
-        }      // for
+
+            if (sd_card_p->use_card_detect) {
+                gpio_init(sd_card_p->card_detect_gpio);
+                gpio_set_dir(sd_card_p->card_detect_gpio, GPIO_IN);
+                if (sd_card_p->card_detect_use_pull) {
+                    if (sd_card_p->card_detect_pull_hi) {
+                        gpio_pull_up(sd_card_p->card_detect_gpio);
+                    } else {
+                        gpio_pull_down(sd_card_p->card_detect_gpio);                        
+                    }
+                }
+            }
+
+        }  // for
         for (size_t i = 0; i < spi_get_num(); ++i) {
             spi_t *spi_p = spi_get_by_num(i);
             if (!my_spi_init(spi_p)) {
@@ -77,6 +90,7 @@ bool sd_init_driver() {
                 return false;
             }
         }
+
         initialized = true;
     }
     mutex_exit(&initialized_mutex);

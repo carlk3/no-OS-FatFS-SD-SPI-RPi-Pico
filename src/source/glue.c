@@ -58,6 +58,9 @@ DSTATUS disk_initialize(
 
     sd_card_t *p_sd = sd_get_by_num(pdrv);
     if (!p_sd) return RES_PARERR;
+    DSTATUS ds = disk_status(pdrv);
+    if (STA_NODISK & ds) 
+        return ds;
     // See http://elm-chan.org/fsw/ff/doc/dstat.html
     return p_sd->init(p_sd);  
 }

@@ -240,7 +240,8 @@ sdio_status_t rp2040_sdio_command_R1(sd_card_t *sd_card_p, uint8_t command, uint
         uint8_t actual_crc = ((resp1 >> 0) & 0xFE);
         if (crc != actual_crc)
         {
-            azdbg("rp2040_sdio_command_R1(", (int)command, "): CRC error, calculated ", crc, " packet has ", actual_crc);
+            // azdbg("rp2040_sdio_command_R1(", (int)command, "): CRC error, calculated ", crc, " packet has ", actual_crc);
+            printf("rp2040_sdio_command_R1(%d): CRC error, calculated 0x%hx, packet has 0x%hx\n", command, crc, actual_crc);
             return SDIO_ERR_RESPONSE_CRC;
         }
 
@@ -263,7 +264,7 @@ sdio_status_t rp2040_sdio_command_R1(sd_card_t *sd_card_p, uint8_t command, uint
     return SDIO_OK;
 }
 
-sdio_status_t rp2040_sdio_command_R2(sd_card_t *sd_card_p, uint8_t command, uint32_t arg, uint8_t response[16])
+sdio_status_t rp2040_sdio_command_R2(sd_card_t *sd_card_p, uint8_t command, uint32_t arg, uint8_t *response)
 {
     // The response is too long to fit in the PIO FIFO, so use DMA to receive it.
     pio_sm_clear_fifos(SDIO_PIO, SDIO_CMD_SM);
@@ -805,7 +806,7 @@ sdio_status_t rp2040_sdio_stop(sd_card_t *sd_card_p)
     return SDIO_OK;
 }
 
-void rp2040_sdio_init(sd_card_t *sd_card_p, int clock_divider)
+void rp2040_sdio_init(sd_card_t *sd_card_p, uint16_t clock_divider, uint8_t clock_div_256ths)
 {
     // Mark resources as being in use, unless it has been done already.
     static bool resources_claimed = false;
@@ -854,7 +855,7 @@ void rp2040_sdio_init(sd_card_t *sd_card_p, int clock_divider)
     sm_config_set_sideset_pins(&cfg, SDIO_CLK);
     sm_config_set_out_shift(&cfg, false, true, 32);
     sm_config_set_in_shift(&cfg, false, true, 32);
-    sm_config_set_clkdiv_int_frac(&cfg, clock_divider, 0);
+    sm_config_set_clkdiv_int_frac(&cfg, clock_divider, clock_div_256ths);
     sm_config_set_mov_status(&cfg, STATUS_TX_LESSTHAN, 2);
 
     pio_sm_init(SDIO_PIO, SDIO_CMD_SM, g_sdio.pio_cmd_clk_offset, &cfg);
@@ -867,7 +868,7 @@ void rp2040_sdio_init(sd_card_t *sd_card_p, int clock_divider)
     sm_config_set_in_pins(&g_sdio.pio_cfg_data_rx, SDIO_D0);
     sm_config_set_in_shift(&g_sdio.pio_cfg_data_rx, false, true, 32);
     sm_config_set_out_shift(&g_sdio.pio_cfg_data_rx, false, true, 32);
-    sm_config_set_clkdiv_int_frac(&g_sdio.pio_cfg_data_rx, clock_divider, 0);
+    sm_config_set_clkdiv_int_frac(&g_sdio.pio_cfg_data_rx, clock_divider, clock_div_256ths);
 
     // Data transmission program
     g_sdio.pio_data_tx_offset = pio_add_program(SDIO_PIO, &sdio_data_tx_program);
@@ -877,7 +878,7 @@ void rp2040_sdio_init(sd_card_t *sd_card_p, int clock_divider)
     sm_config_set_out_pins(&g_sdio.pio_cfg_data_tx, SDIO_D0, 4);
     sm_config_set_in_shift(&g_sdio.pio_cfg_data_tx, false, false, 32);
     sm_config_set_out_shift(&g_sdio.pio_cfg_data_tx, false, true, 32);
-    sm_config_set_clkdiv_int_frac(&g_sdio.pio_cfg_data_tx, clock_divider, 0);
+    sm_config_set_clkdiv_int_frac(&g_sdio.pio_cfg_data_tx, clock_divider, clock_div_256ths);
 
     // Disable SDIO pins input synchronizer.
     // This reduces input delay.

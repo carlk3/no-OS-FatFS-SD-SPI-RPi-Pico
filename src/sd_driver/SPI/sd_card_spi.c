@@ -649,7 +649,8 @@ uint64_t sd_spi_sectors(sd_card_t *sd_card_p) {
 }
 
 static bool in_sd_spi_readCID(sd_card_t *sd_card_p, cid_t* cid) {    
-    static_assert(16 == sizeof(cid_t));
+    // https://en.cppreference.com/w/c/language/_Static_assert
+    _Static_assert(16 == sizeof(cid_t), "16 == sizeof(cid_t)");
     // CMD10, Response R2 (R1 byte + 16-byte block read)
     if (sd_cmd(sd_card_p, CMD10_SEND_CID, 0x0, false, 0) != 0x0) {
         DBG_PRINTF("Didn't get a response from the disk\r\n");
@@ -1132,18 +1133,13 @@ void sd_spi_ctor(sd_card_t *sd_card_p) {
     sd_card_p->get_num_sectors = sd_spi_sectors;
     sd_card_p->sd_readCID = sd_spi_readCID;
 
-    if (sd_card_p->use_card_detect) {
-        gpio_init(sd_card_p->card_detect_gpio);
-        gpio_pull_up(sd_card_p->card_detect_gpio);
-        gpio_set_dir(sd_card_p->card_detect_gpio, GPIO_IN);
-    }
     if (sd_card_p->spi_if.set_drive_strength) {
         gpio_set_drive_strength(sd_card_p->spi_if.ss_gpio, sd_card_p->spi_if.ss_gpio_drive_strength);
     }
     // Chip select is active-low, so we'll initialise it to a
     // driven-high state.
-    gpio_put(sd_card_p->spi_if.ss_gpio, 1);  // Avoid any glitches when enabling output
     gpio_init(sd_card_p->spi_if.ss_gpio);
+    gpio_put(sd_card_p->spi_if.ss_gpio, 1);  // Avoid any glitches when enabling output
     gpio_set_dir(sd_card_p->spi_if.ss_gpio, GPIO_OUT);
     gpio_put(sd_card_p->spi_if.ss_gpio, 1);  // In case set_dir does anything
 }

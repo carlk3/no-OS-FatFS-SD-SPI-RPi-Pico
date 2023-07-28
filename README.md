@@ -367,10 +367,12 @@ you may call `sd_init_driver()` to initialize the block device driver. `sd_init_
 ## C++ Wrapper
 At heart, this is a C library, but I have made a (thin) C++ wrapper for it: `include\FatFsSd.h`.
 It uses "Dynamic Configuration", so the configuration is built at run time.
-For most of the functions, refer to [FatFs - Generic FAT Filesystem Module, "Application Interface"](http://elm-chan.org/fsw/ff/00index_e.html).
+For details on most of the functions, refer to [FatFs - Generic FAT Filesystem Module, "Application Interface"](http://elm-chan.org/fsw/ff/00index_e.html).
+
+See `examples\PlatformIO\one_SPI.C++\src\main.cpp` for an example of the use of this API.
 
 ### namespace FatFsNs
-The C++ API is in namespace FatFsNs, to avoid name clashes with other packages (e.g.: SdFat).
+The C++ API is in namespace `FatFsNs`, to avoid name clashes with other packages (e.g.: SdFat).
 
 ### class FatFs
 This is a pure static class that represents the global file system as a whole. 
@@ -437,6 +439,7 @@ SdCardSdio::SdCardSdio	(
 
 ### class Spi
 This represents the configuration of one of the RP2040's SPI controllers.
+
 ```
 Spi::Spi	(	spi_inst_t * 	hw_inst,
 uint 	miso_gpio,
@@ -551,12 +554,14 @@ Happy hacking!
 
 ## Future Directions
 You are welcome to contribute to this project! Just submit a Pull Request. Here are some ideas for future enhancements:
+* Disable the card's internal card detect pull-up resistor with ACMD42
+* Port SDIO driver to [FreeRTOS-FAT-CLI-for-RPi-Pico](https://github.com/carlk3/FreeRTOS-FAT-CLI-for-RPi-Pico)
 * Battery saving: at least stop the SDIO clock when it is not needed
 * Support 1-bit SDIO
 * Try multiple cards on a single SDIO bus
 * Multiple SDIO buses?
-* ~~PlatformIO library~~ Done: See https://registry.platformio.org/libraries/carlk3/no-OS-FatFS-SD-SPI-RPi-Pico.
-* Port SDIO driver to [FreeRTOS-FAT-CLI-for-RPi-Pico](https://github.com/carlk3/FreeRTOS-FAT-CLI-for-RPi-Pico)
+* ~~PlatformIO library~~ Done: See https://registry.platformio.org/libraries/carlk3/no-OS-FatFS-SD-SPI-RPi-Pico
+* [RP2040: Enable up to 42 MHz SDIO bus speed](https://github.com/ZuluSCSI/ZuluSCSI-firmware/tree/rp2040_highspeed_sdio)
 
 ## Appendix A: Adding Additional Cards
 When you're dealing with information storage, it's always nice to have redundancy. There are many possible combinations of SPIs and SD cards. One of these is putting multiple SD cards on the same SPI bus, at a cost of one (or two) additional Pico I/O pins (depending on whether or you care about Card Detect). I will illustrate that example here. 

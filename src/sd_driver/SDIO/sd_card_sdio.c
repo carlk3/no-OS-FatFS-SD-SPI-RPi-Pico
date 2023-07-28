@@ -86,7 +86,7 @@ bool sd_sdio_begin(sd_card_t *sd_card_p)
     sdio_status_t status;
     
     // Initialize at 1 MHz clock speed
-    rp2040_sdio_init(sd_card_p, 25);
+    rp2040_sdio_init(sd_card_p, 125, 0);
 
     // Establish initial connection with the card
     for (int retries = 0; retries < 5; retries++)
@@ -174,8 +174,9 @@ bool sd_sdio_begin(sd_card_t *sd_card_p)
 
     // Increase to 25 MHz clock rate
     // Actually, clk_sys / CLKDIV (from rp2040_sdio.pio),
-    // So, say, 125 MHz / 4 = 31.25 MHz
-    rp2040_sdio_init(sd_card_p, 1);
+    // So, say, 125 MHz / 4 = 31.25 MHz (see src\sd_driver\SDIO\rp2040_sdio.pio)
+    // rp2040_sdio_init(sd_card_p, 1, 0); // 31.25 MHz
+    rp2040_sdio_init(sd_card_p, 1, 128); // 20.8 MHz
 
     return true;
 }
@@ -598,12 +599,6 @@ void sd_sdio_ctor(sd_card_t *sd_card_p) {
     gpio_conf(sd_card_p->sdio_if.D1_gpio,  GPIO_FUNC_PIO1, true, false, false, true, true);
     gpio_conf(sd_card_p->sdio_if.D2_gpio,  GPIO_FUNC_PIO1, true, false, false, true, true);
     gpio_conf(sd_card_p->sdio_if.D3_gpio,  GPIO_FUNC_PIO1, true, false, false, true, true);
-
-    if (sd_card_p->use_card_detect) {
-        gpio_init(sd_card_p->card_detect_gpio);
-        gpio_pull_up(sd_card_p->card_detect_gpio);
-        gpio_set_dir(sd_card_p->card_detect_gpio, GPIO_IN);
-    }
 }
 
 #endif
