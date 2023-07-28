@@ -36,11 +36,6 @@ socket, which SPI it is driven by, and how it is wired.
 //
 #include "diskio.h" /* Declarations of disk functions */
 
-/* 
-See https://docs.google.com/spreadsheets/d/1BrzLWTyifongf_VQCc2IpJqXWtsrjmG7KnIbSBy-CPU/edit?usp=sharing,
-tab "Monster", for pin assignments assumed in this configuration file.
-*/
-
 /* Tested
     0: SPI: OK, 12 MHz only
        SDIO: OK at 31.25 MHz
@@ -48,8 +43,46 @@ tab "Monster", for pin assignments assumed in this configuration file.
     2: SPI: OK at 20.8 MHz
     3: SDIO: OK at 20.8 MHz (not at 31.25 MHz)
     4: SDIO: OK at 20.8 MHz (not at 31.25 MHz)
-*/
+    */
 
+/*
+This example assumes the following wiring for 
+(sd1 on Development Board):
+
+    | signal | SPI1 | GPIO | card | Description            |
+    | ------ | ---- | ---- | ---- | ---------------------- |
+    | MISO   | RX   | 08   |  DO  | Master In, Slave Out   |
+    | SCK    | SCK  | 10   | SCLK | SPI clock              |
+    | MOSI   | TX   | 11   |  DI  | Master Out, Slave In   |
+    | CS0    | CSn  | 12   |  CS  | Slave (or Chip) Select |
+    | CD     |      | 14   |  DET | Card Detect            |
+
+This example assumes the following wiring for 
+// (sd3 on Development Board):
+
+//     | GPIO  |  card | Function    |
+//     | ----  |  ---- | ----------- |
+//     |  16   |  CLK  | SDIO_CLK    |
+//     |  17   |  CMD  | SDIO_CMD    |
+//     |  18   |  DAT0 | SDIO_D0     |
+//     |  19   |  DAT1 | SDIO_D1     |
+//     |  20   |  DAT2 | SDIO_D2     |
+//     |  21   |  DAT3 | SDIO_D3     |
+//     |  22   |  DET  | Card Detect |
+
+(sd4 on Development Board):
+
+    | GPIO  |  card | Function    |
+    | ----  |  ---- | ----------- |
+    |  16   |  CLK  | SDIO_CLK    |
+    |  17   |  CMD  | SDIO_CMD    |
+    |  18   |  DAT0 | SDIO_D0     |
+    |  19   |  DAT1 | SDIO_D1     |
+    |  20   |  DAT2 | SDIO_D2     |
+    |  21   |  DAT3 | SDIO_D3     |
+    |  26   |  DET  | Card Detect |
+
+*/
 
 // Hardware Configuration of SPI "objects"
 // Note: multiple SD cards can be driven by one SPI if they use different slave
@@ -190,6 +223,17 @@ static sd_card_t sd_cards[] = {  // One for each SD card
     // {        // Socket sd4
     //     .pcName = "4:",  // Name used to mount device
     //     .type = SD_IF_SDIO,
+    //     /*
+    //     Pins CLK_gpio, D1_gpio, D2_gpio, and D3_gpio are at offsets from pin D0_gpio.
+    //     The offsets are determined by sd_driver\SDIO\rp2040_sdio.pio.
+    //         CLK_gpio = (D0_gpio + SDIO_CLK_PIN_D0_OFFSET) % 32;
+    //         As of this writing, SDIO_CLK_PIN_D0_OFFSET is 30,
+    //           which is -2 in mod32 arithmetic, so:
+    //         CLK_gpio = D0_gpio -2.
+    //         D1_gpio = D0_gpio + 1;
+    //         D2_gpio = D0_gpio + 2;
+    //         D3_gpio = D0_gpio + 3;
+    //     */
     //     .sdio_if = {
     //         .CMD_gpio = 17,
     //         .D0_gpio = 18,

@@ -1,6 +1,6 @@
 {
     "name": "no-OS-FatFS-SD-SPI-RPi-Pico",
-    "version": "1.0.6",
+    "version": "1.0.7",
     "description": "Simple library for SD Cards on the RP2040",
     "keywords": ["Data Storage", "FatFs", "SD card", "Secure Digital card", "SPI", "SDIO"],
     "repository":

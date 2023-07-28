@@ -81,6 +81,8 @@ struct sd_card_t {
     bool use_card_detect;
     uint card_detect_gpio;    // Card detect; ignored if !use_card_detect
     uint card_detected_true;  // Varies with card socket; ignored if !use_card_detect
+    bool card_detect_use_pull;
+    bool card_detect_pull_hi;
 
     /* The following fields are not part of the configuration. They are dynamically assigned. */
     int m_Status;                                    // Card status
