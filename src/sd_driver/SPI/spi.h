@@ -49,9 +49,9 @@ typedef struct {
     uint rx_dma;
     dma_channel_config tx_dma_cfg;
     dma_channel_config rx_dma_cfg;
-    bool initialized;  
     semaphore_t sem;
     mutex_t mutex;    
+    bool initialized;  
 } spi_t;
 
 #ifdef __cplusplus
