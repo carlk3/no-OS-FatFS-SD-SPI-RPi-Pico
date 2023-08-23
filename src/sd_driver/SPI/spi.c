@@ -42,9 +42,11 @@ static void in_spi_irq_handler(const uint DMA_IRQ_num, io_rw_32 *dma_hw_ints_p) 
         }
     }
 }
-static void spi_irq_handler() {
+static void spi_irq_handler_0() {
     // Check DMA_IRQ_0:
     in_spi_irq_handler(DMA_IRQ_0, &dma_hw->ints0);
+}
+static void spi_irq_handler_1() {
     // Check DMA_IRQ_1:
     in_spi_irq_handler(DMA_IRQ_1, &dma_hw->ints1);
 }
@@ -201,20 +203,23 @@ bool my_spi_init(spi_t *spi_p) {
         /* Theory: we only need an interrupt on rx complete,
         since if rx is complete, tx must also be complete. */
 
-        // Configure the processor to run dma_handler() when DMA IRQ 0/1 is
-        // asserted:
+        /* Configure the processor to run dma_handler() when DMA IRQ 0/1 is asserted */
+
         if (!spi_p->DMA_IRQ_num) 
-            spi_p->DMA_IRQ_num = DMA_IRQ_0;
-        irq_add_shared_handler(
-            spi_p->DMA_IRQ_num, spi_irq_handler,
-            PICO_SHARED_IRQ_HANDLER_DEFAULT_ORDER_PRIORITY);
+            spi_p->DMA_IRQ_num = DMA_IRQ_0; // Default
 
         // Tell the DMA to raise IRQ line 0/1 when the channel finishes a block
         switch (spi_p->DMA_IRQ_num) {
         case DMA_IRQ_0:
+            irq_add_shared_handler(
+                DMA_IRQ_0, spi_irq_handler_0,
+                PICO_SHARED_IRQ_HANDLER_DEFAULT_ORDER_PRIORITY);
             dma_channel_set_irq0_enabled(spi_p->rx_dma, true);
         break;
         case DMA_IRQ_1:
+            irq_add_shared_handler(
+                DMA_IRQ_1, spi_irq_handler_1,
+                PICO_SHARED_IRQ_HANDLER_DEFAULT_ORDER_PRIORITY);
             dma_channel_set_irq1_enabled(spi_p->rx_dma, true);
         break;
         default:
