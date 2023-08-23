@@ -26,8 +26,11 @@ specific language governing permissions and limitations under the License.
 static bool irqChannel1 = false;
 static bool irqShared = true;
 
-#define DBG_ASSERT(p) \
-if (!p) __asm volatile ("bkpt 10");
+static inline void dbg_assert(bool p) {
+#if !defined(NDEBUG)
+    if (!p) __asm volatile("bkpt 10");
+#endif
+}
 
 static void in_spi_irq_handler(const uint DMA_IRQ_num, io_rw_32 *dma_hw_ints_p) {
     for (size_t i = 0; i < spi_get_num(); ++i) {
@@ -36,8 +39,8 @@ static void in_spi_irq_handler(const uint DMA_IRQ_num, io_rw_32 *dma_hw_ints_p) 
             // Is the SPI's channel requesting interrupt?
             if (*dma_hw_ints_p & (1 << spi_p->rx_dma)) {
                 *dma_hw_ints_p = 1 << spi_p->rx_dma;  // Clear it.
-                DBG_ASSERT(!dma_channel_is_busy(spi_p->rx_dma));
-                DBG_ASSERT(!sem_available(&spi_p->sem));
+                dbg_assert(!dma_channel_is_busy(spi_p->rx_dma));
+                dbg_assert(!sem_available(&spi_p->sem));
                 sem_release(&spi_p->sem);
             }
         }
