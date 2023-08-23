@@ -30,19 +30,13 @@ static bool irqShared = true;
 #define DBG_ASSERT(p) \
 if (!p) __BKPT(1);
 
-static spi_t *spi_get_by_rx_dma(const uint DMA_IRQ_num, const uint rx_dma) {
-    for (size_t i = 0; i < spi_get_num(); ++i)
-        if (DMA_IRQ_num == spi_get_by_num(i)->DMA_IRQ_num 
-                && spi_get_by_num(i)->rx_dma == rx_dma)
-            return spi_get_by_num(i);
-    return NULL;
-}
 static void in_spi_irq_handler(const uint DMA_IRQ_num, io_rw_32 *dma_hw_ints_p) {
-    for (size_t ch = 0; ch < NUM_DMA_CHANNELS; ++ch) {
-        if (*dma_hw_ints_p & (1 << ch)) {  // Is channel requesting interrupt?
-            spi_t *spi_p = spi_get_by_rx_dma(DMA_IRQ_num, ch);
-            if (spi_p) {                   // Ours?
-                *dma_hw_ints_p = 1u << ch;  // Clear it.
+    for (size_t i = 0; i < spi_get_num(); ++i) {
+        spi_t *spi_p = spi_get_by_num(i);
+        if (DMA_IRQ_num == spi_p->DMA_IRQ_num)  {
+            // Is the SPI's channel requesting interrupt?
+            if (*dma_hw_ints_p & (1 << spi_p->rx_dma)) {
+                *dma_hw_ints_p = 1 << spi_p->rx_dma;  // Clear it.
                 DBG_ASSERT(!dma_channel_is_busy(spi_p->rx_dma));
                 DBG_ASSERT(!sem_available(&spi_p->sem));
                 sem_release(&spi_p->sem);
@@ -50,6 +44,7 @@ static void in_spi_irq_handler(const uint DMA_IRQ_num, io_rw_32 *dma_hw_ints_p) 
         }
     }
 }
+
 static void __not_in_flash_func(spi_irq_handler_0)() {
     // Check DMA_IRQ_0:
     in_spi_irq_handler(DMA_IRQ_0, &dma_hw->ints0);
