@@ -13,8 +13,6 @@ specific language governing permissions and limitations under the License.
 */
 
 #include <stdbool.h>
-#include <stdint.h>
-#include <cmsis_gcc.h>
 //
 #include "pico/stdlib.h"
 #include "pico/mutex.h"
@@ -25,10 +23,11 @@ specific language governing permissions and limitations under the License.
 //
 #include "spi.h"
 
-static bool irqShared = true;
-
-#define DBG_ASSERT(p) \
-if (!p) __BKPT(1);
+static void dbg_assert(bool p) {
+#if !defined(NDEBUG)
+    if (!p) __asm volatile("bkpt 10");
+#endif
+}
 
 static void in_spi_irq_handler(const uint DMA_IRQ_num, io_rw_32 *dma_hw_ints_p) {
     for (size_t i = 0; i < spi_get_num(); ++i) {
@@ -37,20 +36,17 @@ static void in_spi_irq_handler(const uint DMA_IRQ_num, io_rw_32 *dma_hw_ints_p) 
             // Is the SPI's channel requesting interrupt?
             if (*dma_hw_ints_p & (1 << spi_p->rx_dma)) {
                 *dma_hw_ints_p = 1 << spi_p->rx_dma;  // Clear it.
-                DBG_ASSERT(!dma_channel_is_busy(spi_p->rx_dma));
-                DBG_ASSERT(!sem_available(&spi_p->sem));
+                dbg_assert(!dma_channel_is_busy(spi_p->rx_dma));
+                dbg_assert(!sem_available(&spi_p->sem));
                 sem_release(&spi_p->sem);
             }
         }
     }
 }
-
 static void __not_in_flash_func(spi_irq_handler_0)() {
-    // Check DMA_IRQ_0:
     in_spi_irq_handler(DMA_IRQ_0, &dma_hw->ints0);
 }
 static void __not_in_flash_func(spi_irq_handler_1)() {
-    // Check DMA_IRQ_1:
     in_spi_irq_handler(DMA_IRQ_1, &dma_hw->ints1);
 }
 
@@ -131,18 +127,18 @@ void spi_unlock(spi_t *spi_p) {
     mutex_exit(&spi_p->mutex);
 }
 
-bool my_spi_init(spi_t *spi_p) {   
+bool my_spi_init(spi_t *spi_p) {
     auto_init_mutex(my_spi_init_mutex);
     mutex_enter_blocking(&my_spi_init_mutex);
     if (!spi_p->initialized) {
         //// The SPI may be shared (using multiple SSs); protect it
-        //spi_p->mutex = xSemaphoreCreateRecursiveMutex();
-        //xSemaphoreTakeRecursive(spi_p->mutex, portMAX_DELAY);
+        // spi_p->mutex = xSemaphoreCreateRecursiveMutex();
+        // xSemaphoreTakeRecursive(spi_p->mutex, portMAX_DELAY);
         if (!mutex_is_initialized(&spi_p->mutex)) mutex_init(&spi_p->mutex);
         spi_lock(spi_p);
 
         // Defaults:
-        if (!spi_p->baud_rate) 
+        if (!spi_p->baud_rate)
             spi_p->baud_rate = 10 * 1000 * 1000;
         if (!spi_p->DMA_IRQ_num)
             spi_p->DMA_IRQ_num = DMA_IRQ_0;
@@ -191,8 +187,8 @@ bool my_spi_init(spi_t *spi_p) {
         // read address to increment every element (in this case 1 byte -
         // DMA_SIZE_8) and for the write address to remain unchanged.
         channel_config_set_dreq(&spi_p->tx_dma_cfg, spi_get_index(spi_p->hw_inst)
-                                                       ? DREQ_SPI1_TX
-                                                       : DREQ_SPI0_TX);
+                                                        ? DREQ_SPI1_TX
+                                                        : DREQ_SPI0_TX);
         channel_config_set_write_increment(&spi_p->tx_dma_cfg, false);
 
         // We set the inbound DMA to transfer from the SPI receive FIFO to a
@@ -200,8 +196,8 @@ bool my_spi_init(spi_t *spi_p) {
         // address to remain unchanged for each element, but the write address
         // to increment (so data is written throughout the buffer)
         channel_config_set_dreq(&spi_p->rx_dma_cfg, spi_get_index(spi_p->hw_inst)
-                                                       ? DREQ_SPI1_RX
-                                                       : DREQ_SPI0_RX);
+                                                        ? DREQ_SPI1_RX
+                                                        : DREQ_SPI0_RX);
         channel_config_set_read_increment(&spi_p->rx_dma_cfg, false);
 
         /* Theory: we only need an interrupt on rx complete,
@@ -212,23 +208,23 @@ bool my_spi_init(spi_t *spi_p) {
         // Tell the DMA to raise IRQ line 0/1 when the channel finishes a block
         static void (*spi_irq_handler_p)();
         switch (spi_p->DMA_IRQ_num) {
-        case DMA_IRQ_0:
-            spi_irq_handler_p = spi_irq_handler_0;
-            dma_channel_set_irq0_enabled(spi_p->rx_dma, true);
-        break;
-        case DMA_IRQ_1:
-            spi_irq_handler_p = spi_irq_handler_1;
-            dma_channel_set_irq1_enabled(spi_p->rx_dma, true);
-        break;
-        default:
-            myASSERT(false);
+            case DMA_IRQ_0:
+                spi_irq_handler_p = spi_irq_handler_0;
+                dma_channel_set_irq0_enabled(spi_p->rx_dma, true);
+                break;
+            case DMA_IRQ_1:
+                spi_irq_handler_p = spi_irq_handler_1;
+                dma_channel_set_irq1_enabled(spi_p->rx_dma, true);
+                break;
+            default:
+                myASSERT(false);
         }
-        if (irqShared) {
+        if (spi_p->use_exclusive_DMA_IRQ_handler) {
+            irq_set_exclusive_handler(spi_p->DMA_IRQ_num, *spi_irq_handler_p);
+        } else {
             irq_add_shared_handler(
                 spi_p->DMA_IRQ_num, *spi_irq_handler_p,
                 PICO_SHARED_IRQ_HANDLER_DEFAULT_ORDER_PRIORITY);
-        } else {
-            irq_set_exclusive_handler(spi_p->DMA_IRQ_num, *spi_irq_handler_p);
         }
         irq_set_enabled(spi_p->DMA_IRQ_num, true);
         LED_INIT();
