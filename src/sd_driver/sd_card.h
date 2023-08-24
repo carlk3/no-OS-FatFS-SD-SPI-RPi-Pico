@@ -60,6 +60,7 @@ typedef struct sd_sdio_t {
     uint D3_gpio;      // Must be D0 + 3
     PIO SDIO_PIO;      // either pio0 or pio1
     uint DMA_IRQ_num;  // DMA_IRQ_0 or DMA_IRQ_1
+    bool use_exclusive_DMA_IRQ_handler;
 
     /* The following fields are not part of the configuration. They are dynamically assigned. */
     int SDIO_DMA_CH;

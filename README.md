@@ -263,6 +263,7 @@ typedef struct sd_sdio_t {
     uint D3_gpio;      // Must be D0 + 3
     PIO SDIO_PIO;      // either pio0 or pio1
     uint DMA_IRQ_num;  // DMA_IRQ_0 or DMA_IRQ_1
+    bool use_exclusive_DMA_IRQ_handler;
 //...
 } sd_sdio_t;
 ```
@@ -287,7 +288,8 @@ As of this writing, `SDIO_CLK_PIN_D0_OFFSET` is 30, which is -2 in mod32 arithme
 * `D2_gpio` RP2040 GPIO to use for Data Line [Bit 2]. Implicitly set to D0_gpio + 2.
 * `D3_gpio` RP2040 GPIO to use for Card Detect/Data Line [Bit 3]. Implicitly set to D0_gpio + 3.
 * `SDIO_PIO` Which PIO block to use. Defaults to `pio0`. Can be changed to avoid conflicts.
-* `DMA_IRQ_num` Which IRQ to use for DMA. Defaults to `DMA_IRQ_0`. The handler is added with `irq_add_shared_handler`, so it's not exclusive. Set this to avoid conflicts with any exclusive DMA IRQ handlers that might be elsewhere in the system.
+* `DMA_IRQ_num` Which IRQ to use for DMA. Defaults to DMA_IRQ_0. Set this to avoid conflicts with any exclusive DMA IRQ handlers that might be elsewhere in the system.
+* `use_exclusive_DMA_IRQ_handler` If true, the IRQ handler is added with the SDK's `irq_set_exclusive_handler`. The default is to add the handler with `irq_add_shared_handler`, so it's not exclusive. 
 
 ### An instance of `sd_spi_t` describes the configuration of one SPI to SD card interface.
 ```
@@ -317,6 +319,7 @@ typedef struct {
     uint sck_gpio;
     uint baud_rate;
     uint DMA_IRQ_num; // DMA_IRQ_0 or DMA_IRQ_1
+    bool use_exclusive_DMA_IRQ_handler;
 
     // Drive strength levels for GPIO outputs.
     // enum gpio_drive_strength { GPIO_DRIVE_STRENGTH_2MA = 0, GPIO_DRIVE_STRENGTH_4MA = 1, GPIO_DRIVE_STRENGTH_8MA = 2,
@@ -337,7 +340,8 @@ typedef struct {
 * `set_drive_strength` Specifies whether or not to set the RP2040 GPIO drive strength
 * `mosi_gpio_drive_strength` SPI Master Out, Slave In (MOSI) drive strength
 * `sck_gpio_drive_strength` SPI Serial Clock (SCK) drive strength
-* `DMA_IRQ_num` Which IRQ to use for DMA. Defaults to DMA_IRQ_0. The handler is added with `irq_add_shared_handler`, so it's not exclusive. Set this to avoid conflicts with any exclusive DMA IRQ handlers that might be elsewhere in the system.
+* `DMA_IRQ_num` Which IRQ to use for DMA. Defaults to DMA_IRQ_0. Set this to avoid conflicts with any exclusive DMA IRQ handlers that might be elsewhere in the system.
+* `use_exclusive_DMA_IRQ_handler` If true, the IRQ handler is added with SDK's `irq_set_exclusive_handler`. The default is to add the handler with `irq_add_shared_handler`, so it's not exclusive. 
 
 ### You must provide a definition for the functions declared in `sd_driver/hw_config.h`:  
 `size_t spi_get_num()` Returns the number of SPIs to use  
