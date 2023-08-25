@@ -23,6 +23,8 @@ specific language governing permissions and limitations under the License.
 //
 #include "spi.h"
 
+static bool irqShared = true;
+
 static spi_t *spi_get_by_rx_dma(const uint DMA_IRQ_num, const uint rx_dma) {
     for (size_t i = 0; i < spi_get_num(); ++i)
         if (DMA_IRQ_num == spi_get_by_num(i)->DMA_IRQ_num 
@@ -42,9 +44,11 @@ static void in_spi_irq_handler(const uint DMA_IRQ_num, io_rw_32 *dma_hw_ints_p) 
         }
     }
 }
-static void spi_irq_handler() {
+static void __not_in_flash_func(spi_irq_handler_0)() {
     // Check DMA_IRQ_0:
     in_spi_irq_handler(DMA_IRQ_0, &dma_hw->ints0);
+}
+static void __not_in_flash_func(spi_irq_handler_1)() {
     // Check DMA_IRQ_1:
     in_spi_irq_handler(DMA_IRQ_1, &dma_hw->ints1);
 }
@@ -201,24 +205,28 @@ bool my_spi_init(spi_t *spi_p) {
         /* Theory: we only need an interrupt on rx complete,
         since if rx is complete, tx must also be complete. */
 
-        // Configure the processor to run dma_handler() when DMA IRQ 0/1 is
-        // asserted:
-        if (!spi_p->DMA_IRQ_num) 
-            spi_p->DMA_IRQ_num = DMA_IRQ_0;
-        irq_add_shared_handler(
-            spi_p->DMA_IRQ_num, spi_irq_handler,
-            PICO_SHARED_IRQ_HANDLER_DEFAULT_ORDER_PRIORITY);
+        /* Configure the processor to run dma_handler() when DMA IRQ 0/1 is asserted */
 
         // Tell the DMA to raise IRQ line 0/1 when the channel finishes a block
+        static void (*spi_irq_handler_p)();
         switch (spi_p->DMA_IRQ_num) {
         case DMA_IRQ_0:
+            spi_irq_handler_p = spi_irq_handler_0;
             dma_channel_set_irq0_enabled(spi_p->rx_dma, true);
         break;
         case DMA_IRQ_1:
+            spi_irq_handler_p = spi_irq_handler_1;
             dma_channel_set_irq1_enabled(spi_p->rx_dma, true);
         break;
         default:
             myASSERT(false);
+        }
+        if (irqShared) {
+            irq_add_shared_handler(
+                spi_p->DMA_IRQ_num, *spi_irq_handler_p,
+                PICO_SHARED_IRQ_HANDLER_DEFAULT_ORDER_PRIORITY);
+        } else {
+            irq_set_exclusive_handler(spi_p->DMA_IRQ_num, *spi_irq_handler_p);
         }
         irq_set_enabled(spi_p->DMA_IRQ_num, true);
         LED_INIT();
