@@ -68,7 +68,8 @@ static spi_t spis[] = {  // One for each SPI.
         .baud_rate = 12 * 1000 * 1000,  // Actual frequency: 10416666.
        // .baud_rate = 1 * 1000 * 1000,
 
-        .DMA_IRQ_num = DMA_IRQ_1
+        .DMA_IRQ_num = DMA_IRQ_0,
+        .use_exclusive_DMA_IRQ_handler = true
     },
     {
         .hw_inst = spi1,  // SPI component
