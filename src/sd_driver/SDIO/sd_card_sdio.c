@@ -9,11 +9,12 @@
 #include <string.h>
 //
 #include <hardware/gpio.h>
+#include <hardware/clocks.h>
 //
 #include "diskio.h"
 #include "my_debug.h"
 #include "rp2040_sdio.h"
-#include "rp2040_sdio.pio.h"
+#include "rp2040_sdio.pio.h"  // build\build\rp2040_sdio.pio.h
 #include "SdioCard.h"
 #include "util.h"
 
@@ -80,13 +81,24 @@ static sd_callback_t get_stream_callback(const uint8_t *buf, uint32_t count, con
     return NULL;
 }
 
+/*
+    CLKDIV is from sd_driver\SDIO\rp2040_sdio.pio
+
+    baud = clk_sys / (CLKDIV * clk_div) 
+    baud * CLKDIV * clk_div = clk_sys;
+    clk_div = clk_sys / (CLKDIV * baud)
+*/
+static float calculate_clk_div(uint baud) {
+    return (float)clock_get_hz(clk_sys) / (CLKDIV * baud);
+}
+
 bool sd_sdio_begin(sd_card_t *sd_card_p)
 {
     uint32_t reply;
     sdio_status_t status;
     
-    // Initialize at 1 MHz clock speed
-    rp2040_sdio_init(sd_card_p, 125, 0);
+    // Initialize at 400 kHz clock speed
+    rp2040_sdio_init(sd_card_p, calculate_clk_div(400E3)); 
 
     // Establish initial connection with the card
     for (int retries = 0; retries < 5; retries++)
@@ -171,12 +183,10 @@ bool sd_sdio_begin(sd_card_t *sd_card_p)
         printf("%s,%d SDIO failed to set BLOCKLEN\n", __func__, __LINE__);
         return false;
     }
-
-    // Increase to 25 MHz clock rate
-    // Actually, clk_sys / CLKDIV (from rp2040_sdio.pio),
-    // So, say, 125 MHz / 4 = 31.25 MHz (see src\sd_driver\SDIO\rp2040_sdio.pio)
-    // rp2040_sdio_init(sd_card_p, 1, 0); // 31.25 MHz
-    rp2040_sdio_init(sd_card_p, 1, 128); // 20.8 MHz
+    // Increase to high clock rate
+    if (!sd_card_p->sdio_if.baud_rate)
+        sd_card_p->sdio_if.baud_rate = 10E6; // 10 MHz default
+    rp2040_sdio_init(sd_card_p, calculate_clk_div(sd_card_p->sdio_if.baud_rate)); 
 
     return true;
 }
@@ -543,9 +553,8 @@ static bool sd_sdio_test_com(sd_card_t *sd_card_p) {
     } else {
         // Do a "light" version of init, just enough to test com
 
-        // Initialize at 1 MHz clock speed
-        rp2040_sdio_init(sd_card_p, 125, 0);
-
+        // Initialize at 400 kHz clock speed
+        rp2040_sdio_init(sd_card_p, calculate_clk_div(400 * 1000)); 
 
         // Establish initial connection with the card
         rp2040_sdio_command_R1(sd_card_p, CMD0, 0, NULL); // GO_IDLE_STATE

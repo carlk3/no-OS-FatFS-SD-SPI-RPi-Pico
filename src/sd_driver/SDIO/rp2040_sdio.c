@@ -792,7 +792,7 @@ sdio_status_t rp2040_sdio_stop(sd_card_t *sd_card_p)
     return SDIO_OK;
 }
 
-void rp2040_sdio_init(sd_card_t *sd_card_p, uint16_t clock_divider, uint8_t clock_div_256ths)
+void rp2040_sdio_init(sd_card_t *sd_card_p, float clk_div)
 {
     // Mark resources as being in use, unless it has been done already.
     static bool resources_claimed = false;
@@ -857,7 +857,7 @@ void rp2040_sdio_init(sd_card_t *sd_card_p, uint16_t clock_divider, uint8_t cloc
     sm_config_set_sideset_pins(&cfg, SDIO_CLK);
     sm_config_set_out_shift(&cfg, false, true, 32);
     sm_config_set_in_shift(&cfg, false, true, 32);
-    sm_config_set_clkdiv_int_frac(&cfg, clock_divider, clock_div_256ths);
+    sm_config_set_clkdiv(&cfg, clk_div);
     sm_config_set_mov_status(&cfg, STATUS_TX_LESSTHAN, 2);
 
     pio_sm_init(SDIO_PIO, SDIO_CMD_SM, g_sdio.pio_cmd_clk_offset, &cfg);
@@ -870,7 +870,7 @@ void rp2040_sdio_init(sd_card_t *sd_card_p, uint16_t clock_divider, uint8_t cloc
     sm_config_set_in_pins(&g_sdio.pio_cfg_data_rx, SDIO_D0);
     sm_config_set_in_shift(&g_sdio.pio_cfg_data_rx, false, true, 32);
     sm_config_set_out_shift(&g_sdio.pio_cfg_data_rx, false, true, 32);
-    sm_config_set_clkdiv_int_frac(&g_sdio.pio_cfg_data_rx, clock_divider, clock_div_256ths);
+    sm_config_set_clkdiv(&g_sdio.pio_cfg_data_rx, clk_div);
 
     // Data transmission program
     g_sdio.pio_data_tx_offset = pio_add_program(SDIO_PIO, &sdio_data_tx_program);
@@ -880,7 +880,7 @@ void rp2040_sdio_init(sd_card_t *sd_card_p, uint16_t clock_divider, uint8_t cloc
     sm_config_set_out_pins(&g_sdio.pio_cfg_data_tx, SDIO_D0, 4);
     sm_config_set_in_shift(&g_sdio.pio_cfg_data_tx, false, false, 32);
     sm_config_set_out_shift(&g_sdio.pio_cfg_data_tx, false, true, 32);
-    sm_config_set_clkdiv_int_frac(&g_sdio.pio_cfg_data_tx, clock_divider, clock_div_256ths);
+    sm_config_set_clkdiv(&g_sdio.pio_cfg_data_tx, clk_div);
 
     // Disable SDIO pins input synchronizer.
     // This reduces input delay.

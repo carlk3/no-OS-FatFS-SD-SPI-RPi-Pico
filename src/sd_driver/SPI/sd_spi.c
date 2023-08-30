@@ -24,18 +24,18 @@ specific language governing permissions and limitations under the License.
 //
 #include "sd_spi.h"
 
-#define TRACE_PRINTF(fmt, args...)
+// #define TRACE_PRINTF(fmt, args...)
 // #define TRACE_PRINTF printf
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-variable"
 void sd_spi_go_high_frequency(sd_card_t *sd_card_p) {
     uint actual = spi_set_baudrate(sd_card_p->spi_if.spi->hw_inst, sd_card_p->spi_if.spi->baud_rate);
-    TRACE_PRINTF("%s: Actual frequency: %lu\n", __FUNCTION__, (long)actual);
+    DBG_PRINTF("%s: Actual frequency: %lu\n", __FUNCTION__, (long)actual);
 }
 void sd_spi_go_low_frequency(sd_card_t *sd_card_p) {
     uint actual = spi_set_baudrate(sd_card_p->spi_if.spi->hw_inst, 400 * 1000); // Actual frequency: 398089
-    TRACE_PRINTF("%s: Actual frequency: %lu\n", __FUNCTION__, (long)actual);
+    DBG_PRINTF("%s: Actual frequency: %lu\n", __FUNCTION__, (long)actual);
 }
 #pragma GCC diagnostic pop
 

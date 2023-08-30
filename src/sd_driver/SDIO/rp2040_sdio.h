@@ -57,8 +57,8 @@ sdio_status_t rp2040_sdio_stop();
 
 // (Re)initialize the SDIO interface
 // void rp2040_sdio_init(sd_card_t *sd_card_p, int clock_divider /* = 1 */);
-void rp2040_sdio_init(sd_card_t *sd_card_p, uint16_t clock_divider, uint8_t clock_div_256ths);
-
+// void rp2040_sdio_init(sd_card_t *sd_card_p, uint16_t clock_divider, uint8_t clock_div_256ths);
+void rp2040_sdio_init(sd_card_t *sd_card_p, float clk_div);
 
 #ifdef __cplusplus
 }
