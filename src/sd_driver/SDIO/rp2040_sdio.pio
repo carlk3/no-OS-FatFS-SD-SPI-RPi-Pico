@@ -27,7 +27,7 @@
 
 .define D0 1
 .define D1 1
-.define CLKDIV D0 + 1 + D1 + 1
+.define PUBLIC CLKDIV D0 + 1 + D1 + 1
 
 ; .define PUBLIC SDIO_CLK_GPIO 17
 

@@ -264,6 +264,7 @@ typedef struct sd_sdio_t {
     PIO SDIO_PIO;      // either pio0 or pio1
     uint DMA_IRQ_num;  // DMA_IRQ_0 or DMA_IRQ_1
     bool use_exclusive_DMA_IRQ_handler;
+    uint baud_rate;
 //...
 } sd_sdio_t;
 ```
@@ -290,6 +291,8 @@ As of this writing, `SDIO_CLK_PIN_D0_OFFSET` is 30, which is -2 in mod32 arithme
 * `SDIO_PIO` Which PIO block to use. Defaults to `pio0`. Can be changed to avoid conflicts.
 * `DMA_IRQ_num` Which IRQ to use for DMA. Defaults to DMA_IRQ_0. Set this to avoid conflicts with any exclusive DMA IRQ handlers that might be elsewhere in the system.
 * `use_exclusive_DMA_IRQ_handler` If true, the IRQ handler is added with the SDK's `irq_set_exclusive_handler`. The default is to add the handler with `irq_add_shared_handler`, so it's not exclusive. 
+* `baud_rate` The frequency of the SDIO clock in Hertz. This may be no higher than the system clock frequency divided by `CLKDIV` in `sd_driver\SDIO\rp2040_sdio.pio`, which is currently four. For example, if the system clock frequency is 
+125 MHz, `baud_rate` cannot exceed 31250000 (31.25 MHz).
 
 ### An instance of `sd_spi_t` describes the configuration of one SPI to SD card interface.
 ```
