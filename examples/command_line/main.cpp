@@ -1,3 +1,5 @@
+
+#include <assert.h>
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -6,6 +8,7 @@
 #include <time.h>
 //
 #include "hardware/adc.h"
+#include "hardware/clocks.h" 
 #include "hardware/rtc.h"
 #include "pico/stdlib.h"
 //
@@ -28,6 +31,11 @@
 static bool logger_enabled;
 static const uint32_t period = 1000;
 static absolute_time_t next_log_time;
+
+#pragma GCC diagnostic ignored "-Wunused-function"
+#ifdef NDEBUG 
+#  pragma GCC diagnostic ignored "-Wunused-variable"
+#endif
 
 static sd_card_t *sd_get_by_name(const char *const name) {
     for (size_t i = 0; i < sd_get_num(); ++i)
@@ -99,7 +107,7 @@ static void run_date() {
     time_t epoch_secs = time(NULL);
     struct tm *ptm = localtime(&epoch_secs);
     size_t n = strftime(buf, sizeof(buf), "%c", ptm);
-    myASSERT(n);
+    assert(n);
     printf("%s\n", buf);
     strftime(buf, sizeof(buf), "%j",
              ptm);  // The day of the year as a decimal number (range
@@ -154,7 +162,7 @@ static void run_mount() {
         return;
     }
     sd_card_t *pSD = sd_get_by_name(arg1);
-    myASSERT(pSD);
+    assert(pSD);
     pSD->mounted = true;
 }
 static void run_unmount() {
@@ -176,7 +184,7 @@ static void run_unmount() {
         return;
     }
     sd_card_t *pSD = sd_get_by_name(arg1);
-    myASSERT(pSD);
+    assert(pSD);
     pSD->mounted = false;
     pSD->m_Status |= STA_NOINIT; // in case medium is removed
 }
@@ -372,6 +380,63 @@ static void run_start_logger() {
     next_log_time = delayed_by_ms(get_absolute_time(), period);
 }
 static void run_stop_logger() { logger_enabled = false; }
+
+/* Derived from pico-examples/clocks/hello_48MHz/hello_48MHz.c */
+static void run_measure_freqs(void) {
+    uint f_pll_sys = frequency_count_khz(CLOCKS_FC0_SRC_VALUE_PLL_SYS_CLKSRC_PRIMARY);
+    uint f_pll_usb = frequency_count_khz(CLOCKS_FC0_SRC_VALUE_PLL_USB_CLKSRC_PRIMARY);
+    uint f_rosc = frequency_count_khz(CLOCKS_FC0_SRC_VALUE_ROSC_CLKSRC);
+    uint f_clk_sys = frequency_count_khz(CLOCKS_FC0_SRC_VALUE_CLK_SYS);
+    uint f_clk_peri = frequency_count_khz(CLOCKS_FC0_SRC_VALUE_CLK_PERI);
+    uint f_clk_usb = frequency_count_khz(CLOCKS_FC0_SRC_VALUE_CLK_USB);
+    uint f_clk_adc = frequency_count_khz(CLOCKS_FC0_SRC_VALUE_CLK_ADC);
+    uint f_clk_rtc = frequency_count_khz(CLOCKS_FC0_SRC_VALUE_CLK_RTC);
+
+    printf("pll_sys  = %dkHz\n", f_pll_sys);
+    printf("pll_usb  = %dkHz\n", f_pll_usb);
+    printf("rosc     = %dkHz\n", f_rosc);
+    printf("clk_sys  = %dkHz\treported  = %lukHz\n", f_clk_sys, clock_get_hz(clk_sys)/KHZ);
+    printf("clk_peri = %dkHz\treported  = %lukHz\n", f_clk_peri, clock_get_hz(clk_peri)/KHZ);
+    printf("clk_usb  = %dkHz\treported  = %lukHz\n", f_clk_usb, clock_get_hz(clk_usb)/KHZ);
+    printf("clk_adc  = %dkHz\treported  = %lukHz\n", f_clk_adc, clock_get_hz(clk_adc)/KHZ);
+    printf("clk_rtc  = %dkHz\treported  = %lukHz\n", f_clk_rtc, clock_get_hz(clk_rtc)/KHZ);
+
+    // Can't measure clk_ref / xosc as it is the ref
+}
+static void run_set_sys_clock_48mhz() {
+    set_sys_clock_48mhz();
+    setup_default_uart();
+}
+static void run_set_sys_clock_khz() {
+    char *arg1 = strtok(NULL, " ");
+    if (!arg1) {
+        printf("Missing argument\n");
+        return;
+    }
+    int khz = atoi(arg1);
+
+    bool configured = set_sys_clock_khz(khz, false);
+    if (!configured) {
+        printf("Not possible. Clock not configured.\n");
+        return;
+    }
+    /*
+    By default, when reconfiguring the system clock PLL settings after runtime initialization,
+    the peripheral clock is switched to the 48MHz USB clock to ensure continuity of peripheral operation.
+    There seems to be a problem with running the SPI 2.4 times faster than the system clock, 
+    even at the same SPI baud rate. 
+    Anyway, for now, reconfiguring the peripheral clock to the system clock at its new frequency works OK.
+    */
+    bool ok = clock_configure(clk_peri,
+                              0,
+                              CLOCKS_CLK_PERI_CTRL_AUXSRC_VALUE_CLK_SYS,
+                              clock_get_hz(clk_sys),
+                              clock_get_hz(clk_sys));
+    assert(ok);
+
+    setup_default_uart();
+}
+
 static void run_help();
 
 typedef void (*p_fn_t)();
@@ -454,6 +519,14 @@ static cmd_def_t cmds[] = {
     {"stop_logger", run_stop_logger,
      "stop_logger:\n"
      "  Stop Data Log Demo"},
+    // Clocks testing:
+    // {"set_sys_clock_48mhz", run_set_sys_clock_48mhz, "set_sys_clock_48mhz:\n"
+    //  "  Set the system clock to 48MHz"},
+    // {"set_sys_clock_khz", run_set_sys_clock_khz, "set_sys_clock_khz <khz>:\n"
+    //  "  Set the system clock system clock frequency in khz."},
+    // {"measure_freqs", run_measure_freqs, "measure_freqs:\n"
+    //  "  Count the RP2040 clock frequencies and report."},
+
     {"help", run_help,
      "help:\n"
      "  Shows this command help."}};

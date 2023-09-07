@@ -89,7 +89,10 @@ static sd_callback_t get_stream_callback(const uint8_t *buf, uint32_t count, con
     clk_div = clk_sys / (CLKDIV * baud)
 */
 static float calculate_clk_div(uint baud) {
-    return (float)clock_get_hz(clk_sys) / (CLKDIV * baud);
+    float div = (float)clock_get_hz(clk_sys) / (CLKDIV * baud);
+    /* Baud rate cannot exceed clk_sys frequency divided by CLKDIV! */
+    assert(div >= 1 && div <= 65536);
+    return div;
 }
 
 bool sd_sdio_begin(sd_card_t *sd_card_p)

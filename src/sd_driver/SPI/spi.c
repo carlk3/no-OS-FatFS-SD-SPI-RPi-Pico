@@ -12,22 +12,22 @@ CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 */
 
+#include <assert.h>
 #include <stdbool.h>
 //
 #include "pico/stdlib.h"
 #include "pico/mutex.h"
 #include "pico/sem.h"
 //
+#include "util.h"
 #include "my_debug.h"
 #include "hw_config.h"
 //
 #include "spi.h"
 
-static void dbg_assert(bool p) {
-#if !defined(NDEBUG)
-    if (!p) __asm volatile("bkpt 10");
+#ifdef NDEBUG 
+#  pragma GCC diagnostic ignored "-Wunused-variable"
 #endif
-}
 
 static void in_spi_irq_handler(const uint DMA_IRQ_num, io_rw_32 *dma_hw_ints_p) {
     for (size_t i = 0; i < spi_get_num(); ++i) {
@@ -36,9 +36,10 @@ static void in_spi_irq_handler(const uint DMA_IRQ_num, io_rw_32 *dma_hw_ints_p) 
             // Is the SPI's channel requesting interrupt?
             if (*dma_hw_ints_p & (1 << spi_p->rx_dma)) {
                 *dma_hw_ints_p = 1 << spi_p->rx_dma;  // Clear it.
-                dbg_assert(!dma_channel_is_busy(spi_p->rx_dma));
-                dbg_assert(!sem_available(&spi_p->sem));
-                sem_release(&spi_p->sem);
+                assert(!dma_channel_is_busy(spi_p->rx_dma));
+                assert(!sem_available(&spi_p->sem));
+                bool ok = sem_release(&spi_p->sem);
+                assert(ok);
             }
         }
     }
@@ -50,15 +51,42 @@ static void __not_in_flash_func(spi_irq_handler_1)() {
     in_spi_irq_handler(DMA_IRQ_1, &dma_hw->ints1);
 }
 
+static bool chk_spi(spi_inst_t *spi) {
+    bool rc = true;
+
+    if (spi_get_const_hw(spi)->sr & SPI_SSPSR_BSY_BITS) {
+        DBG_PRINTF("\tSPI is busy\n");
+        rc = false;
+    }
+    if (spi_get_const_hw(spi)->sr & SPI_SSPSR_RFF_BITS) {
+        DBG_PRINTF("\tSPI Receive FIFO full\n");
+        rc = false;
+    }
+    if (spi_get_const_hw(spi)->sr & SPI_SSPSR_RNE_BITS) {
+        DBG_PRINTF("\tSPI Receive FIFO not empty\n");
+        rc = false;
+    }
+    if (!(spi_get_const_hw(spi)->sr & SPI_SSPSR_TNF_BITS)) {
+        DBG_PRINTF("\tSPI Transmit FIFO is full\n");
+        rc = false;
+    }
+    if (!(spi_get_const_hw(spi)->sr & SPI_SSPSR_TFE_BITS)) {
+        DBG_PRINTF("\tSPI Transmit FIFO is not empty\n");
+        rc = false;
+    }
+    return rc;
+}
+
+
 // SPI Transfer: Read & Write (simultaneously) on SPI bus
 //   If the data that will be received is not important, pass NULL as rx.
 //   If the data that will be transmitted is not important,
 //     pass NULL as tx and then the SPI_FILL_CHAR is sent out as each data
 //     element.
 bool spi_transfer(spi_t *spi_p, const uint8_t *tx, uint8_t *rx, size_t length) {
-    // myASSERT(512 == length || 1 == length);
-    myASSERT(tx || rx);
-    // myASSERT(!(tx && rx));
+    // assert(512 == length || 1 == length);
+    assert(tx || rx);
+    // assert(!(tx && rx));
 
     // tx write increment is already false
     if (tx) {
@@ -77,8 +105,6 @@ bool spi_transfer(spi_t *spi_p, const uint8_t *tx, uint8_t *rx, size_t length) {
         rx = &dummy;
         channel_config_set_write_increment(&spi_p->rx_dma_cfg, false);
     }
-    // Clear the interrupt request.
-    dma_hw->ints0 = 1u << spi_p->rx_dma;
 
     dma_channel_configure(spi_p->tx_dma, &spi_p->tx_dma_cfg,
                           &spi_get_hw(spi_p->hw_inst)->dr,  // write address
@@ -93,7 +119,17 @@ bool spi_transfer(spi_t *spi_p, const uint8_t *tx, uint8_t *rx, size_t length) {
                                    // size transfer_data_size)
                           false);  // start
 
-    myASSERT(!sem_available(&spi_p->sem));    
+    switch (spi_p->DMA_IRQ_num) {
+        case DMA_IRQ_0:
+            assert(!dma_channel_get_irq0_status(spi_p->rx_dma));
+            break;
+        case DMA_IRQ_1:
+            assert(!dma_channel_get_irq1_status(spi_p->rx_dma));
+            break;
+        default:
+            assert(false);
+    }
+    sem_reset(&spi_p->sem, 0);
 
     // start them exactly simultaneously to avoid races (in extreme cases
     // the FIFO could overflow)
@@ -101,29 +137,39 @@ bool spi_transfer(spi_t *spi_p, const uint8_t *tx, uint8_t *rx, size_t length) {
 
     /* Wait until master completes transfer or time out has occured. */    
     uint32_t timeOut = 1000; /* Timeout 1 sec */
-    bool rc = sem_acquire_timeout_ms(
+    // If the timeout is reached the function will return false:
+    bool timed_out = !sem_acquire_timeout_ms(
         &spi_p->sem, timeOut);  // Wait for notification from ISR
-    if (!rc) {
-        // If the timeout is reached the function will return false
+    if (timed_out) { 
         DBG_PRINTF("Notification wait timed out in %s\n", __FUNCTION__);
+    }
+    bool spi_ok = chk_spi(spi_p->hw_inst);
+    if (timed_out || !spi_ok) { 
+#       ifndef NDEBUG
+            printf("RX DMA control regs:\n");
+            print_dma_ctrl(&dma_hw->ch[spi_p->rx_dma]);
+            printf("\n");
+            printf("SPI SSPCR0: 0b%s\n", uint_binary_str(spi_get_hw(spi_p->hw_inst)->cr0));
+            printf("SPI SSPCR1: 0b%s\n", uint_binary_str(spi_get_hw(spi_p->hw_inst)->cr1));
+#       endif
         return false;
     }
     // Shouldn't be necessary:
     dma_channel_wait_for_finish_blocking(spi_p->tx_dma);
     dma_channel_wait_for_finish_blocking(spi_p->rx_dma);
 
-    myASSERT(!dma_channel_is_busy(spi_p->tx_dma));
-    myASSERT(!dma_channel_is_busy(spi_p->rx_dma));
-
+    assert(!sem_available(&spi_p->sem));
+    assert(!dma_channel_is_busy(spi_p->tx_dma));
+    assert(!dma_channel_is_busy(spi_p->rx_dma));
     return true;
 }
 
 void spi_lock(spi_t *spi_p) {
-    myASSERT(mutex_is_initialized(&spi_p->mutex));
+    assert(mutex_is_initialized(&spi_p->mutex));
     mutex_enter_blocking(&spi_p->mutex);
 }
 void spi_unlock(spi_t *spi_p) {
-    myASSERT(mutex_is_initialized(&spi_p->mutex));
+    assert(mutex_is_initialized(&spi_p->mutex));
     mutex_exit(&spi_p->mutex);
 }
 
@@ -170,8 +216,9 @@ bool my_spi_init(spi_t *spi_p) {
             gpio_set_drive_strength(spi_p->sck_gpio, spi_p->sck_gpio_drive_strength);
         }
 
-        // SD cards' DO MUST be pulled up.
-        gpio_pull_up(spi_p->miso_gpio);
+        // SD cards' DO MUST be pulled up. However, it might be done externally.
+        if (!spi_p->no_miso_gpio_pull_up)
+            gpio_pull_up(spi_p->miso_gpio);
 
         // Grab some unused dma channels
         spi_p->tx_dma = dma_claim_unused_channel(true);
@@ -211,13 +258,15 @@ bool my_spi_init(spi_t *spi_p) {
             case DMA_IRQ_0:
                 spi_irq_handler_p = spi_irq_handler_0;
                 dma_channel_set_irq0_enabled(spi_p->rx_dma, true);
+                dma_channel_set_irq0_enabled(spi_p->tx_dma, false);
                 break;
             case DMA_IRQ_1:
                 spi_irq_handler_p = spi_irq_handler_1;
                 dma_channel_set_irq1_enabled(spi_p->rx_dma, true);
+                dma_channel_set_irq1_enabled(spi_p->tx_dma, false);
                 break;
             default:
-                myASSERT(false);
+                assert(false);
         }
         if (spi_p->use_exclusive_DMA_IRQ_handler) {
             irq_set_exclusive_handler(spi_p->DMA_IRQ_num, *spi_irq_handler_p);

@@ -13,6 +13,7 @@ specific language governing permissions and limitations under the License.
 */
 
 /* Standard includes. */
+#include <assert.h>
 #include <inttypes.h>
 #include <stdint.h>
 #include <string.h>
@@ -27,8 +28,10 @@ specific language governing permissions and limitations under the License.
 // #define TRACE_PRINTF(fmt, args...)
 // #define TRACE_PRINTF printf
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-variable"
+#if !defined(USE_DBG_PRINTF) || defined(NDEBUG)
+#  pragma GCC diagnostic ignored "-Wunused-variable"
+#endif
+
 void sd_spi_go_high_frequency(sd_card_t *sd_card_p) {
     uint actual = spi_set_baudrate(sd_card_p->spi_if.spi->hw_inst, sd_card_p->spi_if.spi->baud_rate);
     DBG_PRINTF("%s: Actual frequency: %lu\n", __FUNCTION__, (long)actual);
@@ -37,7 +40,6 @@ void sd_spi_go_low_frequency(sd_card_t *sd_card_p) {
     uint actual = spi_set_baudrate(sd_card_p->spi_if.spi->hw_inst, 400 * 1000); // Actual frequency: 398089
     DBG_PRINTF("%s: Actual frequency: %lu\n", __FUNCTION__, (long)actual);
 }
-#pragma GCC diagnostic pop
 
 static void sd_spi_lock(sd_card_t *sd_card_p) {
     spi_lock(sd_card_p->spi_if.spi);
@@ -96,10 +98,10 @@ uint8_t sd_spi_write(sd_card_t *sd_card_p, const uint8_t value) {
     uint8_t received = SPI_FILL_CHAR;
 #if 0
     int num = spi_write_read_blocking(sd_card_p->spi_if.spi->hw_inst, &value, &received, 1);    
-    myASSERT(1 == num);
+    assert(1 == num);
 #else
     bool success = spi_transfer(sd_card_p->spi_if.spi, &value, &received, 1);
-    myASSERT(success);
+    assert(success);
 #endif
     return received;
 }
