@@ -31,11 +31,14 @@ add_executable(command_line
 target_link_libraries(command_line pico_stdlib)
 
 # target_compile_options(command_line PUBLIC -Wall -Wextra -Wno-unused-function -Wno-unused-parameter)
-target_compile_options(command_line PUBLIC -Wall -Wextra -Wno-unused-parameter)
+target_compile_options(command_line PUBLIC -Wall -Wextra -Wno-unused-parameter -fanalyzer)
 
 # This program is useless without standard standard input and output.
 # add_compile_definitions(USE_PRINTF USE_DBG_PRINTF)
 add_compile_definitions(USE_PRINTF)
+
+# target_compile_definitions(<TARGET> PRIVATE PARAM_ASSERTIONS_ENABLE_ALL=1)
+add_compile_definitions(PARAM_ASSERTIONS_ENABLE_ALL=1)
 
 set_property(TARGET command_line APPEND_STRING PROPERTY LINK_FLAGS "-Wl,--print-memory-usage")
 

@@ -63,10 +63,10 @@ static spi_t spis[] = {  // One for each SPI.
         .set_drive_strength = true,
         .mosi_gpio_drive_strength = GPIO_DRIVE_STRENGTH_4MA,
         .sck_gpio_drive_strength = GPIO_DRIVE_STRENGTH_2MA,
+        .no_miso_gpio_pull_up = true,
 
         // .baud_rate = 25 * 1000 * 1000,  // Actual frequency: 20833333.
-        .baud_rate = 12 * 1000 * 1000,  // Actual frequency: 10416666.
-       // .baud_rate = 1 * 1000 * 1000,
+        .baud_rate = 5E6,  
 
         .DMA_IRQ_num = DMA_IRQ_0,
         .use_exclusive_DMA_IRQ_handler = true
@@ -79,9 +79,10 @@ static spi_t spis[] = {  // One for each SPI.
         .set_drive_strength = true,
         .mosi_gpio_drive_strength = GPIO_DRIVE_STRENGTH_4MA,
         .sck_gpio_drive_strength = GPIO_DRIVE_STRENGTH_2MA,
+        .no_miso_gpio_pull_up = true,
 
         // .baud_rate = 25 * 1000 * 1000,   // Actual frequency: 20833333.
-        .baud_rate = 12 * 1000 * 1000,      // Actual frequency: 10416666.
+        .baud_rate = 5E6,
 
         .DMA_IRQ_num = DMA_IRQ_1
     }
@@ -180,7 +181,8 @@ static sd_card_t sd_cards[] = {  // One for each SD card
             .D0_gpio = 18,
             .SDIO_PIO = pio1,
             .DMA_IRQ_num = DMA_IRQ_1,
-            .baud_rate = 15E6 // 15 MHz
+            // .baud_rate = 15E6 // 15 MHz
+            .baud_rate = 12E6
         },
         // SD Card detect:
         .use_card_detect = true,

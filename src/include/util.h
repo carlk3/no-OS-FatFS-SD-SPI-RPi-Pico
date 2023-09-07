@@ -67,5 +67,7 @@ static inline void dump_bytes(size_t num, uint8_t bytes[num]) {
     fflush(stdout);
 }
 
+char const* uint_binary_str(unsigned int number);
+
 #endif
 /* [] END OF FILE */

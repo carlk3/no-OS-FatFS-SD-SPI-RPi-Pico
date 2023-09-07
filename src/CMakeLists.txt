@@ -22,6 +22,7 @@ target_sources(FatFs_SPI INTERFACE
     ${CMAKE_CURRENT_LIST_DIR}/source/glue.c
     ${CMAKE_CURRENT_LIST_DIR}/source/my_debug.c
     ${CMAKE_CURRENT_LIST_DIR}/source/rtc.c
+    ${CMAKE_CURRENT_LIST_DIR}/source/util.c
 )
 target_include_directories(FatFs_SPI INTERFACE
     ff15/source

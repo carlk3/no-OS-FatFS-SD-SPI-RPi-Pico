@@ -12,6 +12,7 @@ CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 */
 
+#include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <time.h>
@@ -29,9 +30,13 @@ specific language governing permissions and limitations under the License.
 #define TRACE_PRINTF(fmt, args...)
 //#define TRACE_PRINTF printf
 
+#ifdef NDEBUG 
+#  pragma GCC diagnostic ignored "-Wunused-variable"
+#endif
+
 static bool print_header(FIL *fp) {
     TRACE_PRINTF("%s\n", __func__);
-    myASSERT(fp);
+    assert(fp);
     FRESULT fr = f_lseek(fp, f_size(fp));
     if (FR_OK != fr) {
         printf("f_lseek error: %s (%d)\n", FRESULT_str(fr), fr);
@@ -49,13 +54,13 @@ static bool print_header(FIL *fp) {
 
 static bool open_file(FIL *fp) {
     TRACE_PRINTF("%s\n", __func__);
-    myASSERT(fp);
+    assert(fp);
     const time_t timer = time(NULL);
     struct tm tmbuf;
     localtime_r(&timer, &tmbuf);
     char filename[64];
     int n = snprintf(filename, sizeof filename, "/data");
-    myASSERT(0 < n && n < (int)sizeof filename);
+    assert(0 < n && n < (int)sizeof filename);
     FRESULT fr = f_mkdir(filename);
     if (FR_OK != fr && FR_EXIST != fr) {
         printf("f_mkdir error: %s (%d)\n", FRESULT_str(fr), fr);
@@ -66,14 +71,14 @@ static bool open_file(FIL *fp) {
     //  tm_mday	int	day of the month	1-31
     n += snprintf(filename + n, sizeof filename - n, "/%04d-%02d-%02d",
                   tmbuf.tm_year + 1900, tmbuf.tm_mon + 1, tmbuf.tm_mday);
-    myASSERT(0 < n && n < (int)sizeof filename);
+    assert(0 < n && n < (int)sizeof filename);
     fr = f_mkdir(filename);
     if (FR_OK != fr && FR_EXIST != fr) {
         printf("f_mkdir error: %s (%d)\n", FRESULT_str(fr), fr);
         return false;
     }
     size_t nw = strftime(filename + n, sizeof filename - n, "/%H.csv", &tmbuf);
-    myASSERT(nw);
+    assert(nw);
     fr = f_open(fp, filename, FA_OPEN_APPEND | FA_WRITE);
     if (FR_OK != fr && FR_EXIST != fr) {
         printf("f_open(%s) error: %s (%d)\n", filename, FRESULT_str(fr), fr);
@@ -98,7 +103,7 @@ bool process_logger() {
     struct tm tmbuf;
     struct tm *ptm = localtime_r(&secs, &tmbuf);
     size_t n = strftime(buf, sizeof buf, "%F,%T,", ptm);
-    myASSERT(n);
+    assert(n);
 
     // The temperature sensor is on input 4:
     adc_select_input(4);
@@ -113,7 +118,7 @@ bool process_logger() {
     float Tc = 27.0f - (voltage - 0.706f) / 0.001721f;
     TRACE_PRINTF("Temperature: %.1f °C\n", (double)Tc);
     int nw = snprintf(buf + n, sizeof buf - n, "%.3g\n", (double)Tc);
-    myASSERT(0 < nw && nw < (int)sizeof buf);
+    assert(0 < nw && nw < (int)sizeof buf);
 
     if (f_printf(&fil, "%s", buf) < 0) {
         printf("f_printf failed\n");

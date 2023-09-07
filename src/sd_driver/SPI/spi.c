@@ -161,7 +161,6 @@ bool spi_transfer(spi_t *spi_p, const uint8_t *tx, uint8_t *rx, size_t length) {
     assert(!sem_available(&spi_p->sem));
     assert(!dma_channel_is_busy(spi_p->tx_dma));
     assert(!dma_channel_is_busy(spi_p->rx_dma));
-
     return true;
 }
 

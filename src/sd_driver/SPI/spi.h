@@ -37,10 +37,14 @@ typedef struct {
     uint baud_rate;
     uint DMA_IRQ_num; // DMA_IRQ_0 or DMA_IRQ_1
     bool use_exclusive_DMA_IRQ_handler;
+    bool no_miso_gpio_pull_up;
 
-    // Drive strength levels for GPIO outputs.
-    // enum gpio_drive_strength { GPIO_DRIVE_STRENGTH_2MA = 0, GPIO_DRIVE_STRENGTH_4MA = 1, GPIO_DRIVE_STRENGTH_8MA = 2,
-    // GPIO_DRIVE_STRENGTH_12MA = 3 }
+    /* Drive strength levels for GPIO outputs.
+        GPIO_DRIVE_STRENGTH_2MA, 
+        GPIO_DRIVE_STRENGTH_4MA, 
+        GPIO_DRIVE_STRENGTH_8MA,
+        GPIO_DRIVE_STRENGTH_12MA
+    */
     bool set_drive_strength;
     enum gpio_drive_strength mosi_gpio_drive_strength;
     enum gpio_drive_strength sck_gpio_drive_strength;

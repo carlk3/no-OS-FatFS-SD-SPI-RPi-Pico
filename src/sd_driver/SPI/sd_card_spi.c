@@ -146,6 +146,7 @@
  * +------+---------+---------+- -  - -+---------+-----------+----------+
  */
 
+#include <assert.h>
 #include <inttypes.h>
 #include "sd_card.h"
 #include "sd_spi.h"
@@ -158,25 +159,6 @@
 #  define TRACE 0
 #endif
 
-#if TRACE == 0
-#  define TRACE_PRINTF(fmt, args...)
-#  define TRC_PR_ADD(fmt, args...)
-#  define TRACE_PRINTF2(fmt, args...)
-#elif TRACE == 1
-#  define TRACE_PRINTF printf
-#  define TRC_PR_ADD(fmt, args...)
-#  define TRACE_PRINTF2(fmt, args...)
-#else
-#  define TRACE_PRINTF printf
-#  define TRC_PR_ADD printf
-#  define TRACE_PRINTF2(format, ...)   \
-    {                                \
-        printf(format, __VA_ARGS__); \
-        fflush(stdout);              \
-    }
-#endif 
-
-
 #ifndef SD_CRC_ENABLED
 #define SD_CRC_ENABLED 1
 #endif
@@ -185,6 +167,13 @@
 #include "SPI/crc.h"
 static bool crc_on = true;
 #endif
+
+//#define DBG_PRINTF printf
+
+#define TRACE_PRINTF(fmt, args...)
+//#define TRACE_PRINTF printf  // task_printf
+
+//#define assert configASSERT
 
 /* Control Tokens   */
 #define SPI_DATA_RESPONSE_MASK (0x1F)
@@ -229,6 +218,10 @@ static bool crc_on = true;
 #define OCR_3_3V (0x1 << 20)
 
 #define SPI_CMD(x) (0x40 | (x & 0x3f))
+
+#ifdef NDEBUG 
+#  pragma GCC diagnostic ignored "-Wunused-variable"
+#endif
 
 static uint8_t sd_cmd_spi(sd_card_t *sd_card_p, cmdSupported cmd, uint32_t arg) {
     uint8_t response;
@@ -301,11 +294,11 @@ static bool sd_wait_ready(sd_card_t *sd_card_p, int timeout) {
 
 // An SD card can only do one thing at a time.
 static void sd_lock(sd_card_t *sd_card_p) {
-    myASSERT(mutex_is_initialized(&sd_card_p->mutex));
+    assert(mutex_is_initialized(&sd_card_p->mutex));
     mutex_enter_blocking(&sd_card_p->mutex);
 }
 static void sd_unlock(sd_card_t *sd_card_p) {
-    myASSERT(mutex_is_initialized(&sd_card_p->mutex));
+    assert(mutex_is_initialized(&sd_card_p->mutex));
     mutex_exit(&sd_card_p->mutex);
 }
 
@@ -382,19 +375,6 @@ static const char *cmd2str(const cmdSupported cmd) {
     }
 }
 #endif
-
-static uint32_t ext_bits(unsigned char *data, int msb, int lsb) {
-    uint32_t bits = 0;
-    uint32_t size = 1 + msb - lsb;
-    for (uint32_t i = 0; i < size; i++) {
-        uint32_t position = lsb + i;
-        uint32_t byte = 15 - (position >> 3);
-        uint32_t bit = position & 0x7;
-        uint32_t value = (data[byte] >> bit) & 1;
-        bits |= value << i;
-    }
-    return bits;
-}
 
 #define SD_COMMAND_RETRIES 3 /*!< Times SPI cmd is retried when there is no response */
 #define SD_COMMAND_TIMEOUT 2000 /*!< Timeout in ms for response */
@@ -559,6 +539,8 @@ static int sd_cmd(sd_card_t *sd_card_p, const cmdSupported cmd, uint32_t arg,
     }
     return status;
 }
+
+
 /* R7 response pattern for CMD8 */
 #define CMD8_PATTERN (0xAA)
 
@@ -576,13 +558,25 @@ static int sd_cmd8(sd_card_t *sd_card_p) {
         // If check pattern is not matched, CMD8 communication is not valid
         if ((response & 0xFFF) != arg) {
             DBG_PRINTF("CMD8 Pattern mismatch 0x%" PRIx32 " : 0x%" PRIx32
-                       "\r\n",
-                       arg, response);
+                       "\r\n", arg, response);
             sd_card_p->card_type = CARD_UNKNOWN;
             status = SD_BLOCK_DEVICE_ERROR_UNUSABLE;
         }
     }
     return status;
+}
+
+static uint32_t ext_bits(unsigned char *data, int msb, int lsb) {
+    uint32_t bits = 0;
+    uint32_t size = 1 + msb - lsb;
+    for (uint32_t i = 0; i < size; i++) {
+        uint32_t position = lsb + i;
+        uint32_t byte = 15 - (position >> 3);
+        uint32_t bit = position & 0x7;
+        uint32_t value = (data[byte] >> bit) & 1;
+        bits |= value << i;
+    }
+    return bits;
 }
 
 static int sd_read_bytes(sd_card_t *sd_card_p, uint8_t *buffer, uint32_t length);
@@ -637,7 +631,7 @@ static uint64_t in_sd_spi_sectors(sd_card_t *sd_card_p) {
 
         default:
             DBG_PRINTF("CSD struct unsupported\r\n");
-            myASSERT(!"CSD struct unsupported\r\n");
+            assert(!"CSD struct unsupported\r\n");
             return 0;
     };
     return blocks;
@@ -819,7 +813,7 @@ static uint8_t sd_write_block(sd_card_t *sd_card_p, const uint8_t *buffer,
 
     // write the data
     bool ret = sd_spi_transfer(sd_card_p, buffer, NULL, length);
-    myASSERT(ret);
+    assert(ret);
 
 #if SD_CRC_ENABLED
     if (crc_on) {
@@ -990,10 +984,13 @@ static int sd_init_medium(sd_card_t *sd_card_p) {
 
 #if SD_CRC_ENABLED
     if (crc_on) {
+		size_t retries = 3;
+		do {
         // Enable CRC
         // int sd_cmd(sd_card_t *sd_card_p, cmdSupported cmd, uint32_t arg, bool
         // isAcmd, uint32_t *resp)
         status = sd_cmd(sd_card_p, CMD59_CRC_ON_OFF, 1, false, 0);
+		} while (--retries && (SD_BLOCK_DEVICE_ERROR_NONE != status));
     }
 #endif
 
