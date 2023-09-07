@@ -41,18 +41,16 @@ static void in_spi_irq_handler(const uint DMA_IRQ_num, io_rw_32 *dma_hw_ints_p) 
                 *dma_hw_ints_p = 1 << spi_p->rx_dma;  // Clear it.
                 dbg_assert(!dma_channel_is_busy(spi_p->rx_dma));
                 dbg_assert(!sem_available(&spi_p->sem));
-                sem_release(&spi_p->sem);
+                bool ok = sem_release(&spi_p->sem);
+                dbg_assert(ok);
             }
         }
     }
 }
-
 static void __not_in_flash_func(spi_irq_handler_0)() {
-    // Check DMA_IRQ_0:
     in_spi_irq_handler(DMA_IRQ_0, &dma_hw->ints0);
 }
 static void __not_in_flash_func(spi_irq_handler_1)() {
-    // Check DMA_IRQ_1:
     in_spi_irq_handler(DMA_IRQ_1, &dma_hw->ints1);
 }
 
@@ -88,8 +86,6 @@ bool spi_transfer(spi_t *spi_p, const uint8_t *tx, uint8_t *rx, size_t length) {
         rx = &dummy;
         channel_config_set_write_increment(&spi_p->rx_dma_cfg, false);
     }
-    // Clear the interrupt request.
-    dma_hw->ints0 = 1u << spi_p->rx_dma;
 
     dma_channel_configure(spi_p->tx_dma, &spi_p->tx_dma_cfg,
                           &spi_get_hw(spi_p->hw_inst)->dr,  // write address
@@ -104,7 +100,17 @@ bool spi_transfer(spi_t *spi_p, const uint8_t *tx, uint8_t *rx, size_t length) {
                                    // size transfer_data_size)
                           false);  // start
 
-    myASSERT(!sem_available(&spi_p->sem));    
+    switch (spi_p->DMA_IRQ_num) {
+        case DMA_IRQ_0:
+            myASSERT(!dma_channel_get_irq0_status(spi_p->rx_dma));
+            break;
+        case DMA_IRQ_1:
+            myASSERT(!dma_channel_get_irq1_status(spi_p->rx_dma));
+            break;
+        default:
+            myASSERT(false);
+    }
+    sem_reset(&spi_p->sem, 0);
 
     // start them exactly simultaneously to avoid races (in extreme cases
     // the FIFO could overflow)
@@ -123,6 +129,7 @@ bool spi_transfer(spi_t *spi_p, const uint8_t *tx, uint8_t *rx, size_t length) {
     dma_channel_wait_for_finish_blocking(spi_p->tx_dma);
     dma_channel_wait_for_finish_blocking(spi_p->rx_dma);
 
+    myASSERT(!sem_available(&spi_p->sem));
     myASSERT(!dma_channel_is_busy(spi_p->tx_dma));
     myASSERT(!dma_channel_is_busy(spi_p->rx_dma));
 
@@ -148,6 +155,9 @@ bool my_spi_init(spi_t *spi_p) {
         if (!mutex_is_initialized(&spi_p->mutex)) mutex_init(&spi_p->mutex);
         spi_lock(spi_p);
 
+        // Default:
+        if (!spi_p->baud_rate)
+            spi_p->baud_rate = 10 * 1000 * 1000;
         // For the IRQ notification:
         sem_init(&spi_p->sem, 0, 1);
 
@@ -218,10 +228,12 @@ bool my_spi_init(spi_t *spi_p) {
         case DMA_IRQ_0:
             spi_irq_handler_p = spi_irq_handler_0;
             dma_channel_set_irq0_enabled(spi_p->rx_dma, true);
+            dma_channel_set_irq0_enabled(spi_p->tx_dma, false);
         break;
         case DMA_IRQ_1:
             spi_irq_handler_p = spi_irq_handler_1;
             dma_channel_set_irq1_enabled(spi_p->rx_dma, true);
+            dma_channel_set_irq1_enabled(spi_p->tx_dma, false);
         break;
         default:
             myASSERT(false);
