@@ -323,10 +323,14 @@ typedef struct {
     uint baud_rate;
     uint DMA_IRQ_num; // DMA_IRQ_0 or DMA_IRQ_1
     bool use_exclusive_DMA_IRQ_handler;
-
-    // Drive strength levels for GPIO outputs.
-    // enum gpio_drive_strength { GPIO_DRIVE_STRENGTH_2MA = 0, GPIO_DRIVE_STRENGTH_4MA = 1, GPIO_DRIVE_STRENGTH_8MA = 2,
-    // GPIO_DRIVE_STRENGTH_12MA = 3 }
+    bool no_miso_gpio_pull_up;
+    
+    /* Drive strength levels for GPIO outputs.
+        GPIO_DRIVE_STRENGTH_2MA, 
+        GPIO_DRIVE_STRENGTH_4MA, 
+        GPIO_DRIVE_STRENGTH_8MA,
+        GPIO_DRIVE_STRENGTH_12MA
+    */
     bool set_drive_strength;
     enum gpio_drive_strength mosi_gpio_drive_strength;
     enum gpio_drive_strength sck_gpio_drive_strength;
@@ -345,6 +349,8 @@ typedef struct {
 * `sck_gpio_drive_strength` SPI Serial Clock (SCK) drive strength
 * `DMA_IRQ_num` Which IRQ to use for DMA. Defaults to DMA_IRQ_0. Set this to avoid conflicts with any exclusive DMA IRQ handlers that might be elsewhere in the system.
 * `use_exclusive_DMA_IRQ_handler` If true, the IRQ handler is added with SDK's `irq_set_exclusive_handler`. The default is to add the handler with `irq_add_shared_handler`, so it's not exclusive. 
+* `no_miso_gpio_pull_up` According to the standard, an SD card's DO MUST be pulled up. 
+However, it might be done externally. If `no_miso_gpio_pull_up` is false, the library will set the RP2040 GPIO internal pull up.
 
 ### You must provide a definition for the functions declared in `sd_driver/hw_config.h`:  
 `size_t spi_get_num()` Returns the number of SPIs to use  
