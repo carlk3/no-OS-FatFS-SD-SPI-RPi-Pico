@@ -291,6 +291,8 @@
 /  The FF_FS_TIMEOUT defines timeout period in unit of O/S time tick.
 */
 
+/* 0:Win32, 1:uITRON4.0, 2:uC/OS-II, 3:FreeRTOS, 4:CMSIS-RTOS */
+#define OS_TYPE	        3
 
 
 /*--- End of configuration options ---*/
