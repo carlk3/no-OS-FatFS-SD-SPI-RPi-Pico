@@ -12,6 +12,7 @@ CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 */
 
+#include <assert.h>
 #include <stdbool.h>
 //
 #include "pico/stdlib.h"
@@ -26,12 +27,6 @@ specific language governing permissions and limitations under the License.
 static bool irqChannel1 = false;
 static bool irqShared = true;
 
-static inline void dbg_assert(bool p) {
-#if !defined(NDEBUG)
-    if (!p) __asm volatile("bkpt 10");
-#endif
-}
-
 static void in_spi_irq_handler(const uint DMA_IRQ_num, io_rw_32 *dma_hw_ints_p) {
     for (size_t i = 0; i < spi_get_num(); ++i) {
         spi_t *spi_p = spi_get_by_num(i);
@@ -39,10 +34,10 @@ static void in_spi_irq_handler(const uint DMA_IRQ_num, io_rw_32 *dma_hw_ints_p) 
             // Is the SPI's channel requesting interrupt?
             if (*dma_hw_ints_p & (1 << spi_p->rx_dma)) {
                 *dma_hw_ints_p = 1 << spi_p->rx_dma;  // Clear it.
-                dbg_assert(!dma_channel_is_busy(spi_p->rx_dma));
-                dbg_assert(!sem_available(&spi_p->sem));
+                assert(!dma_channel_is_busy(spi_p->rx_dma));
+                assert(!sem_available(&spi_p->sem));
                 bool ok = sem_release(&spi_p->sem);
-                dbg_assert(ok);
+                assert(ok);
             }
         }
     }
@@ -65,9 +60,9 @@ void set_spi_dma_irq_channel(bool useChannel1, bool shared) {
 //     pass NULL as tx and then the SPI_FILL_CHAR is sent out as each data
 //     element.
 bool spi_transfer(spi_t *spi_p, const uint8_t *tx, uint8_t *rx, size_t length) {
-    // myASSERT(512 == length || 1 == length);
-    myASSERT(tx || rx);
-    // myASSERT(!(tx && rx));
+    // assert(512 == length || 1 == length);
+    assert(tx || rx);
+    // assert(!(tx && rx));
 
     // tx write increment is already false
     if (tx) {
@@ -102,13 +97,13 @@ bool spi_transfer(spi_t *spi_p, const uint8_t *tx, uint8_t *rx, size_t length) {
 
     switch (spi_p->DMA_IRQ_num) {
         case DMA_IRQ_0:
-            myASSERT(!dma_channel_get_irq0_status(spi_p->rx_dma));
+            assert(!dma_channel_get_irq0_status(spi_p->rx_dma));
             break;
         case DMA_IRQ_1:
-            myASSERT(!dma_channel_get_irq1_status(spi_p->rx_dma));
+            assert(!dma_channel_get_irq1_status(spi_p->rx_dma));
             break;
         default:
-            myASSERT(false);
+            assert(false);
     }
     sem_reset(&spi_p->sem, 0);
 
@@ -129,19 +124,19 @@ bool spi_transfer(spi_t *spi_p, const uint8_t *tx, uint8_t *rx, size_t length) {
     dma_channel_wait_for_finish_blocking(spi_p->tx_dma);
     dma_channel_wait_for_finish_blocking(spi_p->rx_dma);
 
-    myASSERT(!sem_available(&spi_p->sem));
-    myASSERT(!dma_channel_is_busy(spi_p->tx_dma));
-    myASSERT(!dma_channel_is_busy(spi_p->rx_dma));
+    assert(!sem_available(&spi_p->sem));
+    assert(!dma_channel_is_busy(spi_p->tx_dma));
+    assert(!dma_channel_is_busy(spi_p->rx_dma));
 
     return true;
 }
 
 void spi_lock(spi_t *spi_p) {
-    myASSERT(mutex_is_initialized(&spi_p->mutex));
+    assert(mutex_is_initialized(&spi_p->mutex));
     mutex_enter_blocking(&spi_p->mutex);
 }
 void spi_unlock(spi_t *spi_p) {
-    myASSERT(mutex_is_initialized(&spi_p->mutex));
+    assert(mutex_is_initialized(&spi_p->mutex));
     mutex_exit(&spi_p->mutex);
 }
 
@@ -236,7 +231,7 @@ bool my_spi_init(spi_t *spi_p) {
             dma_channel_set_irq1_enabled(spi_p->tx_dma, false);
         break;
         default:
-            myASSERT(false);
+            assert(false);
         }
         if (irqShared) {
             irq_add_shared_handler(
