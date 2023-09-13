@@ -29,6 +29,11 @@ target_link_libraries(FatFS_SPI_example pico_stdlib)
 
 target_compile_options(FatFS_SPI_example PUBLIC -Wall -Wextra -Wno-unused-function -Wno-unused-parameter)
 
+# Use Pico's LED to show drive activity. 
+# Ensure that PICO_DEFAULT_LED_PIN is set correctly.
+# Note that Pico W uses GPIO 25 for SPI communication to the CYW43439.
+# add_compile_definitions(USE_LED=1)
+
 pico_set_program_name(FatFS_SPI_example "FatFS_SPI_example")
 pico_set_program_version(FatFS_SPI_example "0.1")
 
