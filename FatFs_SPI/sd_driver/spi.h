@@ -69,19 +69,23 @@ void set_spi_dma_irq_channel(bool useChannel1, bool shared);
 }
 #endif
 
-#ifndef NO_PICO_LED
-#  define USE_LED 1
-#endif
+/* 
+This uses the Pico LED to show SD card activity.
+You can use it to get a rough idea of utilization.
+Warning: Pico W uses GPIO 25 for SPI communication to the CYW43439.
 
-#if USE_LED
-#  define LED_PIN 25
+You can enable this by putting something like
+    add_compile_definitions(USE_LED=1)
+in CMakeLists.txt, for example.
+*/
+#if !defined(NO_PICO_LED) && defined(USE_LED) && USE_LED && defined(PICO_DEFAULT_LED_PIN)
 #  define LED_INIT()                     \
     {                                    \
-        gpio_init(LED_PIN);              \
-        gpio_set_dir(LED_PIN, GPIO_OUT); \
+        gpio_init(PICO_DEFAULT_LED_PIN);              \
+        gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT); \
     }
-#  define LED_ON() gpio_put(LED_PIN, 1)
-#  define LED_OFF() gpio_put(LED_PIN, 0)
+#  define LED_ON() gpio_put(PICO_DEFAULT_LED_PIN, 1)
+#  define LED_OFF() gpio_put(PICO_DEFAULT_LED_PIN, 0)
 #else
 #  define LED_ON()
 #  define LED_OFF()
