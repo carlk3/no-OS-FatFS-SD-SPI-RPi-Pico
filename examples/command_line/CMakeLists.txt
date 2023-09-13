@@ -37,6 +37,11 @@ target_compile_options(command_line PUBLIC -Wall -Wextra -Wno-unused-parameter -
 # add_compile_definitions(USE_PRINTF USE_DBG_PRINTF)
 add_compile_definitions(USE_PRINTF)
 
+# Use Pico's LED to show drive activity. 
+# Ensure that PICO_DEFAULT_LED_PIN is set correctly.
+# Note that Pico W uses GPIO 25 for SPI communication to the CYW43439.
+# add_compile_definitions(USE_LED=1)
+
 # target_compile_definitions(<TARGET> PRIVATE PARAM_ASSERTIONS_ENABLE_ALL=1)
 add_compile_definitions(PARAM_ASSERTIONS_ENABLE_ALL=1)
 
