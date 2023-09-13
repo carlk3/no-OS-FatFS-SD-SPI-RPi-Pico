@@ -168,20 +168,15 @@
 static bool crc_on = true;
 #endif
 
-//#define DBG_PRINTF printf
-
 #define TRACE_PRINTF(fmt, args...)
 //#define TRACE_PRINTF printf  // task_printf
-
-//#define assert configASSERT
 
 /* Control Tokens   */
 #define SPI_DATA_RESPONSE_MASK (0x1F)
 #define SPI_DATA_ACCEPTED (0x05)
 #define SPI_DATA_CRC_ERROR (0x0B)
 #define SPI_DATA_WRITE_ERROR (0x0D)
-#define SPI_START_BLOCK \
-    (0xFE)                             /*!< For Single Block Read/Write and Multiple Block Read */
+#define SPI_START_BLOCK (0xFE)         /*!< For Single Block Read/Write and Multiple Block Read */
 #define SPI_START_BLK_MUL_WRITE (0xFC) /*!< Start Multi-block write */
 #define SPI_STOP_TRAN (0xFD)           /*!< Stop Multi-block write */
 
