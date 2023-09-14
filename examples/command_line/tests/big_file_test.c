@@ -26,12 +26,23 @@ specific language governing permissions and limitations under the License.
 #include "f_util.h"
 
 #define FF_MAX_SS 512
-#define BUFFSZ (32 * FF_MAX_SS)  // Should be a factor of 1 Mebibyte
+#define BUFFSZ (64 * FF_MAX_SS)  // Should be a factor of 1 Mebibyte
 
 #define PRE_ALLOCATE false
 
 typedef uint32_t DWORD;
 typedef unsigned int UINT;
+
+static void report(uint64_t size, int64_t elapsed_us) {
+    float elapsed = elapsed_us / 1E6;
+    printf("Elapsed seconds %.3g\n", elapsed);
+    printf("Transfer rate ");
+    if ((double)size / elapsed / 1024 /1024 > 1.0) {
+        printf("%.3g MiB/s, or ", (double)size / elapsed / 1024 /1024);
+    }
+    printf("%.3g KiB/s (%.3g kB/s) (%.3g kb/s)\n",
+           (double)size / elapsed / 1024, (double)size / elapsed / 1000, 8.0 * size / elapsed / 1000);
+}
 
 // Create a file of size "size" bytes filled with random data seeded with "seed"
 static bool create_big_file(const char *const pathname, uint64_t size,
@@ -40,9 +51,6 @@ static bool create_big_file(const char *const pathname, uint64_t size,
     FIL file; /* File object */
 
     srand(seed);  // Seed pseudo-random number generator
-
-    printf("Writing...\n");
-    absolute_time_t xStart = get_absolute_time();
 
     /* Open the file, creating the file if it does not already exist. */
     FILINFO fno;
@@ -87,6 +95,10 @@ static bool create_big_file(const char *const pathname, uint64_t size,
             return false;
         }
     }
+    
+    printf("Writing...\n");
+    absolute_time_t xStart = get_absolute_time();
+
     for (uint64_t i = 0; i < size / BUFFSZ; ++i) {
         size_t n;
         for (n = 0; n < BUFFSZ / sizeof(DWORD); n++) buff[n] = rand();
@@ -104,11 +116,7 @@ static bool create_big_file(const char *const pathname, uint64_t size,
     /* Close the file */
     f_close(&file);
 
-    int64_t elapsed_us = absolute_time_diff_us(xStart, get_absolute_time());
-    float elapsed = elapsed_us / 1E6;
-    printf("Elapsed seconds %.3g\n", elapsed);
-    printf("Transfer rate %.3g KiB/s (%.3g kB/s) (%.3g kb/s)\n",
-           (double)size / elapsed / 1024, (double)size / elapsed / 1000, 8.0 * size / elapsed / 1000);
+    report(size, absolute_time_diff_us(xStart, get_absolute_time()));
     return true;
 }
 
@@ -155,11 +163,7 @@ static bool check_big_file(char *pathname, uint64_t size,
     /* Close the file */
     f_close(&file);
 
-    int64_t elapsed_us = absolute_time_diff_us(xStart, get_absolute_time());
-    float elapsed = elapsed_us / 1E6;
-    printf("Elapsed seconds %.3g\n", elapsed);
-    printf("Transfer rate %.3g KiB/s (%.3g kB/s) (%.3g kb/s)\n",
-           (double)size / elapsed / 1024, (double)size / elapsed / 1000, 8.0 * size / elapsed / 1000);
+    report(size, absolute_time_diff_us(xStart, get_absolute_time()));
     return true;
 }
 // Specify size in Mebibytes (1024x1024 bytes)

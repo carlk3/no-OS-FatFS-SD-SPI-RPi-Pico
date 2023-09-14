@@ -897,5 +897,19 @@ void rp2040_sdio_init(sd_card_t *sd_card_p, float clk_div)
     gpio_set_function(SDIO_D2, GPIO_FUNC_PIO1);
     gpio_set_function(SDIO_D3, GPIO_FUNC_PIO1);
 
+    gpio_set_slew_rate(SDIO_CMD, GPIO_SLEW_RATE_FAST);
+    gpio_set_slew_rate(SDIO_CLK, GPIO_SLEW_RATE_FAST);
+    gpio_set_slew_rate(SDIO_D0, GPIO_SLEW_RATE_FAST);
+    gpio_set_slew_rate(SDIO_D1, GPIO_SLEW_RATE_FAST);
+    gpio_set_slew_rate(SDIO_D2, GPIO_SLEW_RATE_FAST);
+    gpio_set_slew_rate(SDIO_D3, GPIO_SLEW_RATE_FAST);
+
+    gpio_set_drive_strength(SDIO_CMD, GPIO_DRIVE_STRENGTH_2MA);
+    gpio_set_drive_strength(SDIO_CLK, GPIO_DRIVE_STRENGTH_2MA);
+    gpio_set_drive_strength(SDIO_D0, GPIO_DRIVE_STRENGTH_2MA);
+    gpio_set_drive_strength(SDIO_D1, GPIO_DRIVE_STRENGTH_2MA);
+    gpio_set_drive_strength(SDIO_D2, GPIO_DRIVE_STRENGTH_2MA);
+    gpio_set_drive_strength(SDIO_D3, GPIO_DRIVE_STRENGTH_2MA);
+
     irq_set_enabled(sd_card_p->sdio_if.DMA_IRQ_num, true);
 }
