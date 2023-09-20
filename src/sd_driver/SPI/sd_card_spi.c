@@ -148,6 +148,7 @@
 
 #include <assert.h>
 #include <inttypes.h>
+#include "crc.h"
 #include "sd_card.h"
 #include "sd_spi.h"
 #include "my_debug.h"
@@ -163,9 +164,9 @@
 #define SD_CRC_ENABLED 1
 #endif
 
+static bool crc_on;
 #if SD_CRC_ENABLED
-#include "SPI/crc.h"
-static bool crc_on = true;
+crc_on = true;
 #endif
 
 #define TRACE_PRINTF(fmt, args...)
