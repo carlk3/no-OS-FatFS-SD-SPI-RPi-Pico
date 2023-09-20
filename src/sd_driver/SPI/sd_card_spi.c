@@ -786,7 +786,8 @@ static int in_sd_read_blocks(sd_card_t *sd_card_p, uint8_t *buffer_addr,
         --blockCnt;
     }
     // Send CMD12(0x00000000) to stop the transmission for multi-block transfer
-    sd_cmd(sd_card_p, CMD12_STOP_TRANSMISSION, 0x0, false, 0);
+    if (ulSectorCount > 1)
+        sd_cmd(sd_card_p, CMD12_STOP_TRANSMISSION, 0x0, false, 0);
 
     if (SD_BLOCK_DEVICE_ERROR_NONE == status) {
         // Check final block's CRC:
