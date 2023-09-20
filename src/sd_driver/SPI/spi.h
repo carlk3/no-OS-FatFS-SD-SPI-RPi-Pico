@@ -66,6 +66,8 @@ extern "C" {
 // // SPI DMA interrupts
 // void __not_in_flash_func(spi_irq_handler)();
   
+void __not_in_flash_func(spi_transfer_start)(spi_t *spi_p, const uint8_t *tx, uint8_t *rx, size_t length);
+bool __not_in_flash_func(spi_transfer_wait_complete)(spi_t *spi_p, uint32_t timeout_ms);
 bool __not_in_flash_func(spi_transfer)(spi_t *pSPI, const uint8_t *tx, uint8_t *rx, size_t length);  
 void spi_lock(spi_t *pSPI);
 void spi_unlock(spi_t *pSPI);

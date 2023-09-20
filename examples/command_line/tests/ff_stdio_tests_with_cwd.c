@@ -90,6 +90,13 @@ specific language governing permissions and limitations under the License.
 //#include "ff_headers.h"
 #include "ff_stdio.h"
 
+#ifdef NDEBUG 
+#   warning "This test relies on asserts to verify test results!"
+#	pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+#	pragma GCC diagnostic ignored "-Wanalyzer-possible-null-argument"
+#	pragma GCC diagnostic ignored "-Wanalyzer-possible-null-dereference"
+#endif
+
 /* The number of bytes read/written to the example files at a time. */
 #define fsRAM_BUFFER_SIZE 				200
 
@@ -811,6 +818,7 @@ int iReturned, iExpectedReturn;
 	pcBuffer = ( char * ) pvPortMalloc( xBufferSize + xOverwriteCheckBytes );
 	configASSERT( pcBuffer );
 	pulVerifyBuffer = ( uint32_t * ) pvPortMalloc( xBufferSize );
+	configASSERT( pulVerifyBuffer );
 
 	/* Write a byte to the end of the buffer which is used to ensure nothing has
 	ever written off the end of the buffer. */

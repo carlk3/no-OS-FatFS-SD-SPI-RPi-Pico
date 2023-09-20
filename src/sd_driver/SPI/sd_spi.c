@@ -86,13 +86,6 @@ void sd_spi_release(sd_card_t *sd_card_p) {
     sd_spi_unlock(sd_card_p);
 }
 
-/* Transfer tx to SPI while receiving SPI to rx. 
-tx or rx can be NULL if not important. */
-bool sd_spi_transfer(sd_card_t *sd_card_p, const uint8_t *tx, uint8_t *rx,
-                     size_t length) {
-    return spi_transfer(sd_card_p->spi_if.spi, tx, rx, length);
-}
-
 uint8_t sd_spi_write(sd_card_t *sd_card_p, const uint8_t value) {
     // TRACE_PRINTF("%s\n", __FUNCTION__);
     uint8_t received = SPI_FILL_CHAR;
@@ -121,7 +114,7 @@ void sd_spi_send_initializing_sequence(sd_card_t * sd_card_p) {
     memset(ones, 0xFF, sizeof ones);
     absolute_time_t timeout_time = make_timeout_time_ms(1);
     do {
-        sd_spi_transfer(sd_card_p, ones, NULL, sizeof ones);
+        spi_transfer(sd_card_p->spi_if.spi, ones, NULL, sizeof ones);
     } while (0 < absolute_time_diff_us(get_absolute_time(), timeout_time));
     gpio_put(sd_card_p->spi_if.ss_gpio, old_ss);
 }

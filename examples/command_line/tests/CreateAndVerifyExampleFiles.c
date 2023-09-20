@@ -92,6 +92,11 @@ specific language governing permissions and limitations under the License.
 
 #include <stdio.h>
 
+#ifdef NDEBUG 
+#   warning "This test relies on asserts to verify test results!"
+#	pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+#endif
+
 //#define TRACE_PRINTF(fmt, args...)
 #define TRACE_PRINTF printf
 

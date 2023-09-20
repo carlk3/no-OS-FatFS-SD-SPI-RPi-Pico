@@ -20,7 +20,6 @@ specific language governing permissions and limitations under the License.
 
 /* Transfer tx to SPI while receiving SPI to rx. 
 tx or rx can be NULL if not important. */
-bool sd_spi_transfer(sd_card_t *sd_card_p, const uint8_t *tx, uint8_t *rx, size_t length);
 uint8_t sd_spi_write(sd_card_t *sd_card_p, const uint8_t value);
 void sd_spi_deselect_pulse(sd_card_t *sd_card_p);
 void sd_spi_acquire(sd_card_t *sd_card_p);
