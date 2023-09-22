@@ -164,13 +164,18 @@
 #define SD_CRC_ENABLED 1
 #endif
 
-static bool crc_on;
 #if SD_CRC_ENABLED
-crc_on = true;
+static bool crc_on = true;
+#else
+static bool crc_on = false;
 #endif
 
 #define TRACE_PRINTF(fmt, args...)
 //#define TRACE_PRINTF printf  // task_printf
+
+#if defined(NDEBUG)
+#  pragma GCC diagnostic ignored "-Wunused-function"
+#endif
 
 /* Control Tokens   */
 #define SPI_DATA_RESPONSE_MASK (0x1F)
@@ -295,6 +300,11 @@ static void sd_unlock(sd_card_t *sd_card_p) {
     assert(mutex_is_initialized(&sd_card_p->mutex));
     mutex_exit(&sd_card_p->mutex);
 }
+static bool sd_is_locked(sd_card_t *sd_card_p) {
+    assert(mutex_is_initialized(&sd_card_p->mutex));
+    uint32_t owner_out;
+    return !mutex_try_enter(&sd_card_p->mutex, &owner_out);
+}
 
 // Locks the SD card and acquires its SPI
 static void sd_acquire(sd_card_t *sd_card_p) {
@@ -376,12 +386,16 @@ static const char *cmd2str(const cmdSupported cmd) {
 static int sd_cmd(sd_card_t *sd_card_p, const cmdSupported cmd, uint32_t arg,
                   bool isAcmd, uint32_t *resp) {
     TRACE_PRINTF("%s(%s(0x%08lx)): ", __FUNCTION__, cmd2str(cmd), arg);
+    assert(sd_is_locked(sd_card_p));
+    assert(0 == gpio_get(sd_card_p->spi_if.ss_gpio));
 
     int32_t status = SD_BLOCK_DEVICE_ERROR_NONE;
     uint32_t response;
 
     // No need to wait for card to be ready when sending the stop command
-    if (CMD12_STOP_TRANSMISSION != cmd) {
+    if (CMD12_STOP_TRANSMISSION != cmd
+        && CMD0_GO_IDLE_STATE != cmd) 
+    {
         if (false == sd_wait_ready(sd_card_p, SD_COMMAND_TIMEOUT)) {
             DBG_PRINTF("%s:%d: Card not ready yet\r\n", __FILE__, __LINE__);
             return SD_BLOCK_DEVICE_ERROR_NO_RESPONSE;
@@ -958,14 +972,14 @@ static uint32_t sd_go_idle_state(sd_card_t *sd_card_p) {
      * though there was no reset. In this scenario the first CMD0 will
      * not be interpreted as a command and get lost. For some cards retrying
      * the command overcomes this situation. */
-    for (int i = 0; i < SD_CMD0_GO_IDLE_STATE_RETRIES; i++) {
+    for (int i = 0; i < SD_CMD0_GO_IDLE_STATE_RETRIES; i++) {   
         sd_cmd(sd_card_p, CMD0_GO_IDLE_STATE, 0x0, false, &response);
         if (R1_IDLE_STATE == response) {
             break;
         }
-        sd_release(sd_card_p);
+        sd_spi_deselect(sd_card_p);
         busy_wait_us(100 * 1000);
-        sd_acquire(sd_card_p);
+        sd_spi_select(sd_card_p);
     }
     return response;
 }
@@ -1074,7 +1088,8 @@ static int sd_init_medium(sd_card_t *sd_card_p) {
 
 static bool sd_spi_test_com(sd_card_t *sd_card_p) {
     // This is allowed to be called before initialization, so ensure mutex is created
-    if (!mutex_is_initialized(&sd_card_p->mutex)) mutex_init(&sd_card_p->mutex);
+    if (!mutex_is_initialized(&sd_card_p->mutex)) 
+        mutex_init(&sd_card_p->mutex);
 
     sd_acquire(sd_card_p);
 
@@ -1137,14 +1152,15 @@ static bool sd_spi_test_com(sd_card_t *sd_card_p) {
     return success;
 }
 
-int sd_spi_init(sd_card_t *sd_card_p) {
+int sd_init(sd_card_t *sd_card_p) {
     TRACE_PRINTF("> %s\r\n", __FUNCTION__);
 
     //	STA_NOINIT = 0x01, /* Drive not initialized */
     //	STA_NODISK = 0x02, /* No medium in the drive */
     //	STA_PROTECT = 0x04 /* Write protected */
 
-    if (!mutex_is_initialized(&sd_card_p->mutex)) mutex_init(&sd_card_p->mutex);
+    if (!mutex_is_initialized(&sd_card_p->mutex)) 
+        mutex_init(&sd_card_p->mutex);
     sd_lock(sd_card_p);
 
     // Make sure there's a card in the socket before proceeding
@@ -1166,33 +1182,32 @@ int sd_spi_init(sd_card_t *sd_card_p) {
     int err = sd_init_medium(sd_card_p);
     if (SD_BLOCK_DEVICE_ERROR_NONE != err) {
         DBG_PRINTF("Failed to initialize card\r\n");
-        sd_spi_release(sd_card_p);
-        sd_unlock(sd_card_p);
+        sd_release(sd_card_p);
         return sd_card_p->m_Status;
     }
     DBG_PRINTF("SD card initialized\r\n");
+
     sd_card_p->sectors = in_sd_spi_sectors(sd_card_p);
     if (0 == sd_card_p->sectors) {
         // CMD9 failed
-        sd_spi_release(sd_card_p);
-        sd_unlock(sd_card_p);
+        sd_release(sd_card_p);
         return sd_card_p->m_Status;
-    }
+    }    
     // Set block length to 512 (CMD16)
     if (sd_cmd(sd_card_p, CMD16_SET_BLOCKLEN, _block_size, false, 0) != 0) {
         DBG_PRINTF("Set %" PRIu32 "-byte block timed out\r\n", _block_size);
-        sd_spi_release(sd_card_p);
-        sd_unlock(sd_card_p);
+        sd_release(sd_card_p);
         return sd_card_p->m_Status;
     }
+    sd_spi_deselect(sd_card_p);
+
     // Set SCK for data transfer
     sd_spi_go_high_frequency(sd_card_p);
 
     // The card is now initialized
     sd_card_p->m_Status &= ~STA_NOINIT;
 
-    sd_spi_release(sd_card_p);
-    sd_unlock(sd_card_p);
+    sd_release(sd_card_p);
 
     // Return the disk status
     return sd_card_p->m_Status;
@@ -1204,7 +1219,7 @@ void sd_spi_ctor(sd_card_t *sd_card_p) {
     sd_card_p->m_Status = STA_NOINIT;
     sd_card_p->write_blocks = sd_write_blocks;
     sd_card_p->read_blocks = sd_read_blocks;
-    sd_card_p->init = sd_spi_init;
+    sd_card_p->init = sd_init;
     sd_card_p->get_num_sectors = sd_spi_sectors;
     sd_card_p->sd_readCID = sd_spi_readCID;
     sd_card_p->sd_test_com = sd_spi_test_com;

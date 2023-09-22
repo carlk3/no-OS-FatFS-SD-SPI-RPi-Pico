@@ -70,12 +70,14 @@ static bool create_big_file(const char *const pathname, uint64_t size,
         fr = f_rewind(&file);
         if (FR_OK != fr) {
             printf("f_rewind error: %s (%d)\n", FRESULT_str(fr), fr);
+            f_close(&file);
             return false;
         }
     } else {
         fr = f_open(&file, pathname, FA_WRITE | FA_CREATE_ALWAYS);
         if (FR_OK != fr) {
             printf("f_open error: %s (%d)\n", FRESULT_str(fr), fr);
+            f_close(&file);
             return false;
         }
     }
@@ -83,15 +85,18 @@ static bool create_big_file(const char *const pathname, uint64_t size,
         FRESULT fr = f_lseek(&file, size);
         if (FR_OK != fr) {
             printf("f_lseek error: %s (%d)\n", FRESULT_str(fr), fr);
+            f_close(&file);
             return false;
         }
         if (f_tell(&file) != size) {
             printf("Disk full?\n");
+            f_close(&file);
             return false;
         }
         fr = f_rewind(&file);
         if (FR_OK != fr) {
             printf("f_rewind error: %s (%d)\n", FRESULT_str(fr), fr);
+            f_close(&file);
             return false;
         }
     }
@@ -106,10 +111,12 @@ static bool create_big_file(const char *const pathname, uint64_t size,
         fr = f_write(&file, buff, BUFFSZ, &bw);
         if (bw < BUFFSZ) {
             printf("f_write(%s,,%d,): only wrote %d bytes\n", pathname, BUFFSZ, bw);
+            f_close(&file);
             return false;
         }
         if (FR_OK != fr) {
             printf("f_write error: %s (%d)\n", FRESULT_str(fr), fr);
+            f_close(&file);
             return false;
         }
     }
@@ -142,10 +149,12 @@ static bool check_big_file(char *pathname, uint64_t size,
         fr = f_read(&file, buff, BUFFSZ, &br);
         if (br < BUFFSZ) {
             printf("f_read(,%s,%d,):only read %u bytes\n", pathname, BUFFSZ, br);
+            f_close(&file);
             return false;
         }
         if (FR_OK != fr) {
             printf("f_read error: %s (%d)\n", FRESULT_str(fr), fr);
+            f_close(&file);
             return false;
         }
         /* Check the buffer is filled with the expected data. */
@@ -156,6 +165,7 @@ static bool check_big_file(char *pathname, uint64_t size,
             if (val != expected) {
                 printf("Data mismatch at dword %llu: expected=0x%8x val=0x%8x\n",
                        (i * sizeof(buff)) + n, expected, val);
+                f_close(&file);
                 return false;
             }
         }
