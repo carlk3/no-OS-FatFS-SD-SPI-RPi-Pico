@@ -1,3 +1,9 @@
+***
+
+***This branch is now obsolete and will be deleted. It has been promoted to a new repository: [no-OS-FatFS-SD-SDIO-SPI-RPi-Pico](https://github.com/carlk3/no-OS-FatFS-SD-SDIO-SPI-RPi-Pico).***
+
+***
+
 # no-OS-FatFS-SD-SPI-RPi-Pico
 
 ## Simple library for SD Cards on the Pico
