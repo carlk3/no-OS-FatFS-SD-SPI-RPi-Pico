@@ -41,7 +41,7 @@ socket, which SPI it is driven by, and how it is wired.
 See https://oshwlab.com/carlk3/rpi-pico-sd-card-expansion-module-1
 */
 
-#define USE_SPI_IF
+#undef USE_SPI_IF
 
 // Hardware Configuration of SPI "objects"
 // Note: multiple SD cards can be driven by one SPI if they use different slave
@@ -82,8 +82,6 @@ static sd_card_t sd_cards[] = {  // One for each SD card
         .card_detect_gpio = 9,  
         .card_detected_true = 0, // What the GPIO read returns when a card is
                                  // present.
-        .card_detect_use_pull = true,
-        .card_detect_pull_hi = true                                 
     }
 #else    
     {
@@ -103,18 +101,22 @@ static sd_card_t sd_cards[] = {  // One for each SD card
         .sdio_if = {
             .CMD_gpio = 3,
             .D0_gpio = 4,
-            .SDIO_PIO = pio0,
-            .DMA_IRQ_num = DMA_IRQ_0,
-            // .baud_rate = 16E6 // 16 MHz
-            .baud_rate = 8E6 // 16 MHz
+            .CLK_gpio_drive_strength = GPIO_DRIVE_STRENGTH_12MA,
+            .CMD_gpio_drive_strength = GPIO_DRIVE_STRENGTH_12MA,
+            .D0_gpio_drive_strength = GPIO_DRIVE_STRENGTH_12MA,
+            .D1_gpio_drive_strength = GPIO_DRIVE_STRENGTH_12MA,
+            .D2_gpio_drive_strength = GPIO_DRIVE_STRENGTH_12MA,
+            .D3_gpio_drive_strength = GPIO_DRIVE_STRENGTH_12MA,
+            .SDIO_PIO = pio1,
+            .DMA_IRQ_num = DMA_IRQ_1,
+            // .baud_rate = 16E6    // 16 MHz
+            .baud_rate = 125E6 / 4  // 31250000 Hz
         },
         // SD Card detect:
         .use_card_detect = true,
         .card_detect_gpio = 9,  
         .card_detected_true = 0, // What the GPIO read returns when a card is
                                  // present.
-        .card_detect_use_pull = true,
-        .card_detect_pull_hi = true
     }
 #endif
 };

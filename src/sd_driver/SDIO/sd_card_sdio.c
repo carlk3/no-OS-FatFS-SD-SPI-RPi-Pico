@@ -621,6 +621,10 @@ static void gpio_conf(uint gpio, enum gpio_function fn, bool pullup, bool pulldo
 }
 
 void sd_sdio_ctor(sd_card_t *sd_card_p) {
+    /*
+    Pins CLK_gpio, D1_gpio, D2_gpio, and D3_gpio are at offsets from pin D0_gpio.
+    The offsets are determined by sd_driver\SDIO\rp2040_sdio.pio.
+    */
     assert(!sd_card_p->sdio_if.CLK_gpio);
     assert(!sd_card_p->sdio_if.D1_gpio);
     assert(!sd_card_p->sdio_if.D2_gpio);
