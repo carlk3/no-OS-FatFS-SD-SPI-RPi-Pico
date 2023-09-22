@@ -437,6 +437,32 @@ static void run_set_sys_clock_khz() {
     setup_default_uart();
 }
 
+static void clr() {
+    char *arg1 = strtok(NULL, " ");
+    if (!arg1) {
+        printf("Missing argument\n");
+        return;
+    }
+    int gp = atoi(arg1);
+
+    gpio_init(gp);
+    gpio_set_dir(gp, GPIO_OUT);
+    gpio_put(gp, 0);
+}
+
+static void set() {
+    char *arg1 = strtok(NULL, " ");
+    if (!arg1) {
+        printf("Missing argument\n");
+        return;
+    }
+    int gp = atoi(arg1);
+
+    gpio_init(gp);
+    gpio_set_dir(gp, GPIO_OUT);
+    gpio_put(gp, 1);
+}
+
 static void run_help();
 
 typedef void (*p_fn_t)();
@@ -526,6 +552,8 @@ static cmd_def_t cmds[] = {
     //  "  Set the system clock system clock frequency in khz."},
     // {"measure_freqs", run_measure_freqs, "measure_freqs:\n"
     //  "  Count the RP2040 clock frequencies and report."},
+    // {"clr", clr, "clr <gpio #>: clear a GPIO"},
+    // {"set", set, "set <gpio #>: set a GPIO"},
 
     {"help", run_help,
      "help:\n"
@@ -617,6 +645,7 @@ static void card_detect_callback(uint gpio, uint32_t events) {
 
 int main() {
     stdio_init_all();
+    setvbuf(stdout, NULL, _IONBF, 1); // specify that the stream should be unbuffered
     time_init();
     adc_init();
 

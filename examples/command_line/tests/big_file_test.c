@@ -26,12 +26,23 @@ specific language governing permissions and limitations under the License.
 #include "f_util.h"
 
 #define FF_MAX_SS 512
-#define BUFFSZ (32 * FF_MAX_SS)  // Should be a factor of 1 Mebibyte
+#define BUFFSZ (64 * FF_MAX_SS)  // Should be a factor of 1 Mebibyte
 
 #define PRE_ALLOCATE false
 
 typedef uint32_t DWORD;
 typedef unsigned int UINT;
+
+static void report(uint64_t size, int64_t elapsed_us) {
+    float elapsed = elapsed_us / 1E6;
+    printf("Elapsed seconds %.3g\n", elapsed);
+    printf("Transfer rate ");
+    if ((double)size / elapsed / 1024 /1024 > 1.0) {
+        printf("%.3g MiB/s, or ", (double)size / elapsed / 1024 /1024);
+    }
+    printf("%.3g KiB/s (%.3g kB/s) (%.3g kb/s)\n",
+           (double)size / elapsed / 1024, (double)size / elapsed / 1000, 8.0 * size / elapsed / 1000);
+}
 
 // Create a file of size "size" bytes filled with random data seeded with "seed"
 static bool create_big_file(const char *const pathname, uint64_t size,
@@ -40,9 +51,6 @@ static bool create_big_file(const char *const pathname, uint64_t size,
     FIL file; /* File object */
 
     srand(seed);  // Seed pseudo-random number generator
-
-    printf("Writing...\n");
-    absolute_time_t xStart = get_absolute_time();
 
     /* Open the file, creating the file if it does not already exist. */
     FILINFO fno;
@@ -62,12 +70,14 @@ static bool create_big_file(const char *const pathname, uint64_t size,
         fr = f_rewind(&file);
         if (FR_OK != fr) {
             printf("f_rewind error: %s (%d)\n", FRESULT_str(fr), fr);
+            f_close(&file);
             return false;
         }
     } else {
         fr = f_open(&file, pathname, FA_WRITE | FA_CREATE_ALWAYS);
         if (FR_OK != fr) {
             printf("f_open error: %s (%d)\n", FRESULT_str(fr), fr);
+            f_close(&file);
             return false;
         }
     }
@@ -75,18 +85,25 @@ static bool create_big_file(const char *const pathname, uint64_t size,
         FRESULT fr = f_lseek(&file, size);
         if (FR_OK != fr) {
             printf("f_lseek error: %s (%d)\n", FRESULT_str(fr), fr);
+            f_close(&file);
             return false;
         }
         if (f_tell(&file) != size) {
             printf("Disk full?\n");
+            f_close(&file);
             return false;
         }
         fr = f_rewind(&file);
         if (FR_OK != fr) {
             printf("f_rewind error: %s (%d)\n", FRESULT_str(fr), fr);
+            f_close(&file);
             return false;
         }
     }
+    
+    printf("Writing...\n");
+    absolute_time_t xStart = get_absolute_time();
+
     for (uint64_t i = 0; i < size / BUFFSZ; ++i) {
         size_t n;
         for (n = 0; n < BUFFSZ / sizeof(DWORD); n++) buff[n] = rand();
@@ -94,21 +111,19 @@ static bool create_big_file(const char *const pathname, uint64_t size,
         fr = f_write(&file, buff, BUFFSZ, &bw);
         if (bw < BUFFSZ) {
             printf("f_write(%s,,%d,): only wrote %d bytes\n", pathname, BUFFSZ, bw);
+            f_close(&file);
             return false;
         }
         if (FR_OK != fr) {
             printf("f_write error: %s (%d)\n", FRESULT_str(fr), fr);
+            f_close(&file);
             return false;
         }
     }
     /* Close the file */
     f_close(&file);
 
-    int64_t elapsed_us = absolute_time_diff_us(xStart, get_absolute_time());
-    float elapsed = elapsed_us / 1E6;
-    printf("Elapsed seconds %.3g\n", elapsed);
-    printf("Transfer rate %.3g KiB/s (%.3g kB/s) (%.3g kb/s)\n",
-           (double)size / elapsed / 1024, (double)size / elapsed / 1000, 8.0 * size / elapsed / 1000);
+    report(size, absolute_time_diff_us(xStart, get_absolute_time()));
     return true;
 }
 
@@ -134,10 +149,12 @@ static bool check_big_file(char *pathname, uint64_t size,
         fr = f_read(&file, buff, BUFFSZ, &br);
         if (br < BUFFSZ) {
             printf("f_read(,%s,%d,):only read %u bytes\n", pathname, BUFFSZ, br);
+            f_close(&file);
             return false;
         }
         if (FR_OK != fr) {
             printf("f_read error: %s (%d)\n", FRESULT_str(fr), fr);
+            f_close(&file);
             return false;
         }
         /* Check the buffer is filled with the expected data. */
@@ -148,6 +165,7 @@ static bool check_big_file(char *pathname, uint64_t size,
             if (val != expected) {
                 printf("Data mismatch at dword %llu: expected=0x%8x val=0x%8x\n",
                        (i * sizeof(buff)) + n, expected, val);
+                f_close(&file);
                 return false;
             }
         }
@@ -155,11 +173,7 @@ static bool check_big_file(char *pathname, uint64_t size,
     /* Close the file */
     f_close(&file);
 
-    int64_t elapsed_us = absolute_time_diff_us(xStart, get_absolute_time());
-    float elapsed = elapsed_us / 1E6;
-    printf("Elapsed seconds %.3g\n", elapsed);
-    printf("Transfer rate %.3g KiB/s (%.3g kB/s) (%.3g kb/s)\n",
-           (double)size / elapsed / 1024, (double)size / elapsed / 1000, 8.0 * size / elapsed / 1000);
+    report(size, absolute_time_diff_us(xStart, get_absolute_time()));
     return true;
 }
 // Specify size in Mebibytes (1024x1024 bytes)

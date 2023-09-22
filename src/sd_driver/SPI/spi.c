@@ -78,12 +78,7 @@ static bool chk_spi(spi_inst_t *spi) {
 }
 
 
-// SPI Transfer: Read & Write (simultaneously) on SPI bus
-//   If the data that will be received is not important, pass NULL as rx.
-//   If the data that will be transmitted is not important,
-//     pass NULL as tx and then the SPI_FILL_CHAR is sent out as each data
-//     element.
-bool spi_transfer(spi_t *spi_p, const uint8_t *tx, uint8_t *rx, size_t length) {
+void spi_transfer_start(spi_t *spi_p, const uint8_t *tx, uint8_t *rx, size_t length) {
     // assert(512 == length || 1 == length);
     assert(tx || rx);
     // assert(!(tx && rx));
@@ -134,12 +129,13 @@ bool spi_transfer(spi_t *spi_p, const uint8_t *tx, uint8_t *rx, size_t length) {
     // start them exactly simultaneously to avoid races (in extreme cases
     // the FIFO could overflow)
     dma_start_channel_mask((1u << spi_p->tx_dma) | (1u << spi_p->rx_dma));
+}
 
+bool spi_transfer_wait_complete(spi_t *spi_p, uint32_t timeout_ms) {    
     /* Wait until master completes transfer or time out has occured. */    
-    uint32_t timeOut = 1000; /* Timeout 1 sec */
+    // Wait for notification from ISR.
     // If the timeout is reached the function will return false:
-    bool timed_out = !sem_acquire_timeout_ms(
-        &spi_p->sem, timeOut);  // Wait for notification from ISR
+    bool timed_out = !sem_acquire_timeout_ms(&spi_p->sem, timeout_ms);  
     if (timed_out) { 
         DBG_PRINTF("Notification wait timed out in %s\n", __FUNCTION__);
     }
@@ -161,7 +157,17 @@ bool spi_transfer(spi_t *spi_p, const uint8_t *tx, uint8_t *rx, size_t length) {
     assert(!sem_available(&spi_p->sem));
     assert(!dma_channel_is_busy(spi_p->tx_dma));
     assert(!dma_channel_is_busy(spi_p->rx_dma));
+
     return true;
+}
+// SPI Transfer: Read & Write (simultaneously) on SPI bus
+//   If the data that will be received is not important, pass NULL as rx.
+//   If the data that will be transmitted is not important,
+//     pass NULL as tx and then the SPI_FILL_CHAR is sent out as each data
+//     element.
+bool spi_transfer(spi_t *spi_p, const uint8_t *tx, uint8_t *rx, size_t length) {
+    spi_transfer_start(spi_p, tx, rx, length);
+    return spi_transfer_wait_complete(spi_p, 1000);
 }
 
 void spi_lock(spi_t *spi_p) {

@@ -43,9 +43,11 @@ typedef struct sd_spi_t {
     spi_t *spi;
     // Slave select is here instead of in spi_t because multiple SDs can share an SPI.
     uint ss_gpio;                   // Slave select for this SD card
-    // Drive strength levels for GPIO outputs.
-    // enum gpio_drive_strength { GPIO_DRIVE_STRENGTH_2MA = 0, GPIO_DRIVE_STRENGTH_4MA = 1, GPIO_DRIVE_STRENGTH_8MA = 2,
-    // GPIO_DRIVE_STRENGTH_12MA = 3 }
+    // Drive strength levels for GPIO outputs:
+    // GPIO_DRIVE_STRENGTH_2MA 
+    // GPIO_DRIVE_STRENGTH_4MA
+    // GPIO_DRIVE_STRENGTH_8MA 
+    // GPIO_DRIVE_STRENGTH_12MA
     bool set_drive_strength;
     enum gpio_drive_strength ss_gpio_drive_strength;
 } sd_spi_t;
@@ -58,6 +60,18 @@ typedef struct sd_sdio_t {
     uint D1_gpio;      // Must be D0 + 1
     uint D2_gpio;      // Must be D0 + 2
     uint D3_gpio;      // Must be D0 + 3
+    // Drive strength levels for GPIO outputs:
+    // GPIO_DRIVE_STRENGTH_2MA 
+    // GPIO_DRIVE_STRENGTH_4MA
+    // GPIO_DRIVE_STRENGTH_8MA 
+    // GPIO_DRIVE_STRENGTH_12MA
+    bool set_drive_strength;
+    enum gpio_drive_strength CLK_gpio_drive_strength;
+    enum gpio_drive_strength CMD_gpio_drive_strength;
+    enum gpio_drive_strength D0_gpio_drive_strength;
+    enum gpio_drive_strength D1_gpio_drive_strength;
+    enum gpio_drive_strength D2_gpio_drive_strength;
+    enum gpio_drive_strength D3_gpio_drive_strength;
     PIO SDIO_PIO;      // either pio0 or pio1
     uint DMA_IRQ_num;  // DMA_IRQ_0 or DMA_IRQ_1
     bool use_exclusive_DMA_IRQ_handler;
