@@ -20,11 +20,13 @@ There should be one element of the spi[] array for each hardware SPI used.
 There should be one element of the sd_cards[] array for each SD card slot.
 The name is should correspond to the FatFs "logical drive" identifier.
 (See http://elm-chan.org/fsw/ff/doc/filename.html#vol)
+In general, this should correspond to the (zero origin) array index.
 The rest of the constants will depend on the type of
 socket, which SPI it is driven by, and how it is wired.
 
 */
 
+#include <assert.h>
 #include <string.h>
 //
 #include "my_debug.h"
@@ -80,6 +82,7 @@ static sd_card_t sd_cards[] = {  // One for each SD card
 /* ********************************************************************** */
 size_t sd_get_num() { return count_of(sd_cards); }
 sd_card_t *sd_get_by_num(size_t num) {
+    assert(num <= sd_get_num());
     if (num <= sd_get_num()) {
         return &sd_cards[num];
     } else {
@@ -88,6 +91,7 @@ sd_card_t *sd_get_by_num(size_t num) {
 }
 size_t spi_get_num() { return count_of(spis); }
 spi_t *spi_get_by_num(size_t num) {
+    assert(num <= spi_get_num());
     if (num <= spi_get_num()) {
         return &spis[num];
     } else {
