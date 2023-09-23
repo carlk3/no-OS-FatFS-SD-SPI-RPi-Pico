@@ -1,6 +1,18 @@
+***
+
+**Note:**
+
+*This repository is more or less frozen. Exceptions will be made for bug fixes and compatibility with new releases of the Pico SDK and FatFS.*
+
+Future development will take place in the new repository: [no-OS-FatFS-SD-SDIO-SPI-RPi-Pico](https://github.com/carlk3/no-OS-FatFS-SD-SDIO-SPI-RPi-Pico).
+
+This repository supports SPI-attached SD cards only. The new repository supports SDIO and/or SPI. 
+
+***
+
 # no-OS-FatFS-SD-SPI-RPi-Pico
 
-**Note:** *This branch is SPI only. If you want to use SDIO (and/or SPI), please switch to the [sdio branch](https://github.com/carlk3/no-OS-FatFS-SD-SPI-RPi-Pico/tree/sdio).*
+
 
 ## Simple library for SD Cards on the Pico
 
