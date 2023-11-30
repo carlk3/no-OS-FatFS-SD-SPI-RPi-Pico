@@ -596,6 +596,9 @@ static uint64_t in_sd_spi_sectors(sd_card_t *sd_card_p) {
     uint32_t hc_c_size;
     uint64_t blocks = 0, capacity = 0;
 
+    bool erase_single_block_enable = 0;
+    uint8_t erase_sector_size = 0;
+
     // CMD9, Response R2 (R1 byte + 16-byte block read)
     if (sd_cmd(sd_card_p, CMD9_SEND_CSD, 0x0, false, 0) != 0x0) {
         DBG_PRINTF("Didn't get a response from the disk\r\n");
@@ -622,9 +625,10 @@ static uint64_t in_sd_spi_sectors(sd_card_t *sd_card_p) {
             capacity = (uint64_t)blocknr *
                        block_len;  // memory capacity = BLOCKNR * BLOCK_LEN
             blocks = capacity / _block_size;
+
             DBG_PRINTF("Standard Capacity: c_size: %" PRIu32 "\r\n", c_size);
             DBG_PRINTF("Sectors: 0x%llx : %llu\r\n", blocks, blocks);
-            DBG_PRINTF("Capacity: 0x%llx : %llu MB\r\n", capacity,
+            DBG_PRINTF("Capacity: 0x%llx : %llu MiB\r\n", capacity,
                        (capacity / (1024U * 1024U)));
             break;
 
@@ -633,9 +637,27 @@ static uint64_t in_sd_spi_sectors(sd_card_t *sd_card_p) {
                 ext_bits(csd, 69, 48);       // device size : C_SIZE : [69:48]
             blocks = (hc_c_size + 1) << 10;  // block count = C_SIZE+1) * 1K
                                              // byte (512B is block size)
+
+            /* ERASE_BLK_EN
+            The ERASE_BLK_EN defines the granularity of the unit size of the data to be erased. The erase
+            operation can erase either one or multiple units of 512 bytes or one or multiple units (or sectors) of
+            SECTOR_SIZE. If ERASE_BLK_EN=0, the host can erase one or multiple units of SECTOR_SIZE.
+            If ERASE_BLK_EN=1 the host can erase one or multiple units of 512 bytes.
+            */
+            erase_single_block_enable = ext_bits(csd, 46, 46);
+
+            /* SECTOR_SIZE
+            The size of an erasable sector. The content of this register is a 7-bit binary coded value, defining the
+            number of write blocks. The actual size is computed by increasing this number
+            by one. A value of zero means one write block, 127 means 128 write blocks.
+            */
+            erase_sector_size = ext_bits(csd, 45, 39) + 1;
+
             DBG_PRINTF("SDHC/SDXC Card: hc_c_size: %" PRIu32 "\r\n", hc_c_size);
             DBG_PRINTF("Sectors: %8llu\r\n", blocks);
             DBG_PRINTF("Capacity: %8llu MB\r\n", (blocks / (2048U)));
+            DBG_PRINTF("ERASE_BLK_EN: %s\r\n", erase_single_block_enable ? "units of 512 bytes" : "units of SECTOR_SIZE");
+            DBG_PRINTF("SECTOR_SIZE (size of an erasable sector): %d\r\n", erase_sector_size);
             break;
 
         default:
@@ -925,11 +947,8 @@ static int in_sd_write_blocks(sd_card_t *sd_card_p, const uint8_t *buffer,
         // Write the data: one block at a time
         do {
             status = sd_write_block(sd_card_p, buffer, SPI_START_BLK_MUL_WRITE, _block_size);
-            if (SD_BLOCK_DEVICE_ERROR_NONE != status) {
-                break;
-            }
             buffer += _block_size;
-        } while (--blockCnt);  // Send all blocks of data
+        } while (--blockCnt && SD_BLOCK_DEVICE_ERROR_NONE == status);  // Send all blocks of data
         /* In a Multiple Block write operation, the stop transmission will be
          * done by sending 'Stop Tran' token instead of 'Start Block' token at
          * the beginning of the next block
