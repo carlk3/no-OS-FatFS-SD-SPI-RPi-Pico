@@ -39,9 +39,6 @@ void ff_memfree (
 /* Definitions of Mutex                                                   */
 /*------------------------------------------------------------------------*/
 
-#define OS_TYPE	0	/* 0:Win32, 1:uITRON4.0, 2:uC/OS-II, 3:FreeRTOS, 4:CMSIS-RTOS */
-
-
 #if   OS_TYPE == 0	/* Win32 */
 #include <windows.h>
 static HANDLE Mutex[FF_VOLUMES + 1];	/* Table of mutex handle */
